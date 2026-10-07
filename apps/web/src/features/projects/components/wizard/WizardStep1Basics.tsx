@@ -3,7 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useProjectWizardStore } from '../../store/useProjectWizardStore';
 import { getOrganizations } from '../../../organizations/api/organizationsApi';
-import { Building2, ChevronDown } from 'lucide-react';
+import { Building2, ChevronDown, CheckSquare, Flag } from 'lucide-react';
 
 const COLORS = [
   '#087F83', '#006D73', '#DF765B', '#F2BA49',
@@ -17,6 +17,7 @@ export const WizardStep1Basics: React.FC = () => {
     projectName, setProjectName,
     projectColor, setProjectColor,
     selectedOrgId, setSelectedOrgId,
+    progressMode, setProgressMode,
     nextStep, close,
   } = useProjectWizardStore();
 
@@ -114,6 +115,45 @@ export const WizardStep1Basics: React.FC = () => {
                 }}
               />
             ))}
+          </div>
+        </div>
+
+        {/* Progress Mode */}
+        <div>
+          <label className="block text-sm font-medium text-base-content/70 mb-2">
+            {t("روش محاسبه پیشرفت")}
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setProgressMode('task_based')}
+              className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-start transition-all ${
+                progressMode === 'task_based'
+                  ? 'border-primary bg-primary/8 text-primary'
+                  : 'border-base-content/10 bg-base-200/50 text-base-content/70 hover:border-base-content/20'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <CheckSquare size={14} />
+                <span className="text-xs font-bold">{t("بر اساس تسک")}</span>
+              </div>
+              <p className="text-[11px] leading-tight opacity-70">{t("درصد = تسک‌های انجام‌شده")}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setProgressMode('milestone_based')}
+              className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-start transition-all ${
+                progressMode === 'milestone_based'
+                  ? 'border-primary bg-primary/8 text-primary'
+                  : 'border-base-content/10 bg-base-200/50 text-base-content/70 hover:border-base-content/20'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Flag size={14} />
+                <span className="text-xs font-bold">{t("بر اساس مایل‌استون")}</span>
+              </div>
+              <p className="text-[11px] leading-tight opacity-70">{t("درصد = مایل‌استون‌های تکمیل‌شده")}</p>
+            </button>
           </div>
         </div>
       </div>

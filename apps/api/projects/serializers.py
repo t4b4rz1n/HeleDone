@@ -76,19 +76,31 @@ class ProjectListSerializer(serializers.ModelSerializer):
     completed_milestone_count = serializers.IntegerField(read_only=True, default=0)
     unlinked_task_count = serializers.IntegerField(read_only=True, default=0)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    progress_mode_display = serializers.CharField(source="get_progress_mode_display", read_only=True)
 
     def get_progress_percentage(self, obj):
         """
-        Weighted Milestone Progress:
-          progress = completed_weight / total_weight * 100
+        Calculates project progress based on progress_mode:
 
-        Returns 0 if no milestones are defined.
-        Progress is ONLY driven by milestones — tasks alone never advance the percentage.
+        - 'task_based'      : completed_task_count / task_count * 100
+        - 'milestone_based' : completed_milestone_weight / total_milestone_weight * 100
+
+        Returns 0 if denominator is zero.
         """
-        total_weight = getattr(obj, "total_milestone_weight", None) or 0
-        if total_weight > 0:
-            completed_weight = getattr(obj, "completed_milestone_weight", None) or 0
-            return round((completed_weight / total_weight) * 100)
+        mode = getattr(obj, "progress_mode", "task_based")
+
+        if mode == "milestone_based":
+            total_weight = getattr(obj, "total_milestone_weight", None) or 0
+            if total_weight > 0:
+                completed_weight = getattr(obj, "completed_milestone_weight", None) or 0
+                return round((completed_weight / total_weight) * 100)
+            return 0
+
+        # Default: task_based
+        task_count = getattr(obj, "task_count", None) or 0
+        if task_count > 0:
+            completed = getattr(obj, "completed_task_count", None) or 0
+            return round((completed / task_count) * 100)
         return 0
 
     class Meta:
@@ -112,6 +124,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
             "task_count",
             "completed_task_count",
             "progress_percentage",
+            "progress_mode",
+            "progress_mode_display",
             "milestone_count",
             "completed_milestone_count",
             "unlinked_task_count",
@@ -192,6 +206,7 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
             "budget_currency",
             "start_date",
             "deadline",
+            "progress_mode",
         )
 
     def validate(self, attrs: dict) -> dict:

@@ -36,6 +36,7 @@ export const ProjectWizard: React.FC = () => {
     currentStep,
     projectName, projectColor,
     selectedOrgId, selectedUserIds, selectedTemplate,
+    progressMode,
   } = useProjectWizardStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +55,7 @@ export const ProjectWizard: React.FC = () => {
         name: projectName,
         color: projectColor,
         organization_id: selectedOrgId,
+        progress_mode: progressMode,
       });
 
 

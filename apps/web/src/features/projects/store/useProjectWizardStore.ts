@@ -1,5 +1,6 @@
 import { t } from "../../../i18n/locale";
 import { create } from 'zustand';
+import type { ProjectProgressMode } from '../types';
 
 export interface BoardTemplate {
   id: string;
@@ -72,6 +73,7 @@ interface ProjectWizardState {
   projectName: string;
   projectColor: string;
   selectedOrgId: string | number | null;
+  progressMode: ProjectProgressMode;
   // Step 2
   selectedUserIds: (string | number)[];
   // Step 3
@@ -85,6 +87,7 @@ interface ProjectWizardState {
   setProjectName: (v: string) => void;
   setProjectColor: (v: string) => void;
   setSelectedOrgId: (id: string | number) => void;
+  setProgressMode: (mode: ProjectProgressMode) => void;
   toggleUser: (id: string | number) => void;
   setSelectedTemplate: (t: BoardTemplate) => void;
   reset: () => void;
@@ -96,6 +99,7 @@ export const useProjectWizardStore = create<ProjectWizardState>((set) => ({
   projectName: '',
   projectColor: '#087F83',
   selectedOrgId: null,
+  progressMode: 'task_based',
   selectedUserIds: [],
   selectedTemplate: BOARD_TEMPLATES[0],
 
@@ -106,6 +110,7 @@ export const useProjectWizardStore = create<ProjectWizardState>((set) => ({
   setProjectName: (v) => set({ projectName: v }),
   setProjectColor: (v) => set({ projectColor: v }),
   setSelectedOrgId: (id) => set({ selectedOrgId: id }),
+  setProgressMode: (mode) => set({ progressMode: mode }),
   toggleUser: (id) =>
     set((s) => ({
       selectedUserIds: s.selectedUserIds.includes(id)
@@ -119,6 +124,7 @@ export const useProjectWizardStore = create<ProjectWizardState>((set) => ({
       projectName: '',
       projectColor: '#087F83',
       selectedOrgId: null,
+      progressMode: 'task_based',
       selectedUserIds: [],
       selectedTemplate: BOARD_TEMPLATES[0],
     }),

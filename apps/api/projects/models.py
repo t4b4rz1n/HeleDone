@@ -17,6 +17,10 @@ class Project(BaseModel):
         COMPLETED = "completed", _("Completed")
         ARCHIVED = "archived", _("Archived")
 
+    class ProgressMode(models.TextChoices):
+        TASK_BASED = "task_based", _("Task-based")
+        MILESTONE_BASED = "milestone_based", _("Milestone-based")
+
     organization = models.ForeignKey(
         "organizations.Organization",
         on_delete=models.CASCADE,
@@ -80,6 +84,18 @@ class Project(BaseModel):
         blank=True,
         default="",
         help_text=_("Hex color code for project accent (e.g., #6366f1)"),
+    )
+    progress_mode = models.CharField(
+        _("Progress mode"),
+        max_length=20,
+        choices=ProgressMode.choices,
+        default=ProgressMode.TASK_BASED,
+        db_index=True,
+        help_text=_(
+            "Controls how project progress percentage is calculated. "
+            "'task_based': progress = completed tasks / total tasks. "
+            "'milestone_based': progress = completed milestone weight / total weight."
+        ),
     )
 
     class Meta:
