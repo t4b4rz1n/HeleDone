@@ -1,9 +1,9 @@
 import { useTranslation } from "../../../../i18n/locale";
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useProjectWizardStore } from '../../store/useProjectWizardStore';
 import { getOrganizations } from '../../../organizations/api/organizationsApi';
-import { Building2, ChevronDown, CheckSquare, Flag } from 'lucide-react';
+import { Building2, ChevronDown, CheckSquare, Flag, HelpCircle } from 'lucide-react';
 
 const COLORS = [
   '#087F83', '#006D73', '#DF765B', '#F2BA49',
@@ -20,6 +20,8 @@ export const WizardStep1Basics: React.FC = () => {
     progressMode, setProgressMode,
     nextStep, close,
   } = useProjectWizardStore();
+
+  const [showProgressHelp, setShowProgressHelp] = useState(false);
 
   const { data: orgs = [], isLoading: orgsLoading } = useQuery({
     queryKey: ['organizations-list'],
@@ -120,9 +122,42 @@ export const WizardStep1Basics: React.FC = () => {
 
         {/* Progress Mode */}
         <div>
-          <label className="block text-sm font-medium text-base-content/70 mb-2">
-            {t("روش محاسبه پیشرفت")}
-          </label>
+          <div className="flex items-center gap-1.5 mb-2">
+            <label className="block text-sm font-medium text-base-content/70">
+              {t("روش محاسبه پیشرفت")}
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowProgressHelp((v) => !v)}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-base-content/40 hover:text-primary transition-colors"
+              aria-label={t("راهنمای روش محاسبه پیشرفت")}
+            >
+              <HelpCircle size={14} />
+            </button>
+          </div>
+
+          {/* Inline help — no absolute positioning, no overflow issues */}
+          {showProgressHelp && (
+            <div className="mb-3 rounded-xl border border-base-content/10 bg-base-200/50 p-3 text-xs space-y-2.5">
+              <div className="flex gap-2">
+                <span className="text-primary mt-0.5 shrink-0"><CheckSquare size={13} /></span>
+                <div>
+                  <p className="font-bold text-base-content">{t("بر اساس تسک")}</p>
+                  <p className="text-base-content/60 leading-relaxed mt-0.5">{t("پیشرفت = تسک‌های انجام‌شده ÷ کل تسک‌ها × ۱۰۰")}</p>
+                  <p className="text-base-content/50 mt-0.5">{t("مناسب وقتی milestone ندارید یا می‌خواهید نمای ساده داشته باشید.")}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-warning mt-0.5 shrink-0"><Flag size={13} /></span>
+                <div>
+                  <p className="font-bold text-base-content">{t("بر اساس مایل‌استون")}</p>
+                  <p className="text-base-content/60 leading-relaxed mt-0.5">{t("پیشرفت = وزن milestone‌های تکمیل‌شده ÷ کل وزن × ۱۰۰")}</p>
+                  <p className="text-base-content/50 mt-0.5">{t("اگر milestone نسازید، عدد پیشرفت صفر می‌ماند.")}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -157,6 +192,7 @@ export const WizardStep1Basics: React.FC = () => {
           </div>
         </div>
       </div>
+
 
       {/* Footer */}
       <div className="flex justify-between items-center pt-6 mt-6 border-t border-base-300">

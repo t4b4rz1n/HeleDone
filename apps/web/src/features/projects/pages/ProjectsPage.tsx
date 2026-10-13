@@ -247,9 +247,13 @@ function ProjectCard({
   const progress = Math.max(0, Math.min(100, project.progress_percentage || 0));
   const projectColor = project.color || "#087F83";
 
-  // Always milestone-based — no task fallback
+  // Progress display: strictly respect progress_mode — no fallback
+  const progressMode = project.progress_mode || "task_based";
   const completedMilestones = project.completed_milestone_count || 0;
   const totalMilestones = project.milestone_count || 0;
+  const completedTasks = project.completed_task_count || 0;
+  const totalTasks = project.task_count || 0;
+  const useMilestoneDisplay = progressMode === "milestone_based";
 
   return (
     <motion.article
@@ -276,13 +280,15 @@ function ProjectCard({
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-heledone-border pt-4">
           <div>
             <p className="text-xs font-medium text-heledone-ink-muted">
-              {t("Milestone Progress")}</p>
+              {useMilestoneDisplay ? t("Milestone Progress") : t("Task Progress")}
+            </p>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-bold text-base-content">
-                {formatUiNumber(completedMilestones)}
+                {useMilestoneDisplay ? formatUiNumber(completedMilestones) : formatUiNumber(completedTasks)}
               </span>
               <span className="text-sm font-medium text-heledone-ink-muted">
-                / {formatUiNumber(totalMilestones)}  {t("Done")}</span>
+                / {useMilestoneDisplay ? formatUiNumber(totalMilestones) : formatUiNumber(totalTasks)}  {t("Done")}
+              </span>
             </div>
           </div>
 
@@ -291,8 +297,8 @@ function ProjectCard({
           </div>
         </div>
 
-        {/* Unlinked tasks warning badge */}
-        {(project.unlinked_task_count || 0) > 0 && (
+        {/* Unlinked tasks warning badge — only relevant in milestone_based mode */}
+        {useMilestoneDisplay && (project.unlinked_task_count || 0) > 0 && (
           <div className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-warning">
             <TriangleAlert size={14} className="shrink-0" aria-hidden="true" />
             <span>{(project.unlinked_task_count || 0) === 1 ? t("{count} unlinked task", { count: 1 }) : t("{count} unlinked tasks", { count: project.unlinked_task_count || 0 })}</span>
