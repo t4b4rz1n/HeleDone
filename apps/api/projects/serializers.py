@@ -76,7 +76,9 @@ class ProjectListSerializer(serializers.ModelSerializer):
     completed_milestone_count = serializers.IntegerField(read_only=True, default=0)
     unlinked_task_count = serializers.IntegerField(read_only=True, default=0)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    progress_mode_display = serializers.CharField(source="get_progress_mode_display", read_only=True)
+    progress_mode_display = serializers.CharField(
+        source="get_progress_mode_display", read_only=True
+    )
 
     def get_progress_percentage(self, obj):
         """

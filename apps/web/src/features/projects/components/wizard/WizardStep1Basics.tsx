@@ -138,7 +138,13 @@ export const WizardStep1Basics: React.FC = () => {
 
           {/* Inline help — no absolute positioning, no overflow issues */}
           {showProgressHelp && (
-            <div className="mb-3 rounded-xl border border-base-content/10 bg-base-200/50 p-3 text-xs space-y-2.5">
+            <div className="mb-3 relative rounded-xl border border-base-content/10 bg-base-200/50 p-3 text-xs space-y-2.5">
+              <button
+                type="button"
+                onClick={() => setShowProgressHelp(false)}
+                className="absolute top-2 end-2 flex items-center justify-center w-5 h-5 rounded-full text-base-content/40 hover:text-base-content hover:bg-base-300 transition-colors"
+                aria-label={t("بستن")}
+              >✕</button>
               <div className="flex gap-2">
                 <span className="text-primary mt-0.5 shrink-0"><CheckSquare size={13} /></span>
                 <div>

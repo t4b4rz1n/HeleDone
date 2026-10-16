@@ -1604,6 +1604,7 @@ const messages = {
   "Delete Board": "حذف کانبان",
   "Update board details": "به‌روزرسانی مشخصات کانبان",
   "Delete Board?": "کانبان رو حذف کنیم؟",
+  "Daily Standups": "گزارش‌های روزانه",
   "Track team progress, logged hours, and blockers in real-time": "پیشرفت تیمت، زمان‌های ثبت‌شده و موانع کار رو دنبال کن",
   "Standup Matrix": "جدول گزارش روزانه",
   "Team Member": "عضو تیم",

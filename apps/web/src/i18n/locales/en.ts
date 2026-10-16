@@ -1604,6 +1604,7 @@ const messages = {
   "Delete Board": "Delete Board",
   "Update board details": "Update board details",
   "Delete Board?": "Delete Board?",
+  "Daily Standups": "Daily Standups",
   "Track team progress, logged hours, and blockers in real-time": "Track team progress, logged hours, and blockers in real-time",
   "Standup Matrix": "Standup Matrix",
   "Team Member": "Team Member",
