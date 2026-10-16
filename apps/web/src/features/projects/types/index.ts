@@ -6,6 +6,8 @@ export type ProjectStatus =
   | "completed"
   | "archived";
 
+export type ProjectProgressMode = "task_based" | "milestone_based";
+
 export type ViewMode = "table" | "grid" | "orbit";
 
 export type ProjectListParams =
@@ -43,6 +45,8 @@ export interface Project {
   color?: string;
   status: ProjectStatus;
   status_display?: string;
+  progress_mode?: ProjectProgressMode;
+  progress_mode_display?: string;
   budget?: number | string | null;
   budget_currency?: string;
   start_date?: string | null;
@@ -74,6 +78,7 @@ export interface ProjectPayload {
   start_date?: string | null;
   deadline?: string | null;
   status?: ProjectStatus;
+  progress_mode?: ProjectProgressMode;
 }
 
 // 4. Project Members
@@ -152,8 +157,10 @@ export interface CreateProjectDTO {
   start_date?: string | null;
   deadline?: string | null;
   status?: ProjectStatus;
+  progress_mode?: ProjectProgressMode;
 }
 
 export type UpdateProjectDTO = Partial<CreateProjectDTO> & {
   status?: ProjectStatus;
+  progress_mode?: ProjectProgressMode;
 };

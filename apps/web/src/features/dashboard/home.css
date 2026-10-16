@@ -1,7 +1,7 @@
 /* Reference home: compact work information, warm coastal identity. */
 .home-reference-shell {background:#fff8ee;color:#173c46}
 .home-reference-shell .heledone-page {padding:0 20px 18px;background:#fff8ee}
-.home-sidebar {width:220px;flex:0 0 220px;display:flex;flex-direction:column;background:#fffaf3;border-inline-end:1px solid #f3eee5;position:relative;color:#245365;padding:18px 16px 12px;height:100dvh;overflow-y:auto}
+.home-sidebar {width:245px;flex:0 0 245px;display:flex;flex-direction:column;background:#fffaf3;border-inline-end:1px solid #f3eee5;position:relative;color:#245365;padding:18px 14px 12px;height:100dvh;overflow-y:auto}
 .home-logo {display:flex;justify-content:center;min-height:65px}
 .home-logo .heledone-brand {gap:12px}
 .home-logo .heledone-brand-name {font-size:32px;line-height:1.2;font-weight:900}
@@ -11,7 +11,7 @@
 .home-logo .heledone-beats span:nth-child(2) {height:37px;background:#f2ba49}
 .home-logo .heledone-beats span:nth-child(3) {height:34px;background:#087f83}
 .home-sidebar nav {display:flex;flex-direction:column;gap:5px;margin-top:8px}
-.home-sidebar nav a {height:49px;display:flex;align-items:center;gap:23px;padding:0 16px;border-radius:12px;font-size:16px;font-weight:650;white-space:nowrap}
+.home-sidebar nav a {height:49px;display:flex;align-items:center;gap:16px;padding:0 14px;border-radius:12px;font-size:15px;font-weight:650;white-space:nowrap}
 .home-sidebar nav a.active {background:#e2f3ef;color:#087f83}
 .home-sidebar nav a:hover,.home-settings:hover {background:#eaf5f2}
 .home-sidebar-bottom {margin-top:auto;min-height:320px;display:flex;flex-direction:column}
@@ -141,7 +141,17 @@
 .home-sidebar nav svg {flex-shrink:0}
 [dir=ltr] .home-logo .heledone-brand-name {font-size:25px}
 [dir=ltr] .home-logo .heledone-beats span {width:9px;height:29px}
-[dir=ltr] .home-sidebar nav a,[dir=ltr] .home-sidebar nav .home-nav-guide {font-size:13px;gap:12px;padding-inline:12px}
+[dir=ltr] .home-sidebar nav a,
+[dir=ltr] .home-sidebar nav .home-nav-unavailable,
+[dir=ltr] .home-sidebar nav .home-nav-guide {font-size:13.5px;gap:10px;padding-inline:12px}
+[dir=ltr] .home-sidebar nav svg {width:21px;height:21px}
+.home-sidebar nav a span,
+.home-sidebar nav .home-nav-unavailable span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[dir=ltr] .home-nav-unavailable small {font-size:9.5px;letter-spacing:-0.2px;padding:2px 5px;border-radius:6px;background:rgba(113,133,139,0.12);flex-shrink:0}
+[dir=ltr] .home-settings {gap:12px;font-size:13.5px}
+[dir=ltr] .home-motto {font-size:13px}
+@media(max-width:1150px) {[dir=ltr] .home-sidebar {width:235px;flex-basis:235px}}
+@media(max-width:900px) {[dir=ltr] .home-sidebar {width:250px}}
 @media(max-width:650px) {.home-topbar .home-create {min-width:0}.home-news-text p {font-size:12px}.home-status {font-size:11px}.home-sidecards {grid-template-rows:217px 103px}.home-task-project {display:none}}
 .home-news-text p {line-height:1.45}.home-news-row {padding-bottom:5px}.home-stat h2 {font-size:15px}.home-status {font-size:13px}
 .home-stat.gold .home-stat-icon svg {fill:#f2ba49;stroke:white}
@@ -149,7 +159,7 @@
 @media(max-width:1150px) {.home-stat h2 {font-size:12px}.home-status {font-size:12px}}
 .home-reference-shell .heledone-page {padding-bottom:16px}
 .home-sidebar nav a.active svg {fill:#087f83;stroke:#e2f3ef;stroke-width:1.6}
-.home-nav-unavailable {height:49px;display:flex;align-items:center;gap:17px;padding:0 16px;border-radius:12px;font-size:15px;font-weight:650;color:#71858b;white-space:nowrap;cursor:not-allowed}
+.home-nav-unavailable {height:49px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:12px;font-size:15px;font-weight:650;color:#71858b;white-space:nowrap;cursor:not-allowed}
 .home-nav-unavailable svg {flex-shrink:0}.home-nav-unavailable small {font-size:10px;white-space:nowrap;margin-inline-start:auto;color:#84979d}
 .home-subnav {margin:2px 38px 5px 0;padding-inline-start:12px;border-inline-start:2px solid #dce6e2;display:flex;flex-direction:column;gap:1px}
 [dir=ltr] .home-subnav {margin:2px 0 5px 38px}

@@ -416,18 +416,22 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
 .heledone-global-search:hover { border-color: var(--color-primary); }
 .heledone-topbar nav { margin-inline-end: 1rem; }
 .heledone-sidebar { background: var(--color-heledone-canvas); }
-.heledone-sidebar {
-  visibility: hidden;
-  transform: translateX(-100%);
-  transition: transform 300ms ease, visibility 300ms;
+/* Mobile sidebar animation - only apply on mobile */
+@media (max-width: 1023px) {
+  .heledone-sidebar {
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: transform 300ms ease, visibility 300ms;
+  }
+  [dir="rtl"] .heledone-sidebar { transform: translateX(100%); }
+  .heledone-sidebar[data-open="true"] { visibility: visible; transform: translateX(0); }
 }
-[dir="rtl"] .heledone-sidebar { transform: translateX(100%); }
-.heledone-sidebar[data-open="true"] { visibility: visible; transform: translateX(0); }
+/* Desktop sidebar - always visible, no transform */
 @media (min-width: 1024px) {
-  .heledone-sidebar, [dir="rtl"] .heledone-sidebar {
+  .heledone-sidebar {
     position: relative;
     visibility: visible;
-    transform: none;
+    transform: none !important;
   }
 }
 .heledone-sidebar nav a { min-height: 3rem; }
