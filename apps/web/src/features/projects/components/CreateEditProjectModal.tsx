@@ -6,9 +6,10 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CloseCircle, FolderAdd, TickCircle } from "iconsax-reactjs";
+import { CheckSquare, Flag, HelpCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { Project, CreateProjectDTO, ProjectStatus } from "../types";
+import type { Project, CreateProjectDTO, ProjectStatus, ProjectProgressMode } from "../types";
 import { useCreateProject, useUpdateProject } from "../hooks/useProjects";
 import { getOrganizationsForProjects } from "../api/projectsApi";
 
@@ -44,6 +45,8 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
     enabled: isOpen,
   });
 
+  const [showProgressHelp, setShowProgressHelp] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     organization_id: "",
@@ -54,6 +57,7 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
     start_date: "",
     deadline: "",
     status: "active" as ProjectStatus,
+    progress_mode: "task_based" as ProjectProgressMode,
   });
 
   useEffect(() => {
@@ -73,6 +77,7 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
         start_date: project.start_date ? project.start_date.split("T")[0] : "",
         deadline: project.deadline ? project.deadline.split("T")[0] : "",
         status: project.status || "active",
+        progress_mode: project.progress_mode || "task_based",
       });
     } else {
       setFormData({
@@ -85,6 +90,7 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
         start_date: new Date().toISOString().split("T")[0],
         deadline: "",
         status: "active",
+        progress_mode: "task_based",
       });
     }
   }, [project, isOpen]);
@@ -129,6 +135,7 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
       budget_currency: formData.budget_currency,
       start_date: formData.start_date || null,
       deadline: formData.deadline || null,
+      progress_mode: formData.progress_mode,
     };
 
     const handleApiError = (err: any) => {
@@ -375,6 +382,84 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
                   )}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Progress Mode Selector */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <label className="block font-bold text-heledone-ink-muted uppercase tracking-wider text-[13px]">
+                {t("روش محاسبه پیشرفت")}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowProgressHelp((v) => !v)}
+                className="flex items-center justify-center w-4 h-4 rounded-full text-base-content/40 hover:text-primary transition-colors"
+                aria-label={t("راهنمای روش محاسبه پیشرفت")}
+              >
+                <HelpCircle size={14} />
+              </button>
+            </div>
+
+            {/* Inline help — no absolute positioning */}
+            {showProgressHelp && (
+              <div className="mb-3 relative rounded-xl border border-base-content/10 bg-base-200/50 p-3 text-xs space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowProgressHelp(false)}
+                  className="absolute top-2 end-2 flex items-center justify-center w-5 h-5 rounded-full text-base-content/40 hover:text-base-content hover:bg-base-300 transition-colors"
+                  aria-label={t("بستن")}
+                >✕</button>
+                <div className="flex gap-2">
+                  <span className="text-primary mt-0.5 shrink-0"><CheckSquare size={13} /></span>
+                  <div>
+                    <p className="font-bold text-base-content">{t("بر اساس تسک")}</p>
+                    <p className="text-base-content/60 leading-relaxed mt-0.5">{t("پیشرفت = تسک‌های انجام‌شده ÷ کل تسک‌ها × ۱۰۰")}</p>
+                    <p className="text-base-content/50 mt-0.5">{t("مناسب وقتی milestone ندارید یا می‌خواهید نمای ساده داشته باشید.")}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-warning mt-0.5 shrink-0"><Flag size={13} /></span>
+                  <div>
+                    <p className="font-bold text-base-content">{t("بر اساس مایل‌استون")}</p>
+                    <p className="text-base-content/60 leading-relaxed mt-0.5">{t("پیشرفت = وزن milestone‌های تکمیل‌شده ÷ کل وزن × ۱۰۰")}</p>
+                    <p className="text-base-content/50 mt-0.5">{t("اگر milestone نسازید، عدد پیشرفت صفر می‌ماند.")}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, progress_mode: 'task_based' }))}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-start transition-all ${
+                  formData.progress_mode === 'task_based'
+                    ? 'border-primary bg-primary/8 text-primary'
+                    : 'border-base-content/10 bg-base-200/50 text-base-content/70 hover:border-base-content/20'
+                }`}
+              >
+                <CheckSquare size={14} className="shrink-0" />
+                <div>
+                  <p className="text-[11px] font-bold leading-tight">{t("بر اساس تسک")}</p>
+                  <p className="text-[10px] leading-tight opacity-60">{t("درصد = تسک‌های انجام‌شده")}</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, progress_mode: 'milestone_based' }))}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-start transition-all ${
+                  formData.progress_mode === 'milestone_based'
+                    ? 'border-primary bg-primary/8 text-primary'
+                    : 'border-base-content/10 bg-base-200/50 text-base-content/70 hover:border-base-content/20'
+                }`}
+              >
+                <Flag size={14} className="shrink-0" />
+                <div>
+                  <p className="text-[11px] font-bold leading-tight">{t("بر اساس مایل‌استون")}</p>
+                  <p className="text-[10px] leading-tight opacity-60">{t("درصد = مایل‌استون‌های تکمیل‌شده")}</p>
+                </div>
+              </button>
             </div>
           </div>
 
