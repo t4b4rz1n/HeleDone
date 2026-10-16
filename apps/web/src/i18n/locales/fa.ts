@@ -1886,6 +1886,10 @@ const messages = {
   "The work we move forward together.": "کارهایی که با هم جلو می‌بریم.",
   "Clear search": "پاک کردن جست‌وجو",
   "Clear filters": "پاک کردن فیلترها",
-  "{count} projects": "{count} پروژه"
+  "{count} projects": "{count} پروژه",
+  "پروژه‌های باز": "پروژه‌های باز",
+  "تسک بررسی": "تسک بررسی",
+  "پروژه جدید": "پروژه جدید",
+  "جستجو...": "جستجو..."
 };
 export default messages;

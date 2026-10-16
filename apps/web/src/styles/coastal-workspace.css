@@ -67,7 +67,7 @@
   --coastal-scene: url('/images/heledone-assets/leadership-coastal-v1.png');
 }
 .heledone-workspace:not(.home-reference-shell) .heledone-page {
-  background: color-mix(in srgb, var(--color-heledone-surface) 70%, var(--color-heledone-surface-muted));
+  background: var(--color-base-200);
 }
 .heledone-workspace .heledone-page-heading {
   position: relative;

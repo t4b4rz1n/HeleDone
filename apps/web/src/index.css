@@ -15,8 +15,8 @@
   default: true;
   color-scheme: "light";
   --color-base-100: #FFFFFF;
-  --color-base-200: #FFF8EE;
-  --color-base-300: #DCE6E2;
+  --color-base-200: #F3F6FA;
+  --color-base-300: #E2E8F0;
   --color-base-content: #173C46;
   --color-primary: #087F83;
   --color-primary-content: #FFFFFF;
@@ -79,9 +79,9 @@
 }
 
 @theme {
-  --color-heledone-canvas: #FFF8EE;
+  --color-heledone-canvas: #F3F6FA;
   --color-heledone-surface: #FFFFFF;
-  --color-heledone-surface-muted: #F3F5EF;
+  --color-heledone-surface-muted: #EBF1F6;
   --color-heledone-ink: #173C46;
   --color-heledone-ink-muted: #52666C;
   --color-heledone-border: #DCE6E2;

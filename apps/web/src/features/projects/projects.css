@@ -57,20 +57,26 @@
   min-width: 0;
   background: var(--color-base-100);
   border-block-start: 3px solid var(--color-heledone-coral);
-  transition: border-color 160ms, box-shadow 160ms;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: border-color 160ms, box-shadow 160ms, transform 160ms;
 }
 .projects-card:nth-child(3n + 2) { border-block-start-color: var(--color-heledone-sun); }
 .projects-card:nth-child(3n) { border-block-start-color: var(--color-primary); }
-.projects-card:hover { border-inline-color: var(--color-primary); }
+.projects-card:hover {
+  border-inline-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
 .projects-folder {
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--color-heledone-brand-soft);
 }
-.projects-card-link::after { position: absolute; inset: 0; content: ""; border-radius: 8px; }
+.projects-card-link::after { position: absolute; inset: 0; content: ""; border-radius: 16px; }
 .projects-card-link:focus-visible { outline: none; }
 .projects-card-link:focus-visible::after { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .projects-card-description {

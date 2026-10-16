@@ -1,200 +1,415 @@
-/* Reference home: compact work information, warm coastal identity. */
-.home-reference-shell {background:#fff8ee;color:#173c46}
-.home-reference-shell .heledone-page {padding:0 20px 18px;background:#fff8ee}
-.home-sidebar {width:245px;flex:0 0 245px;display:flex;flex-direction:column;background:#fffaf3;border-inline-end:1px solid #f3eee5;position:relative;color:#245365;padding:18px 14px 12px;height:100dvh;overflow-y:auto}
-.home-logo {display:flex;justify-content:center;min-height:65px}
-.home-logo .heledone-brand {gap:12px}
-.home-logo .heledone-brand-name {font-size:32px;line-height:1.2;font-weight:900}
-.home-logo .heledone-brand-latin {text-align:center;font-size:13px;letter-spacing:1px}
-.home-logo .heledone-beats {direction:ltr;gap:5px}
-.home-logo .heledone-beats span {width:12px;height:34px;transform:rotate(32deg);background:#df765b}
-.home-logo .heledone-beats span:nth-child(2) {height:37px;background:#f2ba49}
-.home-logo .heledone-beats span:nth-child(3) {height:34px;background:#087f83}
-.home-sidebar nav {display:flex;flex-direction:column;gap:5px;margin-top:8px}
-.home-sidebar nav a {height:49px;display:flex;align-items:center;gap:16px;padding:0 14px;border-radius:12px;font-size:15px;font-weight:650;white-space:nowrap}
-.home-sidebar nav a.active {background:#e2f3ef;color:#087f83}
-.home-sidebar nav a:hover,.home-settings:hover {background:#eaf5f2}
-.home-sidebar-bottom {margin-top:auto;min-height:320px;display:flex;flex-direction:column}
-.home-seascape {height:170px;position:relative;margin:12px -16px 0;overflow:hidden;isolation:isolate}
-.home-seascape img {position:absolute;object-fit:contain;mix-blend-mode:multiply}
-.home-sea {width:100%;height:105px;bottom:0;z-index:1}
-.home-palm {height:165px;width:150px;inset-inline-start:-52px;top:0;z-index:3}
-.home-boat {width:85px;height:65px;bottom:27px;inset-inline-start:42px;z-index:2}
-.home-sun {position:absolute;width:46px;height:46px;border-radius:50%;background:#ffd46b;bottom:55px;inset-inline-end:48px}
-.home-user {display:flex;gap:12px;align-items:center;padding:12px 6px;font-size:13px}
-.home-user img {width:43px;height:43px;border-radius:50%;object-fit:cover}
-.home-user small {display:block;font-weight:400;color:#71858b;font-size:12px}
-.home-settings {display:flex;align-items:center;gap:22px;padding:9px 13px;font-size:15px;font-weight:650;border-radius:10px}
-.home-demo-toggle {font-size:10px;color:#52666c;text-align:center;margin-top:7px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.home-motto {text-align:center!important;font-size:15px;font-weight:750;color:#087f83;margin:9px 0 0}
-.home-topbar {position:relative;z-index:40;height:65px;flex:0 0 65px;display:flex;align-items:center;gap:23px;padding:10px 26px;background:#fffdfa}
-.home-search {min-width:0;flex:1;display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f0f1f2;color:#7c8b95;border-radius:12px;height:43px;padding:0 18px;font-size:14px;font-weight:650;cursor:pointer}
-.home-search span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.home-search svg,.home-menu {flex-shrink:0}
-.home-header-actions {display:flex;align-items:center;gap:8px;flex-shrink:0}
-.home-create {background:#087f83;color:white;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:12px;min-height:43px;padding:0 20px;white-space:nowrap;font-size:15px;font-weight:650;cursor:pointer}
-.home-create:hover {background:#006d73}
-.home-topbar>div {flex-shrink:0}
-.home-topbar .btn {background:transparent;border:0;box-shadow:none}
-.home-menu,.home-mobile-close {display:none}
-.reference-home {max-width:1440px;margin:auto;font-size:14px;line-height:1.7;color:#173c46}
-.reference-home h1,.reference-home h2,.reference-home h3,.reference-home p {margin:0;text-align:start}
-.reference-home h2 {font-size:20px;font-weight:850;line-height:1.5}
-.home-welcome {position:relative;isolation:isolate;min-height:160px;height:auto;border-radius:8px;overflow:hidden;background:#FFFCF8;display:flex;align-items:center;padding:20px 24px}
-.home-welcome::before {content:'';position:absolute;inset:0;z-index:-1;background-image:url('/images/heledone-assets/home-welcome-v2.png');background-size:cover;background-position:left 55%;pointer-events:none}
-[dir=ltr] .home-welcome::before {transform:scaleX(-1)}
-.home-welcome > div {max-width:52%;min-width:0}
-.home-welcome h1 {font-size:34px;font-weight:900;line-height:1.6}
-.home-welcome p {font-size:18px;font-weight:600;margin-top:3px}
-.home-stats {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0 14px}
-.home-stat {position:relative;height:92px;display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border:1px solid white;border-radius:12px}
-.home-stat h2 {font-size:14px;font-weight:750;white-space:nowrap}
-.home-stat strong {font-size:30px;line-height:1.25;font-weight:900;font-variant-numeric:tabular-nums}
-.home-stat-icon {width:53px;height:53px;display:grid;place-items:center;border-radius:50%;flex-shrink:0}
-.home-stat.gold {background:#fffaee}.home-stat.gold .home-stat-icon {background:#fff0bd;color:#efad30}
-.home-stat.blue {background:#edf8ff}.home-stat.blue .home-stat-icon {background:#cbeaff;color:#228ac4}
-.home-stat.teal {background:#eff9f5}.home-stat.teal .home-stat-icon {background:#bfe8df;color:#177c86}
-.home-stat.coral {background:#fff4ee}.home-stat.coral .home-stat-icon {background:#ffded3;color:#df765b}
-.home-stat-arrow {position:absolute;bottom:19px;inset-inline-end:39%;color:#7b98a2}
-.home-middle {display:grid;grid-template-columns:minmax(0,1.66fr) minmax(0,1fr);gap:12px}
-.home-card {background:white;border-radius:12px;border:1px solid #fff;box-shadow:0 2px 8px #eedfcd18;min-width:0;overflow:hidden}
-.home-card-heading {height:58px;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;gap:10px}
-.home-card-heading>a {color:#66828d;display:flex}
-.home-tasks {min-height:329px}
-.home-period {display:flex;gap:5px;margin-inline-start:auto}
-.home-period button {font-size:13px;background:#f7f8f9;color:#7b8b94;border-radius:11px;padding:6px 22px;cursor:pointer;font-weight:650}
-.home-period button.selected {background:#e1f4f1;color:#087f83}
-.home-task-list {padding:0 18px}
-.home-task-row {display:flex;align-items:center;gap:17px;min-height:71px;border-top:1px solid #f1f4f5}
-.home-task-icon {color:#7a909a;flex-shrink:0}
-.home-task-title {min-width:0;flex:1;line-height:1.7;font-size:16px;font-weight:750}
-.home-task-title strong {display:block;overflow-wrap:anywhere}
-.home-task-progress {display:block;height:8px;background:#e0e4e9;border-radius:8px;margin-top:6px;width:95%}
-.home-task-project {font-size:11px;color:#7c8d98;display:flex;align-items:center;gap:7px;white-space:nowrap}
-.home-task-project i {width:8px;height:8px;background:#369bfa;border-radius:50%}.home-task-project i.gold {background:#ffb521}
-.home-status {font-size:11px;font-weight:700;border-radius:18px;padding:4px 12px;white-space:nowrap;background:#edf0f2;color:#52666c}
-.home-status.in_progress {background:#dff2ff;color:#247dba}.home-status.review,.home-status.in_review {background:#fff3d4;color:#a96d09}.home-status.done {background:#e4f5e9;color:#217046}
-.home-avatar {height:39px;width:39px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #fffaf3}
-.home-task-row input {appearance:none;height:21px;width:21px;border:1.5px solid #a8bac5;border-radius:5px;cursor:pointer;flex-shrink:0}
-.home-task-row input:checked {background:#087f83;border-color:#087f83;box-shadow:inset 0 0 0 4px white}
-.home-task-row.is-complete .home-task-title strong {text-decoration:line-through;color:#71858b}
-.home-see-all {display:flex;width:max-content;align-items:center;gap:12px;font-size:12px;background:#f2f7f7;color:#27727b;border-radius:14px;padding:6px 13px;margin:6px 18px 11px auto;font-weight:700}
-.home-sidecards {display:grid;grid-template-rows:217px 103px;gap:10px}
-.home-timer .home-card-heading {height:48px}.home-timer h2 {font-size:17px;display:flex;align-items:center;gap:9px}
-.home-live-dot,.home-idle-dot {width:12px;height:12px;background:#45d598;border-radius:50%}.home-idle-dot {background:#a8bac5}
-.home-timer-panel {height:154px;margin:0 12px 12px;background:#f1f8f8;border-radius:10px;position:relative;padding:10px 63px 6px 15px}
-[dir=ltr] .home-timer-panel {padding:10px 15px 6px 63px}
-.home-timer-device {position:absolute;inset-inline-start:10px;top:9px;width:46px;height:46px;border-radius:50%;background:#bfe8df;display:grid;place-items:center;color:#187484}
-.home-timer-panel>strong {font-size:15px;font-weight:800;display:block}
-.home-timer-panel>p {font-size:13px;color:#7b8b94}
-.home-timer-value {text-align:center;font-size:30px;font-weight:900;line-height:1.5;font-variant-numeric:tabular-nums;direction:ltr;margin-inline-start:-40px}
-.home-timer-actions {display:flex;justify-content:center;gap:33px;margin-inline-start:-40px}
-.home-timer-actions button {width:46px;height:46px;border-radius:50%;display:grid;place-items:center;cursor:pointer}
-.home-timer-actions button:disabled {opacity:.45;cursor:default}
-.home-timer-play {background:linear-gradient(120deg,#47b6b5,#00838b);color:white}.home-timer-stop {background:#ffe2d9;color:#e0785e}
-.home-requests .home-card-heading {height:41px;padding-top:7px;padding-bottom:0}.home-requests h2 {font-size:16px}
-.home-request-row {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 18px 8px}
-.home-request-row>svg {color:#6c8c97}.home-request-row strong {font-size:13px}.home-request-row small {display:block;font-size:10px;color:#7c8d98}
-.home-request-icon {display:grid;place-items:center;background:#fff3ec;color:#df765b;width:43px;height:43px;border-radius:50%}
-.home-request-row .home-status {padding:4px 9px;font-size:10px}
-.home-bottom {display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1fr);gap:12px;margin-top:10px}
-.home-bottom>.home-card {min-height:185px}
-.home-bottom .home-card-heading {height:45px;padding-top:8px;padding-bottom:0}
-.home-news-row {display:flex;align-items:center;gap:15px;padding:3px 18px 8px;min-height:65px}
-.home-news-author {align-self:stretch;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px}
-.home-news-author small {font-size:10px;color:#7b8b94;white-space:nowrap}.home-news-author .home-avatar {height:34px;width:34px}
-.home-news-text {flex:1;min-width:0}.home-news-text h3 {font-size:14px;font-weight:800}.home-news-text p {font-size:11px;color:#85949d;line-height:1.65;margin-top:3px}
-.home-news-icon {width:50px;height:50px;display:grid;place-items:center;border-radius:50%;flex-shrink:0}.home-news-icon.gold {color:#f2af2f;background:#fff7e9}.home-news-icon.coral {color:#df765b;background:#fff1e9}
-.home-project-row {display:flex;align-items:center;gap:15px;margin:0 18px;padding:9px 0;min-height:65px}.home-project-row+.home-project-row {border-top:1px solid #f0f3f5}
-.home-project-row>svg {color:#298c91;flex-shrink:0}
-.home-project-detail {flex:1;min-width:0}.home-project-detail>strong {font-size:16px;font-weight:800}
-.home-project-icon {width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}.home-project-icon.blue {background:#def3ff;color:#2585a7}.home-project-icon.gold {background:#fff1cd;color:#f3ac26}
-.home-avatar-stack {display:flex;flex-direction:row-reverse}.home-avatar-stack .home-avatar {height:34px;width:34px;margin-inline-start:-8px}
-.home-project-meter {display:flex;align-items:center;gap:14px}.home-project-meter span {font-size:11px;color:#7a8e99;min-width:30px}.home-project-meter progress {width:100%;height:9px;appearance:none;border:none;border-radius:8px;overflow:hidden;direction:ltr}
-.home-project-meter progress::-webkit-progress-bar {background:#e0e4e9;border-radius:8px}.home-project-meter progress::-webkit-progress-value {background:linear-gradient(90deg,#51b8bd,#029393);border-radius:8px}.home-project-meter progress::-moz-progress-bar {background:#029393;border-radius:8px}
-.home-empty {padding:16px 18px;font-size:13px;color:#71858b}
-.home-data-error {margin-bottom:12px;padding:10px;border:1px solid #df765b;border-radius:10px}.home-data-error button {text-decoration:underline}
-.home-dialog-backdrop {position:fixed;inset:0;background:#173c4666;z-index:150;display:grid;place-items:center;padding:20px}
-.home-dialog {background:#fffaf3;border-radius:18px;width:min(100%,440px);padding:28px;position:relative}.home-dialog p {font-size:13px;color:#52666c;margin:12px 0}.home-dialog-close {position:absolute;inset-inline-end:15px;top:15px;cursor:pointer}.home-dialog input {width:100%;border:1px solid #8da7ad;padding:10px 12px;background:white;border-radius:10px;margin:8px 0 16px;text-align:start;direction:inherit}.home-dialog .home-create {width:100%}
-.home-reference-shell button:focus-visible,.home-reference-shell a:focus-visible,.home-reference-shell input:focus-visible {outline:3px solid #087f83;outline-offset:3px}
-[dir=ltr] .home-reference-shell .home-stat-arrow,[dir=ltr] .home-reference-shell .home-see-all svg {transform:rotate(180deg)}
-@media(min-width:1500px) {.home-middle {grid-template-columns:minmax(0,1.66fr) minmax(0,1fr)}.home-task-row {gap:23px}}
-@media(max-width:1150px) {.home-task-row {gap:9px}.home-task-title {font-size:14px}.home-task-project {display:none}.home-period button {padding:6px 14px}.home-sidebar {width:205px;flex-basis:205px}.home-sidebar nav a {gap:17px}.home-stat {padding:12px}.home-stat h2 {font-size:12px}.home-news-row {gap:9px}.home-project-row {gap:10px}.home-request-row {padding-inline:10px}}
-@media(max-width:900px) {.home-sidebar {position:fixed;inset-inline-start:0;top:0;z-index:130;display:none;width:220px}.home-sidebar.is-open {display:flex}.home-sidebar-backdrop {position:fixed;inset:0;background:#173c4655;z-index:125}.home-menu,.home-mobile-close {display:block}.home-mobile-close {position:absolute;top:4px;inset-inline-end:4px}.home-topbar {gap:14px;padding-inline:20px}.home-middle {grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}}
-@media(max-width:650px) {.home-reference-shell .heledone-page {padding-inline:12px}.home-topbar {height:61px;flex-basis:61px;padding-inline:12px;gap:10px}.home-search {height:39px;padding:0 10px;font-size:11px}.home-create {padding:0 12px;font-size:12px;gap:6px;min-height:39px}.home-welcome {height:140px;padding:18px;background-position:38% center}.home-welcome h1 {font-size:25px}.home-welcome p {font-size:14px}.home-stats {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.home-stat {height:82px}.home-middle,.home-bottom {grid-template-columns:1fr}.home-sidecards {grid-template-columns:1fr;grid-template-rows:217px 103px}.home-task-title {font-size:14px}.home-task-list {padding-inline:12px}.home-task-row {gap:10px}.home-task-row .home-avatar {width:32px;height:32px}.home-status {padding:4px 8px}.home-card-heading {padding-inline:12px}.home-period button {padding-inline:12px}.home-bottom {gap:10px}.home-bottom>.home-card {min-height:185px}.home-sidebar {height:100dvh}.home-sidebar-bottom {min-height:270px}.home-seascape {height:140px}}
-@media(prefers-reduced-motion:reduce) {.reference-home * {animation:none!important;transition:none!important}}
+/* Modern Madaar / Heledone SaaS Dashboard Theme & Shell */
+.home-reference-shell {
+  background: var(--color-base-200);
+  color: var(--color-base-content);
+}
 
-.home-sidebar nav .home-nav-guide {height:49px;display:flex;align-items:center;gap:23px;padding:0 16px;border-radius:12px;font-size:16px;font-weight:650;white-space:nowrap;cursor:pointer}.home-nav-guide:hover {background:#eaf5f2}
-.home-project-detail {text-align:end}
-.home-task-title {flex:0 1 160px}.home-task-project {flex:1}
-.home-see-all {margin-inline-start:auto;margin-inline-end:18px}
-.home-topbar>div>button {box-shadow:none!important;border:0!important;background:transparent!important}
-@media(max-width:650px) {.home-task-title {flex:1}.home-task-project {display:none}.home-task-row .home-avatar {display:none}}
+.home-reference-shell .heledone-page {
+  padding: 16px 20px 24px;
+  background: var(--color-base-200);
+}
 
-.home-seascape .home-coast-art {width:100%;height:100%;inset:0;object-fit:cover;mix-blend-mode:normal}
+/* ─── Sidebar ───────────────────────────────────────────────────────────────── */
+.home-sidebar {
+  width: 240px;
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-base-100);
+  border-inline-end: 1px solid var(--color-base-300);
+  position: relative;
+  color: var(--color-base-content);
+  padding: 16px 12px 14px;
+  height: 100dvh;
+  overflow-y: auto;
+  z-index: 50;
+  transition: transform 0.25s ease, background-color 0.2s ease;
+}
 
-.home-stats {margin-bottom:13px}.home-sidecards {grid-template-rows:217px 101px}.home-tasks {min-height:328px}
-.home-topbar .home-create {min-width:147px}
-.home-notifications {position:relative}.home-notifications>div>button {width:32px;min-width:32px;height:42px;border:0!important;box-shadow:none!important;background:transparent!important;color:#245365!important}
-.home-notifications.demo::after {content:"";position:absolute;top:5px;inset-inline-start:5px;width:8px;height:8px;border-radius:50%;background:#df765b;border:2px solid #fffdfa;pointer-events:none}
-.home-task-project {font-size:12px}.home-status {font-size:12px}.home-news-text p {font-size:12px}.home-news-author small {font-size:11px}.home-user small {font-size:12px}
-.home-sidebar nav svg {flex-shrink:0}
-[dir=ltr] .home-logo .heledone-brand-name {font-size:25px}
-[dir=ltr] .home-logo .heledone-beats span {width:9px;height:29px}
-[dir=ltr] .home-sidebar nav a,
-[dir=ltr] .home-sidebar nav .home-nav-unavailable,
-[dir=ltr] .home-sidebar nav .home-nav-guide {font-size:13.5px;gap:10px;padding-inline:12px}
-[dir=ltr] .home-sidebar nav svg {width:21px;height:21px}
-.home-sidebar nav a span,
-.home-sidebar nav .home-nav-unavailable span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-[dir=ltr] .home-nav-unavailable small {font-size:9.5px;letter-spacing:-0.2px;padding:2px 5px;border-radius:6px;background:rgba(113,133,139,0.12);flex-shrink:0}
-[dir=ltr] .home-settings {gap:12px;font-size:13.5px}
-[dir=ltr] .home-motto {font-size:13px}
-@media(max-width:1150px) {[dir=ltr] .home-sidebar {width:235px;flex-basis:235px}}
-@media(max-width:900px) {[dir=ltr] .home-sidebar {width:250px}}
-@media(max-width:650px) {.home-topbar .home-create {min-width:0}.home-news-text p {font-size:12px}.home-status {font-size:11px}.home-sidecards {grid-template-rows:217px 103px}.home-task-project {display:none}}
-.home-news-text p {line-height:1.45}.home-news-row {padding-bottom:5px}.home-stat h2 {font-size:15px}.home-status {font-size:13px}
-.home-stat.gold .home-stat-icon svg {fill:#f2ba49;stroke:white}
-.home-stat.blue .home-stat-icon svg {stroke:#218bc1;stroke-width:2.5}
-@media(max-width:1150px) {.home-stat h2 {font-size:12px}.home-status {font-size:12px}}
-.home-reference-shell .heledone-page {padding-bottom:16px}
-.home-sidebar nav a.active svg {fill:#087f83;stroke:#e2f3ef;stroke-width:1.6}
-.home-nav-unavailable {height:49px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:12px;font-size:15px;font-weight:650;color:#71858b;white-space:nowrap;cursor:not-allowed}
-.home-nav-unavailable svg {flex-shrink:0}.home-nav-unavailable small {font-size:10px;white-space:nowrap;margin-inline-start:auto;color:#84979d}
-.home-subnav {margin:2px 38px 5px 0;padding-inline-start:12px;border-inline-start:2px solid #dce6e2;display:flex;flex-direction:column;gap:1px}
-[dir=ltr] .home-subnav {margin:2px 0 5px 38px}
-.home-subnav a {height:31px!important;font-size:12px!important;padding:0 10px!important;min-height:0!important}
-.home-subnav a[aria-current="page"] {color:#087f83;font-weight:800;background:#e2f3ef}
-.home-settings.active {background:#e2f3ef;color:#087f83}
-.home-dialog select {width:100%;background:white;border:1px solid #8da7ad;border-radius:10px;padding:10px 12px;margin:8px 0 14px;text-align:start;direction:inherit}
-.home-dialog label {display:block;font-weight:700;font-size:14px;margin-top:10px}
-.home-dialog .home-create:disabled {opacity:.45;cursor:not-allowed}
-.reference-home {container-type:inline-size}
-[data-theme=dark] .home-reference-shell,
-[data-theme=dark] .home-reference-shell .heledone-page {background:var(--color-base-200);color:var(--color-base-content)}
-[data-theme=dark] .home-topbar,
-[data-theme=dark] .home-sidebar,
-[data-theme=dark] .home-card {background:var(--color-base-100);color:var(--color-base-content);border-color:var(--color-heledone-border)}
-[data-theme=dark] .reference-home {color:var(--color-base-content)}
-[data-theme=dark] .home-search {background:var(--color-base-200);color:var(--color-heledone-ink-muted)}
-[data-theme=dark] .home-notifications>div>button {color:var(--color-base-content)!important}
-[data-theme=dark] .home-sidebar nav a.active,
-[data-theme=dark] .home-sidebar nav a:hover,
-[data-theme=dark] .home-settings:hover,
-[data-theme=dark] .home-settings.active,
-[data-theme=dark] .home-subnav a[aria-current="page"] {background:var(--color-heledone-brand-soft);color:var(--color-primary)}
-[data-theme=dark] .home-stat {border-color:var(--color-heledone-border)}
-[data-theme=dark] .home-stat.gold {background:color-mix(in srgb,var(--color-heledone-sun) 10%,var(--color-base-100))}
-[data-theme=dark] .home-stat.blue {background:color-mix(in srgb,#228ac4 10%,var(--color-base-100))}
-[data-theme=dark] .home-stat.teal {background:color-mix(in srgb,var(--color-primary) 10%,var(--color-base-100))}
-[data-theme=dark] .home-stat.coral {background:color-mix(in srgb,var(--color-heledone-coral) 10%,var(--color-base-100))}
-[data-theme=dark] .home-welcome {background:var(--color-base-100)}
-[data-theme=dark] .home-welcome::before {opacity:.22}
-.home-welcome {height:var(--heledone-header-height,160px);min-height:0;max-height:var(--heledone-header-height,160px)}
-@container (max-width:760px) {
-  .home-welcome {height:var(--heledone-header-height,160px);min-height:0;padding:68px 18px 8px}
-  .home-welcome::before {height:var(--heledone-header-strip-height,64px);background-position:left center}
-  .home-welcome > div {max-width:100%}
-  .home-welcome h1 {font-size:22px;line-height:1.3}
-  .home-welcome p {font-size:14px}
+.home-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 6px;
+  margin-bottom: 8px;
+}
+
+.home-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.home-logo .heledone-brand {
+  gap: 10px;
+}
+
+.home-logo .heledone-brand-name {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: var(--color-base-content);
+}
+
+.home-logo .heledone-brand-latin {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--color-heledone-ink-muted);
+}
+
+.home-logo .heledone-beats {
+  direction: ltr;
+  gap: 4px;
+}
+
+.home-logo .heledone-beats span {
+  width: 7px;
+  height: 24px;
+  transform: rotate(26deg);
+  background: #DF765B;
+  border-radius: 4px;
+}
+
+.home-logo .heledone-beats span:nth-child(2) {
+  height: 28px;
+  background: #F2BA49;
+}
+
+.home-logo .heledone-beats span:nth-child(3) {
+  height: 24px;
+  background: #087F83;
+}
+
+.home-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  flex: 1;
+}
+
+.home-nav-link {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+  color: var(--color-base-content);
+  opacity: 0.82;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.home-nav-link:hover {
+  background: var(--color-base-200);
+  opacity: 1;
+}
+
+.home-nav-link.active {
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-base-100));
+  color: var(--color-primary);
+  opacity: 1;
+  font-weight: 800;
+}
+
+.home-nav-link.active svg {
+  color: var(--color-primary);
+}
+
+.home-nav-unavailable {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-heledone-ink-muted);
+  opacity: 0.55;
+  white-space: nowrap;
+  cursor: not-allowed;
+}
+
+.home-nav-unavailable small {
+  font-size: 10px;
+  white-space: nowrap;
+  margin-inline-start: auto;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-base-content) 8%, transparent);
+}
+
+.home-subnav {
+  margin: 2px 28px 4px 0;
+  padding-inline-start: 12px;
+  border-inline-start: 2px solid var(--color-base-300);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+[dir="ltr"] .home-subnav {
+  margin: 2px 0 4px 28px;
+}
+
+.home-subnav a {
+  height: 30px;
+  font-size: 12px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  color: var(--color-base-content);
+  opacity: 0.75;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.home-subnav a:hover {
+  background: var(--color-base-200);
+  opacity: 1;
+}
+
+.home-subnav a[aria-current="page"] {
+  color: var(--color-primary);
+  font-weight: 800;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-base-100));
+  opacity: 1;
+}
+
+.home-sidebar-bottom {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-base-300);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-user {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--color-base-content);
+  transition: background 0.15s ease;
+}
+
+.home-user:hover {
+  background: var(--color-base-200);
+}
+
+.home-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--color-base-300);
+  shrink: 0;
+}
+
+.home-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-user-info strong {
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-user-info small {
+  font-size: 11px;
+  color: var(--color-heledone-ink-muted);
+}
+
+.home-settings {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-weight: 650;
+  border-radius: 10px;
+  color: var(--color-base-content);
+  opacity: 0.85;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.home-settings:hover,
+.home-settings.active {
+  background: var(--color-base-200);
+  color: var(--color-primary);
+  opacity: 1;
+}
+
+.home-motto {
+  text-align: center !important;
+  font-size: 12.5px;
+  font-weight: 750;
+  color: var(--color-primary);
+  margin: 6px 0 2px;
+}
+
+/* ─── Topbar ─────────────────────────────────────────────────────────────────── */
+.home-topbar {
+  position: relative;
+  z-index: 40;
+  height: 64px;
+  flex: 0 0 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  background: var(--color-base-100);
+  border-bottom: 1px solid var(--color-base-300);
+}
+
+.home-top-nav-item {
+  position: relative;
+  text-decoration: none;
+}
+
+.home-top-nav-indicator {
+  position: absolute;
+  bottom: -2px;
+  inset-inline-start: 12px;
+  inset-inline-end: 12px;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 9999px;
+}
+
+.home-search {
+  min-width: 140px;
+  max-width: 320px;
+  flex: 1 1 200px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-base-200);
+  color: var(--color-heledone-ink-muted);
+  border-radius: 12px;
+  border: 1px solid transparent;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.home-search:hover {
+  border-color: var(--color-primary);
+}
+
+.home-search span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.home-header-actions .btn {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.home-menu,
+.home-mobile-close {
+  display: none;
+}
+
+/* ─── Dashboard Reference Layout ────────────────────────────────────────────── */
+.reference-home {
+  max-width: 1440px;
+  margin: auto;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.home-welcome {
+  min-height: 120px;
+  border-radius: 16px;
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1023px) {
+  .home-sidebar {
+    position: fixed;
+    inset-inline-start: 0;
+    top: 0;
+    z-index: 130;
+    display: none;
+    width: 250px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .home-sidebar.is-open {
+    display: flex;
+  }
+
+  .home-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 125;
+  }
+
+  .home-menu,
+  .home-mobile-close {
+    display: block;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-base-content);
+  }
+
+  .home-topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .home-search {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-quick-actions {
+    display: none;
+  }
+
+  .home-search {
+    font-size: 11px;
+    height: 36px;
+    padding: 0 10px;
+  }
 }
