@@ -4,7 +4,7 @@ import {
   Home,
   FolderOpen,
   Clock3,
-  Users,
+  Briefcase,
   ChartNoAxesColumnIncreasing,
   Wallet,
   BookOpen,
@@ -33,9 +33,50 @@ export function HomeSidebar() {
   const { isSidebarOpen, setSidebarOpen } = useLayoutStore();
   const user = useAuthStore((s) => s.user);
   const { hasAnyPermission } = usePermissions();
-  const canViewTeam = hasAnyPermission(["user.view", "org.manage_members"]);
+
+  const isStaff = user?.is_staff === true;
+  const canViewManagerOverview =
+    hasAnyPermission([
+      "report.view",
+      "attendance.view_all",
+      "org.manage_members",
+      "finance.view_reports",
+      "org.manage_settings",
+    ]) || isStaff;
+  const canViewTeamOverview =
+    hasAnyPermission([
+      "report.view_team_lead",
+      "report.view",
+      "attendance.view_all",
+      "org.manage_members",
+    ]) || isStaff;
+  const canViewTeamManagement =
+    hasAnyPermission(["user.view", "org.manage_members"]) || isStaff;
+  const canViewStandups =
+    hasAnyPermission(["org.manage_settings", "report.view"]) || isStaff;
+
+  const canAccessManager =
+    canViewManagerOverview ||
+    canViewTeamOverview ||
+    canViewTeamManagement ||
+    canViewStandups;
+
   const projectsActive =
     location.pathname.startsWith("/projects") || location.pathname.startsWith("/tasks");
+
+  const managerActive =
+    location.pathname.startsWith("/manager") ||
+    location.pathname.startsWith("/team-lead") ||
+    location.pathname.startsWith("/teams") ||
+    location.pathname.startsWith("/standups");
+
+  const managerDefaultPath = canViewManagerOverview
+    ? "/manager"
+    : canViewTeamOverview
+    ? "/team-lead"
+    : canViewTeamManagement
+    ? "/teams"
+    : "/standups";
 
   const items: {
     label: string;
@@ -47,19 +88,19 @@ export function HomeSidebar() {
     { label: "خانه", path: "/dashboard", Icon: Home, active: location.pathname === "/dashboard" },
     { label: "کار و پروژه", path: "/projects", Icon: FolderOpen, active: projectsActive },
     {
+      label: "مدیریت",
+      path: managerDefaultPath,
+      Icon: Briefcase,
+      active: managerActive,
+      unavailable: !canAccessManager,
+    },
+    { label: "رشد و قدردانی", Icon: ChartNoAxesColumnIncreasing, unavailable: true },
+    {
       label: "زمان و درخواست‌ها",
       path: "/attendance",
       Icon: Clock3,
       active: location.pathname.startsWith("/attendance"),
     },
-    {
-      label: "تیم",
-      path: "/teams",
-      Icon: Users,
-      active: location.pathname.startsWith("/teams"),
-      unavailable: !canViewTeam,
-    },
-    { label: "رشد و قدردانی", Icon: ChartNoAxesColumnIncreasing, unavailable: true },
     {
       label: "حقوق و هزینه‌ها",
       path: "/finance/my-reports",
@@ -77,6 +118,7 @@ export function HomeSidebar() {
     <>
       {isSidebarOpen && (
         <button
+          type="button"
           className="home-sidebar-backdrop"
           onClick={() => setSidebarOpen(false)}
           aria-label={t("بستن منو")}
@@ -88,6 +130,7 @@ export function HomeSidebar() {
             <Brand />
           </Link>
           <button
+            type="button"
             className="home-mobile-close"
             onClick={() => setSidebarOpen(false)}
             aria-label={t("بستن منو")}
@@ -103,11 +146,11 @@ export function HomeSidebar() {
                 key={label}
                 className="home-nav-unavailable"
                 aria-disabled="true"
-                title={t(label === "تیم" ? "دسترسی ندارید" : "به‌زودی")}
+                title={t(label === "مدیریت" ? "دسترسی ندارید" : "به‌زودی")}
               >
                 <Icon size={21} className="shrink-0" />
                 <span>{t(label)}</span>
-                <small>{t(label === "تیم" ? "دسترسی ندارید" : "به‌زودی")}</small>
+                <small>{t(label === "مدیریت" ? "دسترسی ندارید" : "به‌زودی")}</small>
               </span>
             ) : (
               <div key={label} className="home-nav-group">
@@ -124,6 +167,8 @@ export function HomeSidebar() {
                   />
                   <span>{t(label)}</span>
                 </Link>
+
+                {/* Subnav for Work & Projects */}
                 {label === "کار و پروژه" && projectsActive && (
                   <div className="home-subnav">
                     <Link
@@ -138,6 +183,44 @@ export function HomeSidebar() {
                     >
                       {t("تسک‌ها و کانبان")}
                     </Link>
+                  </div>
+                )}
+
+                {/* Subnav for Manager */}
+                {label === "مدیریت" && managerActive && (
+                  <div className="home-subnav">
+                    {canViewManagerOverview && (
+                      <Link
+                        to="/manager"
+                        aria-current={location.pathname === "/manager" ? "page" : undefined}
+                      >
+                        {t("نمای مدیریت")}
+                      </Link>
+                    )}
+                    {canViewTeamOverview && (
+                      <Link
+                        to="/team-lead"
+                        aria-current={location.pathname === "/team-lead" ? "page" : undefined}
+                      >
+                        {t("نمای تیم")}
+                      </Link>
+                    )}
+                    {canViewTeamManagement && (
+                      <Link
+                        to="/teams"
+                        aria-current={location.pathname.startsWith("/teams") ? "page" : undefined}
+                      >
+                        {t("مدیریت تیم‌ها")}
+                      </Link>
+                    )}
+                    {canViewStandups && (
+                      <Link
+                        to="/standups"
+                        aria-current={location.pathname.startsWith("/standups") ? "page" : undefined}
+                      >
+                        {t("گزارش روزانه")}
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
@@ -183,19 +266,33 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
   const navigate = useNavigate();
   const setSidebarOpen = useLayoutStore((s) => s.setSidebarOpen);
   const openProjectWizard = useProjectWizardStore((s) => s.open);
+  const user = useAuthStore((s) => s.user);
+  const { hasAnyPermission } = usePermissions();
+
+  const isStaff = user?.is_staff === true;
+  const canCreateProject =
+    hasAnyPermission(["project.create", "org.manage_settings"]) || isStaff;
+  const canCreateTask =
+    hasAnyPermission(["task.create", "task.manage_all", "org.manage_settings"]) || isStaff;
 
   const topNavItems = [
-    { label: "خانه", path: "/dashboard", active: location.pathname === "/dashboard" },
-    { label: "کار و پروژه", path: "/projects", active: location.pathname.startsWith("/projects") || location.pathname.startsWith("/tasks") },
-    { label: "زمان و درخواست‌ها", path: "/attendance", active: location.pathname.startsWith("/attendance") },
-    { label: "تیم", path: "/teams", active: location.pathname.startsWith("/teams") },
-    { label: "رشد و قدردانی", path: "#", active: false, unavailable: true },
+    {
+      label: "زمان و درخواست‌ها",
+      path: "/attendance",
+      active: location.pathname.startsWith("/attendance"),
+    },
+    {
+      label: "حقوق و هزینه‌ها",
+      path: "/finance/my-reports",
+      active: location.pathname.startsWith("/finance"),
+    },
   ];
 
   return (
     <header className="home-topbar">
       {/* Mobile Toggle */}
       <button
+        type="button"
         className="home-menu lg:hidden"
         aria-label={t("باز کردن منو")}
         onClick={() => setSidebarOpen(true)}
@@ -203,51 +300,46 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
         <Menu size={22} />
       </button>
 
-      {/* Center/Start Navigation Tabs (from reference screenshot) */}
+      {/* Top Navigation: Dedicated Quick Links */}
       <nav aria-label={t("منوی اصلی")} className="home-top-nav hidden md:flex items-center gap-1 xl:gap-2">
-        {topNavItems.map((item) =>
-          item.unavailable ? (
-            <span
-              key={item.label}
-              className="home-top-nav-item is-disabled opacity-50 cursor-not-allowed text-xs font-semibold px-2.5 py-1.5"
-            >
-              {t(item.label)}
-            </span>
-          ) : (
-            <Link
-              key={item.label}
-              to={item.path}
-              className={`home-top-nav-item relative text-xs xl:text-sm font-bold px-3 py-2 transition-colors ${
-                item.active
-                  ? "text-primary active"
-                  : "text-slate-600 dark:text-slate-300 hover:text-primary"
-              }`}
-            >
-              {t(item.label)}
-              {item.active && <span className="home-top-nav-indicator" />}
-            </Link>
-          )
-        )}
+        {topNavItems.map((item) => (
+          <Link
+            key={item.label}
+            to={item.path}
+            className={`home-top-nav-item relative text-xs xl:text-sm font-bold px-3 py-2 transition-colors ${
+              item.active
+                ? "text-primary active"
+                : "text-slate-600 dark:text-slate-300 hover:text-primary"
+            }`}
+          >
+            {t(item.label)}
+            {item.active && <span className="home-top-nav-indicator" />}
+          </Link>
+        ))}
       </nav>
 
       {/* Action Buttons: New Project & New Task */}
       <div className="home-quick-actions flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => openProjectWizard()}
-          className="home-btn-new-project flex items-center gap-1.5 bg-primary hover:bg-[#006D73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm"
-        >
-          <Plus size={16} />
-          <span>{t("پروژه جدید")}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate("/tasks")}
-          className="home-btn-new-task hidden sm:flex items-center gap-1.5 bg-base-100 hover:bg-base-200 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold px-3.5 py-2 rounded-xl transition-all"
-        >
-          <Plus size={16} />
-          <span>{t("تسک جدید")}</span>
-        </button>
+        {canCreateProject && (
+          <button
+            type="button"
+            onClick={() => openProjectWizard()}
+            className="home-btn-new-project flex items-center gap-1.5 bg-primary hover:bg-[#006D73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-xs"
+          >
+            <Plus size={16} />
+            <span>{t("پروژه جدید")}</span>
+          </button>
+        )}
+        {canCreateTask && (
+          <button
+            type="button"
+            onClick={() => navigate("/tasks")}
+            className="home-btn-new-task hidden sm:flex items-center gap-1.5 bg-base-100 hover:bg-base-200 border border-base-300 text-base-content text-xs font-bold px-3.5 py-2 rounded-xl transition-all"
+          >
+            <Plus size={16} />
+            <span>{t("تسک جدید")}</span>
+          </button>
+        )}
       </div>
 
       {/* Search Input Box */}

@@ -1,6 +1,6 @@
 import { t as translate, useTranslation } from "../../../i18n/locale";
 import React from 'react';
-import { Brand, BrandWave } from '../../../components/Brand';
+import { Brand } from '../../../components/Brand';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { StepOrgDetails } from './StepOrgDetails';
 import { StepAddUsers } from './StepAddUsers';
@@ -28,18 +28,22 @@ export const OnboardingWizard: React.FC = () => {
   };
 
   return (
-    <div className="heledone-workspace min-h-screen bg-base-200 flex flex-col items-center justify-center p-4 font-sans">
-      {/* Logo / Brand area */}
-      <header className="heledone-page-heading heledone-onboarding-heading mb-6 w-full max-w-4xl">
-        <div>
-        <Brand />
-        <h1 className="text-2xl font-bold text-base-content">{t("وقت هماهنگ شدن است")}</h1>
-        <p className="text-heledone-ink-muted text-sm mt-1">{t("فضای کار تیم‌تان را در هله‌دان بسازید")}</p>
+    <div className="min-h-screen bg-base-200 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+      {/* Brand Header */}
+      <header className="mb-6 w-full max-w-4xl text-center flex flex-col items-center">
+        <div className="flex justify-center">
+          <Brand />
         </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-base-content mt-4 tracking-tight">
+          {t("وقت هماهنگ شدن است")}
+        </h1>
+        <p className="text-heledone-ink-muted text-sm sm:text-base mt-1.5 font-medium">
+          {t("فضای کار تیم‌تان را در هله‌دان بسازید")}
+        </p>
       </header>
 
-      {/* Stepper */}
-      <div className="heledone-onboarding-steps flex items-center gap-2 mb-8">
+      {/* Modern Stepper */}
+      <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8 w-full max-w-xl px-4">
         {steps.map((step, idx) => {
           const stepNum = idx + 1;
           const isActive = currentStep === stepNum;
@@ -47,14 +51,14 @@ export const OnboardingWizard: React.FC = () => {
           const Icon = step.icon;
           return (
             <React.Fragment key={step.label}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:gap-2.5">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300 ${
                     isDone
-                      ? 'bg-success text-success-content'
+                      ? 'bg-success text-white shadow-xs'
                       : isActive
-                      ? 'bg-primary text-primary-content shadow-md shadow-primary/30'
-                      : 'bg-base-300 text-heledone-ink-muted'
+                      ? 'bg-primary text-white shadow-sm ring-4 ring-primary/15'
+                      : 'bg-base-100 text-heledone-ink-muted border border-base-300'
                   }`}
                 >
                   {isDone ? (
@@ -64,8 +68,8 @@ export const OnboardingWizard: React.FC = () => {
                   )}
                 </div>
                 <span
-                  className={`text-sm font-medium transition-colors ${
-                    isActive ? 'text-primary' : isDone ? 'text-success' : 'text-heledone-ink-muted'
+                  className={`text-xs sm:text-sm font-bold transition-colors ${
+                    isActive ? 'text-primary' : isDone ? 'text-base-content' : 'text-heledone-ink-muted'
                   }`}
                 >
                   {step.label}
@@ -73,7 +77,7 @@ export const OnboardingWizard: React.FC = () => {
               </div>
               {idx < steps.length - 1 && (
                 <div
-                  className={`w-12 h-0.5 rounded-full transition-colors duration-500 ${
+                  className={`flex-1 min-w-[20px] max-w-[48px] h-0.5 rounded-full transition-colors duration-500 ${
                     currentStep > stepNum ? 'bg-success' : 'bg-base-300'
                   }`}
                 />
@@ -83,16 +87,15 @@ export const OnboardingWizard: React.FC = () => {
         })}
       </div>
 
-      <div className="mb-6 w-full max-w-md"><BrandWave /></div>
       {/* Step Content */}
       <div className="w-full max-w-4xl">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2 }}
           >
             {renderStep()}
           </motion.div>

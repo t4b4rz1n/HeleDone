@@ -11,8 +11,8 @@
 
 /* ─── Sidebar ───────────────────────────────────────────────────────────────── */
 .home-sidebar {
-  width: 240px;
-  flex: 0 0 240px;
+  width: 260px;
+  flex: 0 0 260px;
   display: flex;
   flex-direction: column;
   background: var(--color-base-100);
@@ -90,17 +90,17 @@
 }
 
 .home-nav-link {
-  height: 44px;
+  height: 42px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 14px;
+  gap: 11px;
+  padding: 0 12px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 650;
   white-space: nowrap;
   color: var(--color-base-content);
-  opacity: 0.82;
+  opacity: 0.85;
   transition: all 0.15s ease;
   text-decoration: none;
 }
@@ -122,27 +122,29 @@
 }
 
 .home-nav-unavailable {
-  height: 44px;
+  height: 42px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 14px;
+  gap: 10px;
+  padding: 0 12px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--color-heledone-ink-muted);
-  opacity: 0.55;
+  opacity: 0.6;
   white-space: nowrap;
   cursor: not-allowed;
 }
 
 .home-nav-unavailable small {
-  font-size: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
   white-space: nowrap;
   margin-inline-start: auto;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 2px 5px;
+  border-radius: 5px;
   background: color-mix(in srgb, var(--color-base-content) 8%, transparent);
+  flex-shrink: 0;
 }
 
 .home-subnav {

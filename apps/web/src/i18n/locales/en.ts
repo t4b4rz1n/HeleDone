@@ -1890,6 +1890,7 @@ const messages = {
   "پروژه‌های باز": "Open Projects",
   "تسک بررسی": "Tasks in Review",
   "پروژه جدید": "New Project",
-  "جستجو...": "Search..."
+  "جستجو...": "Search...",
+  "مدیریت": "Manager"
 };
 export default messages;
