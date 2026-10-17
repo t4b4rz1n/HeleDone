@@ -92,34 +92,43 @@ export const UserForm = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {!editMode && (
-          <Controller
-            name="password"
-            control={control}
-            render={({ field }) => (
-              <label className="form-control w-full">
-                <div className="label mb-2">
-                  <span className="label-text font-semibold">{t("Password")}</span>
-                </div>
-                <InputField
-                  type="password"
-                  {...field}
-                  placeholder={t("Enter password")}
-                  classNameInput={errors.password ? "input-error" : ""}
-                  icon={<Lock size={18} />}
-                />
-                {errors.password ? (
-                  <span className="text-error text-xs mt-1">
-                    {errors.password.message}
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => (
+            <label className="form-control w-full">
+              <div className="label mb-2">
+                <span className="label-text font-semibold">
+                  {editMode ? t("New Password") : t("Password")}
+                </span>
+                {editMode && (
+                  <span className="label-text-alt text-heledone-ink-muted text-xs">
+                    {t("Leave blank to keep current")}
                   </span>
-                ) : (
-                  <span className="text-xs text-heledone-ink-muted mt-1">
-                    {t("At least 8 characters with upper, lower, and numbers")}</span>
                 )}
-              </label>
-            )}
-          />
-        )}
+              </div>
+              <InputField
+                type="password"
+                {...field}
+                value={field.value || ""}
+                placeholder={editMode ? t("Enter new password (optional)") : t("Enter password")}
+                classNameInput={errors.password ? "input-error" : ""}
+                icon={<Lock size={18} />}
+              />
+              {errors.password ? (
+                <span className="text-error text-xs mt-1">
+                  {errors.password.message}
+                </span>
+              ) : (
+                <span className="text-xs text-heledone-ink-muted mt-1">
+                  {editMode
+                    ? t("Leave blank to keep current password")
+                    : t("At least 8 characters with upper, lower, and numbers")}
+                </span>
+              )}
+            </label>
+          )}
+        />
 
         <Controller
           name="role_id"

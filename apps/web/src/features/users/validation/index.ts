@@ -22,4 +22,18 @@ export const createUserSchema = baseUserSchema.extend({
     .regex(/[0-9]/, { error: () => t("Must contain at least one number") }),
 });
 
-export const updateUserSchema = baseUserSchema;
+export const updateUserSchema = baseUserSchema.extend({
+  password: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (val) =>
+        !val ||
+        (val.length >= 8 &&
+          /[A-Z]/.test(val) &&
+          /[a-z]/.test(val) &&
+          /[0-9]/.test(val)),
+      { message: () => t("رمز عبور باید حداقل ۸ نویسه و شامل حروف بزرگ، کوچک و عدد باشد") }
+    ),
+});

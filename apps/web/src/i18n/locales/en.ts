@@ -1886,6 +1886,11 @@ const messages = {
   "The work we move forward together.": "The work we move forward together.",
   "Clear search": "Clear search",
   "Clear filters": "Clear filters",
-  "{count} projects": "{count} projects"
+  "{count} projects": "{count} projects",
+  "New Password": "New Password",
+  "Leave blank to keep current": "Leave blank to keep current",
+  "Enter new password (optional)": "Enter new password (optional)",
+  "Leave blank to keep current password": "Leave blank to keep current password",
+  "رمز عبور باید حداقل ۸ نویسه و شامل حروف بزرگ، کوچک و عدد باشد": "Password must be at least 8 characters with uppercase, lowercase and numbers"
 };
 export default messages;
