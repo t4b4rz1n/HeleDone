@@ -34,6 +34,6 @@ export const updateUserSchema = baseUserSchema.extend({
           /[A-Z]/.test(val) &&
           /[a-z]/.test(val) &&
           /[0-9]/.test(val)),
-      { message: () => t("رمز عبور باید حداقل ۸ نویسه و شامل حروف بزرگ، کوچک و عدد باشد") }
+      { error: () => t("رمز عبور باید حداقل ۸ نویسه و شامل حروف بزرگ، کوچک و عدد باشد") }
     ),
 });
