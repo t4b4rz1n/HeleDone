@@ -4,7 +4,7 @@ import { useTranslation } from "../../../i18n/locale";
 import { getWorkflowAppearance } from "../../../core/config/designTokens";
 import { formatDisplayDate } from "../../../utils/date";
 import { createPortal } from "react-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar1, Flag,
@@ -108,6 +108,23 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Task>) => updateTask(task.id, data),
+    onMutate: async (data: Partial<Task>) => {
+      const queryFilter = { queryKey: ["tasks"] };
+      await queryClient.cancelQueries(queryFilter);
+      queryClient.setQueriesData<any>(queryFilter, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old)) {
+          return old.map((t: any) => (String(t.id) === String(task.id) ? { ...t, ...data } : t));
+        }
+        if (old.results && Array.isArray(old.results)) {
+          return {
+            ...old,
+            results: old.results.map((t: any) => (String(t.id) === String(task.id) ? { ...t, ...data } : t)),
+          };
+        }
+        return old;
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -132,6 +149,35 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     enabled: Boolean(effectiveProjectId),
     staleTime: 30_000,
   });
+
+  const resolveCardAssignees = (t: Task, memberUsers: any[]): any[] => {
+    if (t.assignees_detail && t.assignees_detail.length > 0) {
+      return t.assignees_detail;
+    }
+    if (t.assignees && t.assignees.length > 0) {
+      const fromUsers = t.assignees
+        .map((id: any) => memberUsers.find((u: any) => String(u.id) === String(id)))
+        .filter(Boolean);
+      if (fromUsers.length > 0) return fromUsers;
+    }
+    if (t.assignee_detail) return [t.assignee_detail];
+    if (t.assignee) {
+      const u = memberUsers.find((usr: any) => String(usr.id) === String(t.assignee));
+      if (u) return [u];
+    }
+    return [];
+  };
+
+  const [localAssignees, setLocalAssignees] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    setLocalAssignees(null);
+  }, [task.id, task.assignees, task.assignees_detail, task.assignee, task.assignee_detail]);
+
+  const cardAssignees: any[] = useMemo(() => {
+    if (localAssignees !== null) return localAssignees;
+    return resolveCardAssignees(task, users);
+  }, [localAssignees, task, users]);
 
   const closeMenu = () => {
     setIsMenuOpen(false);
@@ -263,9 +309,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <div className="flex items-center gap-3">
             {/* Assignee Interactive Trigger */}
             {(() => {
-              const cardAssignees: any[] = (task.assignees_detail && task.assignees_detail.length > 0)
-                ? task.assignees_detail
-                : (task.assignee_detail ? [task.assignee_detail] : []);
               const tooltip = cardAssignees.length > 0
                 ? t("Assigned to {value0}", { value0: cardAssignees.map(a => a.first_name || a.username).join(", ") })
                 : canEditTask ? t("Assign member") : t("بدون مسئول");
@@ -413,11 +456,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
               {/* Unassigned Option */}
               {(() => {
-                const currentAssigneeIds: (string | number)[] = (task.assignees && task.assignees.length > 0)
-                  ? task.assignees
-                  : (task.assignees_detail && task.assignees_detail.length > 0)
-                  ? task.assignees_detail.map((a: any) => a.id)
-                  : task.assignee ? [task.assignee] : [];
+                const currentAssigneeIds: (string | number)[] = cardAssignees.map((a: any) => a.id);
 
                 return (
                   <>
@@ -427,7 +466,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                         currentAssigneeIds.length === 0 ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
                       }`}
                       onClick={() => {
-                        updateMutation.mutate({ assignees: [] });
+                        setLocalAssignees([]);
+                        updateMutation.mutate({
+                          assignees: [],
+                          assignees_detail: [],
+                          assignee: null,
+                          assignee_detail: null,
+                        } as any);
                         closeMenu();
                       }}
                     >
@@ -448,10 +493,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                               : "hover:bg-base-200"
                           }`}
                           onClick={() => {
-                            const newIds = isSelected
-                              ? currentAssigneeIds.filter((id: any) => String(id) !== String(user.id))
-                              : [...currentAssigneeIds, user.id];
-                            updateMutation.mutate({ assignees: newIds });
+                            const newAssignees = isSelected
+                              ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                              : [...cardAssignees, user];
+                            const newIds = newAssignees.map((a: any) => a.id);
+                            setLocalAssignees(newAssignees);
+                            updateMutation.mutate({
+                              assignees: newIds,
+                              assignees_detail: newAssignees,
+                              assignee: newIds[0] || null,
+                              assignee_detail: newAssignees[0] || null,
+                            } as any);
                           }}
                         >
                           <div className="flex items-center gap-2 truncate">
@@ -517,11 +569,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   >
                     <CloseCircle size={15} />  {t("بازگشت")}</button>
                   {(() => {
-                    const currentAssigneeIds: (string | number)[] = (task.assignees && task.assignees.length > 0)
-                      ? task.assignees
-                      : (task.assignees_detail && task.assignees_detail.length > 0)
-                      ? task.assignees_detail.map((a: any) => a.id)
-                      : task.assignee ? [task.assignee] : [];
+                    const currentAssigneeIds: (string | number)[] = cardAssignees.map((a: any) => a.id);
 
                     return (
                       <>
@@ -529,7 +577,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                           type="button"
                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-base-200"
                           onClick={() => {
-                            updateMutation.mutate({ assignees: [] });
+                            setLocalAssignees([]);
+                            updateMutation.mutate({
+                              assignees: [],
+                              assignees_detail: [],
+                              assignee: null,
+                              assignee_detail: null,
+                            } as any);
                             closeMenu();
                           }}
                         >
@@ -545,10 +599,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                                 isSelected ? "bg-primary/10 text-primary font-bold" : ""
                               }`}
                               onClick={() => {
-                                const newIds = isSelected
-                                  ? currentAssigneeIds.filter((id: any) => String(id) !== String(user.id))
-                                  : [...currentAssigneeIds, user.id];
-                                updateMutation.mutate({ assignees: newIds });
+                                const newAssignees = isSelected
+                                  ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                                  : [...cardAssignees, user];
+                                const newIds = newAssignees.map((a: any) => a.id);
+                                setLocalAssignees(newAssignees);
+                                updateMutation.mutate({
+                                  assignees: newIds,
+                                  assignees_detail: newAssignees,
+                                  assignee: newIds[0] || null,
+                                  assignee_detail: newIds[0] || null,
+                                } as any);
                               }}
                             >
                               <div className="flex items-center gap-2 truncate">

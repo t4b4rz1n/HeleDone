@@ -44,7 +44,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { TimeLog } from "../../attendance/types";
-import type { Task, User } from "../types";
+import type { Task } from "../types";
 import { useTaskStore } from "../store/useTaskStore";
 import { getProjectMembers, getProjectMilestones } from "../../projects/api/projectsApi";
 import { createManualLog } from "../../attendance/api/attendanceApi";
@@ -275,6 +275,27 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       ),
   });
 
+  const resolveAssigneesFromTask = (t: Task | null | undefined, members: typeof projectMembers): any[] => {
+    if (!t) return [];
+    if (t.assignees_detail && t.assignees_detail.length > 0) {
+      return t.assignees_detail;
+    }
+    if (t.assignees && t.assignees.length > 0) {
+      const fromMembers = t.assignees
+        .map((id) => members.find((m) => String(m.user?.id) === String(id))?.user)
+        .filter(Boolean);
+      if (fromMembers.length > 0) return fromMembers;
+    }
+    if (t.assignee_detail) return [t.assignee_detail];
+    if (t.assignee) {
+      const u = members.find((m) => String(m.user?.id) === String(t.assignee))?.user;
+      if (u) return [u];
+    }
+    return [];
+  };
+
+  const [localAssignees, setLocalAssignees] = useState<any[]>(() => resolveAssigneesFromTask(task, projectMembers));
+
   useEffect(() => {
     if (!task) return;
     setTitle(task.title);
@@ -282,7 +303,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     setIsEditingDescription(Boolean(task.description));
     setPriority(task.priority || "low");
     setDueDate(task.due_date ? toLocalDatetimeInput(task.due_date) : "");
-  }, [task]);
+    setLocalAssignees(resolveAssigneesFromTask(task, projectMembers));
+  }, [task, projectMembers]);
 
   useEffect(() => {
     setActiveTab("overview");
@@ -529,9 +551,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   const checklistProgress = checklists.length
     ? Math.round((checklistDone / checklists.length) * 100)
     : 0;
-  const assignees: User[] = (task.assignees_detail && task.assignees_detail.length > 0)
-    ? task.assignees_detail
-    : (task.assignee_detail ? [task.assignee_detail] : []);
+  const assignees: any[] = localAssignees;
   const isBusy = updateMutation.isPending || blockerMutation.isPending;
 
 
@@ -824,6 +844,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                       <button
                         type="button"
                         onClick={() => {
+                          setLocalAssignees([]);
                           save({
                             assignees: [],
                             assignees_detail: [],
@@ -869,6 +890,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                                 const newAssignees = isCurrent
                                   ? assignees.filter((a) => String(a.id) !== String(u.id))
                                   : [...assignees, u];
+                                setLocalAssignees(newAssignees);
                                 save({
                                   assignees: newAssignees.map((a) => a.id),
                                   assignees_detail: newAssignees,

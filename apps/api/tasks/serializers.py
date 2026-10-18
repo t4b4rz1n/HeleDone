@@ -284,9 +284,11 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
     assignees = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, required=False
     )
+    assignees_detail = UserMinimalSerializer(source="assignees", many=True, read_only=True)
     assignee = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), required=False, allow_null=True, write_only=True
     )
+    assignee_detail = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Task
@@ -299,7 +301,9 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
             "status",
             "priority",
             "assignee",
+            "assignee_detail",
             "assignees",
+            "assignees_detail",
             "due_date",
             "estimated_hours",
             "parent_task",
@@ -307,7 +311,11 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
             "is_finished",
             "is_blocked",
         )
-        read_only_fields = ("id",)
+        read_only_fields = ("id", "assignee_detail", "assignees_detail")
+
+    def get_assignee_detail(self, obj):
+        first = obj.assignees.first()
+        return UserMinimalSerializer(first, context=self.context).data if first else None
 
     def validate_estimated_hours(self, value):
         if value is not None and value < 0:

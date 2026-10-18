@@ -2,7 +2,7 @@ import { getErrorMessage as translateError } from "../../../core/utils/errorHand
 import { useTranslation } from "../../../i18n/locale";
 import { CustomDatePicker } from "../../../components/CustomDatePicker";
 import { formatDisplayDate } from "../../../utils/date";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Task } from '../types';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -83,6 +83,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     },
     enabled: !!task.project,
   });
+
+  useEffect(() => {
+    if (task.assignees_detail && task.assignees_detail.length > 0) {
+      setLocalAssignees(task.assignees_detail);
+    } else if (task.assignees && task.assignees.length > 0 && users.length > 0) {
+      const fromUsers = task.assignees
+        .map((id: any) => users.find((u: any) => String(u.id) === String(id)))
+        .filter(Boolean);
+      if (fromUsers.length > 0) setLocalAssignees(fromUsers);
+    }
+  }, [task.assignees_detail, task.assignees, users]);
 
   const { data: projectMilestones = [] } = useQuery({
     queryKey: ['projects', 'detail', String(task.project), 'milestones'],

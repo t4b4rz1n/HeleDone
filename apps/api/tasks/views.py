@@ -376,6 +376,27 @@ class TaskViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        task = TaskService.update_task(
+            task=instance,
+            actor=request.user,
+            **serializer.validated_data,
+        )
+        refreshed = (
+            Task.objects.select_related("project", "status", "reporter")
+            .prefetch_related("assignees")
+            .get(id=task.id)
+        )
+        return Response(TaskDetailSerializer(refreshed, context={"request": request}).data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
+
     def perform_update(self, serializer):
         task = TaskService.update_task(
             task=self.get_object(),

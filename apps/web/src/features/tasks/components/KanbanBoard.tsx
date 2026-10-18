@@ -333,8 +333,8 @@ export const KanbanBoard: React.FC = () => {
   };
 
   const patchLocalTask = (taskId: string | number, patch: Partial<Task>) => {
-    setLocalTasks(tasks => tasks.map(task => task.id === taskId ? { ...task, ...patch } : task));
-    queryClient.setQueryData<Task[]>(['tasks', activeProjectId, activeBoardId], tasks => tasks?.map(task => task.id === taskId ? { ...task, ...patch } : task));
+    setLocalTasks(tasks => tasks.map(task => sameId(task.id, taskId) ? { ...task, ...patch } : task));
+    queryClient.setQueryData<Task[]>(['tasks', activeProjectId, activeBoardId], tasks => tasks?.map(task => sameId(task.id, taskId) ? { ...task, ...patch } : task));
   };
 
   const toggleFinishedMutation = useMutation({
