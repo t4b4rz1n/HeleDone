@@ -1085,6 +1085,7 @@ export const KanbanBoard: React.FC = () => {
                           key={task.id}
                           task={task}
                           onClick={() => { setSelectedTaskForSheet(task); if (focusMode) setFocusedTaskId(task.id); }}
+                          onPatch={patchLocalTask}
                           onPlayTimer={handlePlayTimer}
                           onStopTimer={handleStopTimer}
                           onToggleDone={handleToggleDone}

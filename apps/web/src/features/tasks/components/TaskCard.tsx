@@ -28,6 +28,7 @@ import { LiveActivityIndicator } from "./LiveActivityIndicator";
 interface TaskCardProps {
   task: Task;
   onClick: () => void;
+  onPatch?: (taskId: string | number, patch: Partial<Task>) => void;
   onPlayTimer?: (taskId: string | number) => void;
   onStopTimer?: (taskId: string | number) => void;
   onMarkDone?: (taskId: string | number) => void;
@@ -52,6 +53,7 @@ import { usePermissions } from "../../auth/hooks/usePermissions";
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   onClick,
+  onPatch,
   onPlayTimer,
   onStopTimer,
   onMarkDone,
@@ -109,6 +111,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Task>) => updateTask(task.id, data),
     onMutate: async (data: Partial<Task>) => {
+      onPatch?.(task.id, data);
       const queryFilter = { queryKey: ["tasks"] };
       await queryClient.cancelQueries(queryFilter);
       queryClient.setQueriesData<any>(queryFilter, (old: any) => {
@@ -125,7 +128,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         return old;
       });
     },
-    onSuccess: () => {
+    onSuccess: (updatedTask: Task) => {
+      if (updatedTask && updatedTask.id) {
+        onPatch?.(updatedTask.id, updatedTask);
+      }
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["taskActivities", task.id] });
@@ -172,7 +178,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   useEffect(() => {
     setLocalAssignees(null);
-  }, [task.id, task.assignees, task.assignees_detail, task.assignee, task.assignee_detail]);
+  }, [task.id]);
 
   const cardAssignees: any[] = useMemo(() => {
     if (localAssignees !== null) return localAssignees;
@@ -465,14 +471,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                       className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
                         currentAssigneeIds.length === 0 ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
                       }`}
-                      onClick={() => {
-                        setLocalAssignees([]);
-                        updateMutation.mutate({
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const patch = {
                           assignees: [],
                           assignees_detail: [],
                           assignee: null,
                           assignee_detail: null,
-                        } as any);
+                        };
+                        setLocalAssignees([]);
+                        onPatch?.(task.id, patch);
+                        updateMutation.mutate(patch as any);
                         closeMenu();
                       }}
                     >
@@ -492,18 +501,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                               ? "bg-primary/10 text-primary font-bold"
                               : "hover:bg-base-200"
                           }`}
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const newAssignees = isSelected
                               ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
                               : [...cardAssignees, user];
                             const newIds = newAssignees.map((a: any) => a.id);
-                            setLocalAssignees(newAssignees);
-                            updateMutation.mutate({
+                            const patch = {
                               assignees: newIds,
                               assignees_detail: newAssignees,
                               assignee: newIds[0] || null,
                               assignee_detail: newAssignees[0] || null,
-                            } as any);
+                            };
+                            setLocalAssignees(newAssignees);
+                            onPatch?.(task.id, patch);
+                            updateMutation.mutate(patch as any);
                           }}
                         >
                           <div className="flex items-center gap-2 truncate">
@@ -576,14 +588,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                         <button
                           type="button"
                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-base-200"
-                          onClick={() => {
-                            setLocalAssignees([]);
-                            updateMutation.mutate({
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const patch = {
                               assignees: [],
                               assignees_detail: [],
                               assignee: null,
                               assignee_detail: null,
-                            } as any);
+                            };
+                            setLocalAssignees([]);
+                            onPatch?.(task.id, patch);
+                            updateMutation.mutate(patch as any);
                             closeMenu();
                           }}
                         >
@@ -598,18 +613,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                               className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-start hover:bg-base-200 ${
                                 isSelected ? "bg-primary/10 text-primary font-bold" : ""
                               }`}
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const newAssignees = isSelected
                                   ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
                                   : [...cardAssignees, user];
                                 const newIds = newAssignees.map((a: any) => a.id);
-                                setLocalAssignees(newAssignees);
-                                updateMutation.mutate({
+                                const patch = {
                                   assignees: newIds,
                                   assignees_detail: newAssignees,
                                   assignee: newIds[0] || null,
-                                  assignee_detail: newIds[0] || null,
-                                } as any);
+                                  assignee_detail: newAssignees[0] || null,
+                                };
+                                setLocalAssignees(newAssignees);
+                                onPatch?.(task.id, patch);
+                                updateMutation.mutate(patch as any);
                               }}
                             >
                               <div className="flex items-center gap-2 truncate">

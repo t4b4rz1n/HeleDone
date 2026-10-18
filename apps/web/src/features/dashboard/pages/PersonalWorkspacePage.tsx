@@ -711,11 +711,13 @@ export const UserDashboardPage = () => {
       <TaskSheet
         task={taskQuery.data ?? null}
         onClose={() => setSelectedTaskId(null)}
-        onPatch={async (taskId, patch) => {
-          await updateTask(taskId, patch);
+        onPatch={(taskId, patch) => {
+          queryClient.setQueryData(["task", String(taskId)], (old: any) =>
+            old ? { ...old, ...patch } : old
+          );
           queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
         }}
       />
     </motion.div>

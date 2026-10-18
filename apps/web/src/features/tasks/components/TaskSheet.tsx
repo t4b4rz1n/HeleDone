@@ -304,7 +304,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     setPriority(task.priority || "low");
     setDueDate(task.due_date ? toLocalDatetimeInput(task.due_date) : "");
     setLocalAssignees(resolveAssigneesFromTask(task, projectMembers));
-  }, [task, projectMembers]);
+  }, [task?.id, projectMembers]);
 
   useEffect(() => {
     setActiveTab("overview");
@@ -387,7 +387,11 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
 
   const invalidateTaskDetails = () => {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    if (taskId) {
+      queryClient.invalidateQueries({ queryKey: ["task", String(taskId)] });
+    }
     queryClient.invalidateQueries({ queryKey: ["projects"] });
+    queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["taskChecklists", taskId] });
     queryClient.invalidateQueries({ queryKey: ["taskComments", taskId] });
     queryClient.invalidateQueries({ queryKey: ["taskActivities", taskId] });
@@ -395,7 +399,13 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
 
   const updateMutation = useMutation({
     mutationFn: (patch: Partial<Task>) => updateTask(task!.id, patch),
-    onSuccess: invalidateTaskDetails,
+    onSuccess: (updatedTask: Task) => {
+      if (updatedTask && updatedTask.id) {
+        onPatch?.(updatedTask.id, updatedTask);
+        setLocalAssignees(resolveAssigneesFromTask(updatedTask, projectMembers));
+      }
+      invalidateTaskDetails();
+    },
     onError: (error: any) =>
       toast.error(translateError(error.response?.data?.detail || error.message || "Could not update task.")),
   });

@@ -140,8 +140,8 @@ export interface Task {
   description?: string;
   status_detail?: TaskStatus;
   priority: 'low' | 'medium' | 'high' | 'critical';
-  assignee?: number | string;
-  assignee_detail?: User;
+  assignee?: number | string | null;
+  assignee_detail?: User | null;
   assignees?: (string | number)[];
   assignees_detail?: User[];
   reporter?: number;

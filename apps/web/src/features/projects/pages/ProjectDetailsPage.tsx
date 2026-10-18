@@ -42,7 +42,7 @@ import { ProjectReportView } from "../components/ProjectReportView";
 import { ProjectMemberSalaryPanel } from "../components/ProjectMemberSalaryPanel";
 import { ProjectBillingTab } from "../components/ProjectBillingTab";
 import { toast } from "sonner";
-import { getUnlinkedTasks, getTask, updateTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
+import { getUnlinkedTasks, getTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
 import { TaskSheet } from "../../tasks/components/TaskSheet";
 import { ViewSwitcher } from "../../../components/ViewSwitcher";
 import { OrbitView } from "../components/OrbitView";
@@ -1170,8 +1170,10 @@ export default function ProjectDetailsPage() {
       <TaskSheet
         task={taskQuery.data ?? null}
         onClose={() => setSelectedTaskId(null)}
-        onPatch={async (taskId, patch) => {
-          await updateTask(taskId, patch);
+        onPatch={(taskId, patch) => {
+          queryClient.setQueryData(["task", String(taskId)], (old: any) =>
+            old ? { ...old, ...patch } : old
+          );
           queryClient.invalidateQueries({ queryKey: ["unlinked-tasks", id] });
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
         }}
