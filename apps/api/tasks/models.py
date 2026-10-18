@@ -160,14 +160,13 @@ class Task(BaseModel):
         choices=Priority.choices,
         default=Priority.LOW,
     )
-    assignee = models.ForeignKey(
+    assignees = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        related_name="tasks",
-        verbose_name=_("Assignee"),
-        null=True,
+        related_name="assigned_tasks",
+        verbose_name=_("Assignees"),
         blank=True,
     )
+
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -209,9 +208,9 @@ class Task(BaseModel):
         ordering = ["order", "-created_at"]
         indexes = [
             models.Index(fields=["project", "status"]),
-            models.Index(fields=["project", "assignee"]),
             models.Index(fields=["status", "priority"]),
         ]
+
         constraints = [
             models.UniqueConstraint(
                 fields=["project", "number"],
@@ -241,6 +240,41 @@ class Task(BaseModel):
             except Exception:
                 pass
 
+    def __init__(self, *args, **kwargs):
+        initial_assignee = kwargs.pop("assignee", None)
+        super().__init__(*args, **kwargs)
+        if initial_assignee is not None:
+            self._initial_assignee = initial_assignee
+
+    @property
+    def assignee(self):
+        """Returns the first assignee for backward compatibility."""
+        return self.assignees.first()
+
+    @assignee.setter
+    def assignee(self, value):
+        if self.pk:
+            if value is None:
+                self.assignees.clear()
+            else:
+                self.assignees.set([value])
+        else:
+            self._initial_assignee = value
+
+    @property
+    def assignee_id(self):
+        """Returns the first assignee's ID for backward compatibility."""
+        first = self.assignees.first()
+        return first.id if first else None
+
+    def _sync_initial_assignee(self):
+        if hasattr(self, "_initial_assignee"):
+            if self._initial_assignee:
+                self.assignees.set([self._initial_assignee])
+            else:
+                self.assignees.clear()
+            del self._initial_assignee
+
     def save(self, *args, **kwargs):
         if not self.number and self.project_id:
             import time
@@ -266,6 +300,7 @@ class Task(BaseModel):
                         )
                         self.number = max_num + 1
                         super().save(*args, **kwargs)
+                        self._sync_initial_assignee()
                         return  # Success, exit loop and function
                 except (IntegrityError, Exception) as e:
                     # Catch IntegrityError (if concurrent insert happened despite lock)
@@ -282,6 +317,8 @@ class Task(BaseModel):
             return
 
         super().save(*args, **kwargs)
+        self._sync_initial_assignee()
+
 
     @property
     def key(self):

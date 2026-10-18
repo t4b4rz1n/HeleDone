@@ -140,10 +140,13 @@ export interface Task {
   description?: string;
   status_detail?: TaskStatus;
   priority: 'low' | 'medium' | 'high' | 'critical';
-  assignee?: number;
+  assignee?: number | string;
   assignee_detail?: User;
+  assignees?: (string | number)[];
+  assignees_detail?: User[];
   reporter?: number;
   reporter_detail?: User;
+
   due_date?: string;
   is_finished: boolean;
   is_blocked: boolean;

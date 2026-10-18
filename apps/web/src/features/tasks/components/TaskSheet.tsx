@@ -44,7 +44,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { TimeLog } from "../../attendance/types";
-import type { Task } from "../types";
+import type { Task, User } from "../types";
 import { useTaskStore } from "../store/useTaskStore";
 import { getProjectMembers, getProjectMilestones } from "../../projects/api/projectsApi";
 import { createManualLog } from "../../attendance/api/attendanceApi";
@@ -529,8 +529,12 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   const checklistProgress = checklists.length
     ? Math.round((checklistDone / checklists.length) * 100)
     : 0;
-  const assignee = task.assignee_detail;
+  const assignees: User[] = (task.assignees_detail && task.assignees_detail.length > 0)
+    ? task.assignees_detail
+    : (task.assignee_detail ? [task.assignee_detail] : []);
   const isBusy = updateMutation.isPending || blockerMutation.isPending;
+
+
 
   return createPortal(
     <AnimatePresence>
@@ -764,22 +768,33 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                   aria-expanded={isAssigneeOpen}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    {assignee ? (
-                      <img
-                        src={assignee.avatar || getHeledoneAvatar(assignee.id, assignee.username)}
-                        alt=""
-                        className="task-sheet-assignee-avatar"
-                      />
+                    {assignees.length <= 1 ? (
+                      assignees[0] ? (
+                        <img
+                          src={assignees[0].avatar || getHeledoneAvatar(assignees[0].id, assignees[0].username)}
+                          alt=""
+                          className="task-sheet-assignee-avatar"
+                        />
+                      ) : (
+                        <span className="grid size-6 place-items-center rounded-full bg-base-200 text-heledone-ink-muted">
+                          <Profile2User size={13} />
+                        </span>
+                      )
                     ) : (
-                      <span className="grid size-6 place-items-center rounded-full bg-base-200 text-heledone-ink-muted">
-                        <Profile2User size={13} />
-                      </span>
+                      <div className="flex -space-x-1.5 rtl:space-x-reverse overflow-hidden">
+                        {assignees.slice(0, 3).map((a) => (
+                          <img
+                            key={a.id}
+                            src={a.avatar || getHeledoneAvatar(a.id, a.username)}
+                            alt=""
+                            className="task-sheet-assignee-avatar ring-1 ring-base-100"
+                          />
+                        ))}
+                      </div>
                     )}
                     <span className="truncate">
-                      {assignee
-                        ? assignee.first_name || assignee.last_name
-                          ? `${assignee.first_name || ""} ${assignee.last_name || ""}`.trim()
-                          : assignee.username
+                      {assignees.length > 0
+                        ? assignees.map((a) => a.first_name || a.username).join(", ")
                         : t("بدون مسئول")}
                     </span>
                   </div>
@@ -809,11 +824,16 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          save({ assignee: null, assignee_detail: null } as any);
+                          save({
+                            assignees: [],
+                            assignees_detail: [],
+                            assignee: null,
+                            assignee_detail: null,
+                          } as any);
                           setIsAssigneeOpen(false);
                           setAssigneeSearch("");
                         }}
-                        className={`task-sheet-dropdown-item ${!assignee ? "is-active" : ""}`}
+                        className={`task-sheet-dropdown-item ${assignees.length === 0 ? "is-active" : ""}`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="grid size-6 place-items-center rounded-full bg-base-200 text-heledone-ink-muted">
@@ -821,7 +841,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           </span>
                           <span className="truncate">{t("بدون مسئول")}</span>
                         </div>
-                        {!assignee && <Check size={14} className="text-primary shrink-0" />}
+                        {assignees.length === 0 && <Check size={14} className="text-primary shrink-0" />}
                       </button>
 
                       {projectMembers
@@ -829,13 +849,14 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           if (!m.user) return false;
                           if (!assigneeSearch.trim()) return true;
                           const q = assigneeSearch.toLowerCase();
-                          const name = `${m.user.first_name || ""} ${m.user.last_name || ""} ${m.user.username || ""
-                            }`.toLowerCase();
+                          const name = `${m.user.first_name || ""} ${m.user.last_name || ""} ${
+                            m.user.username || ""
+                          }`.toLowerCase();
                           return name.includes(q);
                         })
                         .map((m) => {
                           const u = m.user!;
-                          const isCurrent = String(assignee?.id) === String(u.id);
+                          const isCurrent = assignees.some((a) => String(a.id) === String(u.id));
                           const displayName =
                             u.first_name || u.last_name
                               ? `${u.first_name || ""} ${u.last_name || ""}`.trim()
@@ -845,12 +866,15 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                               key={m.id}
                               type="button"
                               onClick={() => {
+                                const newAssignees = isCurrent
+                                  ? assignees.filter((a) => String(a.id) !== String(u.id))
+                                  : [...assignees, u];
                                 save({
-                                  assignee: String(u.id),
-                                  assignee_detail: u,
+                                  assignees: newAssignees.map((a) => a.id),
+                                  assignees_detail: newAssignees,
+                                  assignee: newAssignees[0]?.id || null,
+                                  assignee_detail: newAssignees[0] || null,
                                 } as any);
-                                setIsAssigneeOpen(false);
-                                setAssigneeSearch("");
                               }}
                               className={`task-sheet-dropdown-item ${isCurrent ? "is-active" : ""}`}
                             >
@@ -873,6 +897,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                             </button>
                           );
                         })}
+
                     </motion.div>
                   )}
                 </AnimatePresence>

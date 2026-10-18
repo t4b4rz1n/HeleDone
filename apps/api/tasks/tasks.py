@@ -25,13 +25,14 @@ def check_approaching_tasks():
     ).exclude(status__code="done")  # Extra safety to exclude done tasks if is_finished was false
 
     for task in approaching_tasks:
-        if task.assignee_id:
+        for assignee in task.assignees.all():
             EventDispatcher.dispatch(
                 event_type="task_deadline_approaching",
                 payload={
-                    "target_user_id": str(task.assignee_id),
+                    "target_user_id": str(assignee.id),
                     "project_id": str(task.project_id),
-                    "assignee_id": str(task.assignee_id),
+                    "assignee_id": str(assignee.id),
                     "task_title": task.title,
                 },
             )
+

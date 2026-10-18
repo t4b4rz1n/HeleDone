@@ -175,11 +175,12 @@ class TimeLogService:
         # Permission check: Assignee, Superuser/Staff, Project Owner, or user with project.manage permission can start timer
         can_start = False
         if (
-            task.assignee == user
+            task.assignees.filter(id=user.id).exists()
             or getattr(task, "reporter", None) == user
             or getattr(user, "is_superuser", False)
             or getattr(user, "is_staff", False)
         ):
+
             can_start = True
         elif task.project:
             if task.project.owner_id == user.id or (
@@ -462,8 +463,9 @@ class TimeLogService:
     @staticmethod
     @transaction.atomic
     def create_manual_log(user, task, start_time, end_time, description=""):
-        # Anti-fraud check: only assignee or superuser can log time manually for a task
-        if task.assignee != user and not user.is_superuser:
+        # Anti-fraud check: only assignees or superuser can log time manually for a task
+        if not task.assignees.filter(id=user.id).exists() and not user.is_superuser:
+
             # We can also check if user has project permissions, but superuser/assignee is safe for now
             from projects.models import ProjectMember
 

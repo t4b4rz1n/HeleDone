@@ -67,7 +67,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const isAssignee = Boolean(
     currentUserId &&
       (String(task.assignee) === String(currentUserId) ||
-        String(task.assignee_detail?.id) === String(currentUserId))
+        String(task.assignee_detail?.id) === String(currentUserId) ||
+        task.assignees?.some(id => String(id) === String(currentUserId)) ||
+        task.assignees_detail?.some(u => String(u.id) === String(currentUserId)))
   );
   const isReporter = Boolean(
     currentUserId &&
@@ -260,54 +262,80 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
           <div className="flex items-center gap-3">
             {/* Assignee Interactive Trigger */}
-            <button
-              ref={assigneeTriggerRef}
-              type="button"
-              disabled={!canEditTask}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canEditTask) {
-                  setIsAssigneePopoverOpen(!isAssigneePopoverOpen);
-                }
-              }}
-              className={`rounded-full p-0.5 transition ${
-                canEditTask ? "hover:ring-2 hover:ring-primary/30" : "cursor-default"
-              }`}
-              title={
-                task.assignee_detail
-                  ? t("Assigned to {value0}", { value0: task.assignee_detail.first_name || task.assignee_detail.username })
-                  : canEditTask
-                  ? t("Assign member")
-                  : t("بدون مسئول")
-              }
-            >
+            {(() => {
+              const cardAssignees: any[] = (task.assignees_detail && task.assignees_detail.length > 0)
+                ? task.assignees_detail
+                : (task.assignee_detail ? [task.assignee_detail] : []);
+              const tooltip = cardAssignees.length > 0
+                ? t("Assigned to {value0}", { value0: cardAssignees.map(a => a.first_name || a.username).join(", ") })
+                : canEditTask ? t("Assign member") : t("بدون مسئول");
 
-              <div className="relative shrink-0">
-                <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shadow-xs">
-                  {task.assignee_detail?.avatar_url || task.assignee_detail?.avatar ? (
-                    <img
-                      src={
-                        task.assignee_detail.avatar_url ||
-                        task.assignee_detail.avatar
-                      }
-                      alt=""
-                      className="size-6 rounded-full object-cover"
-                    />
-                  ) : (
-                    initials || <Profile2User size={12} className="text-heledone-ink-muted" />
-                  )}
-                </span>
+              return (
+                <button
+                  ref={assigneeTriggerRef}
+                  type="button"
+                  disabled={!canEditTask}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (canEditTask) {
+                      setIsAssigneePopoverOpen(!isAssigneePopoverOpen);
+                    }
+                  }}
+                  className={`rounded-full p-0.5 transition ${
+                    canEditTask ? "hover:ring-2 hover:ring-primary/30" : "cursor-default"
+                  }`}
+                  title={tooltip}
+                >
+                  <div className="relative shrink-0">
+                    {cardAssignees.length <= 1 ? (
+                      <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shadow-xs">
+                        {cardAssignees[0]?.avatar_url || cardAssignees[0]?.avatar ? (
+                          <img
+                            src={cardAssignees[0].avatar_url || cardAssignees[0].avatar}
+                            alt=""
+                            className="size-6 rounded-full object-cover"
+                          />
+                        ) : cardAssignees[0] ? (
+                          (cardAssignees[0].first_name?.[0] || cardAssignees[0].username?.[0] || "U").toUpperCase()
+                        ) : (
+                          initials || <Profile2User size={12} className="text-heledone-ink-muted" />
+                        )}
+                      </span>
+                    ) : (
+                      <div className="flex -space-x-1.5 rtl:space-x-reverse overflow-hidden">
+                        {cardAssignees.slice(0, 3).map((a) => (
+                          <span
+                            key={a.id}
+                            className="grid size-6 place-items-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shadow-xs ring-1 ring-base-100"
+                          >
+                            {a.avatar_url || a.avatar ? (
+                              <img src={a.avatar_url || a.avatar} alt="" className="size-6 rounded-full object-cover" />
+                            ) : (
+                              (a.first_name?.[0] || a.username?.[0] || "U").toUpperCase()
+                            )}
+                          </span>
+                        ))}
+                        {cardAssignees.length > 3 && (
+                          <span className="grid size-6 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-heledone-ink-muted ring-1 ring-base-100">
+                            +{cardAssignees.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                {task.project && (
-                  <div className="absolute -bottom-1 -end-1 z-10">
-                    <LiveActivityIndicator
-                      projectId={task.project.toString()}
-                      taskId={task.id}
-                    />
+                    {task.project && (
+                      <div className="absolute -bottom-1 -end-1 z-10">
+                        <LiveActivityIndicator
+                          projectId={task.project.toString()}
+                          taskId={task.id}
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </button>
+                </button>
+              );
+            })()}
+
 
             {/* ─── Task Metadata (Due Date, Checklist & Milestone) ─── */}
             {(task.due_date || (task.checklist_stats && task.checklist_stats.total > 0) || task.milestone_detail) && (
@@ -384,55 +412,73 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 {t("Assign to")}</div>
 
               {/* Unassigned Option */}
-              <button
-                type="button"
-                className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
-                  !task.assignee ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
-                }`}
-                onClick={() => {
-                  updateMutation.mutate({ assignee: undefined });
-                  closeMenu();
-                }}
-              >
-                <Profile2User size={14} className="text-heledone-ink-muted" />
-                <span>{t("بدون مسئول")}</span>
-              </button>
+              {(() => {
+                const currentAssigneeIds: (string | number)[] = (task.assignees && task.assignees.length > 0)
+                  ? task.assignees
+                  : (task.assignees_detail && task.assignees_detail.length > 0)
+                  ? task.assignees_detail.map((a: any) => a.id)
+                  : task.assignee ? [task.assignee] : [];
 
-              {/* Users List */}
-              {users.map((user: any) => {
-                const isSelected = String(task.assignee) === String(user.id);
                 return (
-                  <button
-                    type="button"
-                    key={user.id}
-                    className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
-                      isSelected
-                        ? "bg-primary/10 text-primary font-bold"
-                        : "hover:bg-base-200"
-                    }`}
-                    onClick={() => {
-                      updateMutation.mutate({ assignee: user.id });
-                      closeMenu();
-                    }}
-                  >
-                    <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shrink-0">
-                      {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                    </span>
-                    <span className="truncate flex items-center gap-1">
-                      <span>
-                        {user.first_name || user.last_name
-                          ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                          : user.full_name || user.username || user.email || t("Unknown Member")}
-                      </span>
-                      {user.username && (
-                        <span className="text-[13px] text-heledone-ink-muted font-normal">
-                          (@{user.username})
-                        </span>
-                      )}
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
+                        currentAssigneeIds.length === 0 ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
+                      }`}
+                      onClick={() => {
+                        updateMutation.mutate({ assignees: [] });
+                        closeMenu();
+                      }}
+                    >
+                      <Profile2User size={14} className="text-heledone-ink-muted" />
+                      <span>{t("بدون مسئول")}</span>
+                    </button>
+
+                    {/* Users List */}
+                    {users.map((user: any) => {
+                      const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                      return (
+                        <button
+                          type="button"
+                          key={user.id}
+                          className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
+                            isSelected
+                              ? "bg-primary/10 text-primary font-bold"
+                              : "hover:bg-base-200"
+                          }`}
+                          onClick={() => {
+                            const newIds = isSelected
+                              ? currentAssigneeIds.filter((id: any) => String(id) !== String(user.id))
+                              : [...currentAssigneeIds, user.id];
+                            updateMutation.mutate({ assignees: newIds });
+                          }}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shrink-0">
+                              {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
+                            </span>
+                            <span className="truncate flex items-center gap-1">
+                              <span>
+                                {user.first_name || user.last_name
+                                  ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+                                  : user.full_name || user.username || user.email || t("Unknown Member")}
+                              </span>
+                              {user.username && (
+                                <span className="text-[13px] text-heledone-ink-muted font-normal">
+                                  (@{user.username})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          {isSelected && <span className="text-primary text-xs shrink-0">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </>
                 );
-              })}
+              })()}
+
 
               {users.length === 0 && (
                 <div className="px-2 py-2 text-[13px] text-heledone-ink-muted">
@@ -470,35 +516,59 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-heledone-ink-muted hover:bg-base-200"
                   >
                     <CloseCircle size={15} />  {t("بازگشت")}</button>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-base-200"
-                    onClick={() => {
-                      updateMutation.mutate({ assignee: undefined });
-                      closeMenu();
-                    }}
-                  >
-                    <Profile2User size={15} />  {t("بدون مسئول")}</button>
-                  {users.map((user: any) => (
-                    <button
-                      type="button"
-                      key={user.id}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-start hover:bg-base-200"
-                      onClick={() => {
-                        updateMutation.mutate({ assignee: user.id });
-                        closeMenu();
-                      }}
-                    >
-                      <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] text-primary">
-                        {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                      </span>
-                      <span className="truncate">
-                        {user.first_name || user.last_name
-                          ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                          : user.full_name || user.username || user.email || t("Unknown Member")}
-                      </span>
-                    </button>
-                  ))}
+                  {(() => {
+                    const currentAssigneeIds: (string | number)[] = (task.assignees && task.assignees.length > 0)
+                      ? task.assignees
+                      : (task.assignees_detail && task.assignees_detail.length > 0)
+                      ? task.assignees_detail.map((a: any) => a.id)
+                      : task.assignee ? [task.assignee] : [];
+
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-base-200"
+                          onClick={() => {
+                            updateMutation.mutate({ assignees: [] });
+                            closeMenu();
+                          }}
+                        >
+                          <Profile2User size={15} />  {t("بدون مسئول")}
+                        </button>
+                        {users.map((user: any) => {
+                          const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                          return (
+                            <button
+                              type="button"
+                              key={user.id}
+                              className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-start hover:bg-base-200 ${
+                                isSelected ? "bg-primary/10 text-primary font-bold" : ""
+                              }`}
+                              onClick={() => {
+                                const newIds = isSelected
+                                  ? currentAssigneeIds.filter((id: any) => String(id) !== String(user.id))
+                                  : [...currentAssigneeIds, user.id];
+                                updateMutation.mutate({ assignees: newIds });
+                              }}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] text-primary shrink-0">
+                                  {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
+                                </span>
+                                <span className="truncate">
+                                  {user.first_name || user.last_name
+                                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+                                    : user.full_name || user.username || user.email || t("Unknown Member")}
+                                </span>
+                              </div>
+                              {isSelected && <span className="text-primary text-xs shrink-0">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+
                 </>
               ) : (
                 <>

@@ -169,11 +169,12 @@ class EmployeeDashboardService:
         """
         return (
             Task.objects.filter(
-                assignee=user,
+                assignees=user,
                 is_deleted=False,
                 project__is_deleted=False,
                 is_finished=False,
             )
+
             .filter(Q(due_date__gte=now) | Q(due_date__isnull=True))
             .select_related("status", "project")
             .annotate(
@@ -206,12 +207,13 @@ class EmployeeDashboardService:
         """
         return (
             Task.objects.filter(
-                assignee=user,
+                assignees=user,
                 is_deleted=False,
                 due_date__lt=now,
                 project__is_deleted=False,
                 is_finished=False,
             )
+
             .select_related("status", "project")
             .annotate(
                 status_name=F("status__name"),
@@ -237,12 +239,13 @@ class EmployeeDashboardService:
     def _get_blocked_tasks(user):
         return (
             Task.objects.filter(
-                assignee=user,
+                assignees=user,
                 is_deleted=False,
                 project__is_deleted=False,
                 is_blocked=True,
                 is_finished=False,
             )
+
             .select_related("status", "project")
             .annotate(
                 status_name=F("status__name"),
@@ -523,9 +526,9 @@ class ManagerDashboardService:
 
     @staticmethod
     def _get_task_stats(member_ids, admin_org_ids=None):
-        q_filter = Q(assignee_id__in=member_ids)
+        q_filter = Q(assignees__id__in=member_ids)
         if admin_org_ids:
-            q_filter |= Q(assignee__isnull=True, project__organization_id__in=admin_org_ids)
+            q_filter |= Q(assignees__isnull=True, project__organization_id__in=admin_org_ids)
 
         return list(
             Task.objects.filter(
@@ -533,6 +536,7 @@ class ManagerDashboardService:
                 is_deleted=False,
                 project__is_deleted=False,
             )
+            .distinct()
             .annotate(
                 status_code=F("status__code"),
                 status_name=F("status__name"),
@@ -542,11 +546,12 @@ class ManagerDashboardService:
             .order_by("status_code")
         )
 
+
     @staticmethod
     def _get_overdue_tasks(member_ids, now, admin_org_ids=None):
-        q_filter = Q(assignee_id__in=member_ids)
+        q_filter = Q(assignees__id__in=member_ids)
         if admin_org_ids:
-            q_filter |= Q(assignee__isnull=True, project__organization_id__in=admin_org_ids)
+            q_filter |= Q(assignees__isnull=True, project__organization_id__in=admin_org_ids)
 
         qs = Task.objects.filter(
             q_filter,
@@ -554,20 +559,21 @@ class ManagerDashboardService:
             due_date__lt=now,
             project__is_deleted=False,
             is_finished=False,
-        )
+        ).distinct()
 
         return {
             "total_overdue": qs.count(),
             "by_member": list(
                 qs.annotate(
-                    username=F("assignee__username"),
-                    first_name=F("assignee__first_name"),
+                    username=F("assignees__username"),
+                    first_name=F("assignees__first_name"),
                 )
                 .values("username", "first_name")
                 .annotate(count=Count("id"))
                 .order_by("-count")
             ),
         }
+
 
     @staticmethod
     def _get_work_hours(member_ids, week_start_date, week_end_date):
@@ -1577,7 +1583,8 @@ class CycleLeadTimeService:
         if board_id:
             task_qs = task_qs.filter(status__board_id=board_id)
         if assignee_id:
-            task_qs = task_qs.filter(assignee_id=assignee_id)
+            task_qs = task_qs.filter(assignees__id=assignee_id)
+
 
         task_ids = list(task_qs.values_list("id", flat=True))
         if not task_ids:

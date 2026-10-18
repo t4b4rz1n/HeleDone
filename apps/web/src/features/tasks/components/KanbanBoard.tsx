@@ -698,7 +698,12 @@ export const KanbanBoard: React.FC = () => {
     const matchesSearch = !normalizedSearch || `${task.title} ${task.key}`.toLowerCase().includes(normalizedSearch);
     const matchesFilter = filter === 'all'
       || (filter === 'active' && !task.is_finished && task.status_detail?.code !== 'done')
-      || (filter === 'my-tasks' && Boolean(currentUser?.id) && (task.assignee_detail?.id === currentUser?.id || task.assignee === currentUser?.id))
+      || (filter === 'my-tasks' && Boolean(currentUser?.id) && (
+        task.assignees?.some(id => String(id) === String(currentUser?.id)) ||
+        task.assignees_detail?.some(u => String(u.id) === String(currentUser?.id)) ||
+        task.assignee_detail?.id === currentUser?.id ||
+        task.assignee === currentUser?.id
+      ))
       || (filter === 'blocked' && task.is_blocked)
       || (filter === 'priority' && ['high', 'critical'].includes(task.priority));
     return matchesSearch && matchesFilter;

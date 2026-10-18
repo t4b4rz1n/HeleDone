@@ -49,7 +49,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
 
   // Local state for optimistic UI updates
-  const [localAssignee, setLocalAssignee] = useState<any>(task.assignee_detail || null);
+  const initialAssignees: any[] = (task.assignees_detail && task.assignees_detail.length > 0)
+    ? task.assignees_detail
+    : (task.assignee_detail ? [task.assignee_detail] : []);
+  const [localAssignees, setLocalAssignees] = useState<any[]>(initialAssignees);
+
   const [localDueDate, setLocalDueDate] = useState<string | null | undefined>(task.due_date);
 
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
@@ -346,73 +350,106 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
               {/* Members */}
               <div className="ms-8">
                 <h3 className="text-[13px] font-semibold text-base-content mb-2 uppercase tracking-wide">{t("اعضا")}</h3>
-                <div className="flex items-center gap-1">
-                  <div className="relative" ref={membersButtonRef}>
-                    {localAssignee ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {localAssignees.map((assigneeItem: any) => (
+                    <div
+                      key={assigneeItem.id}
+                      className="group relative flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-base-content/10 rounded-full pe-2.5 ps-0.5 py-0.5 text-xs text-base-content transition-colors"
+                    >
                       <div
-                        onClick={() => setIsMembersMenuOpen(true)}
-                        className="w-8 h-8 rounded-full bg-error text-base-content flex items-center justify-center text-xs font-bold ring-2 ring-base-100 relative cursor-pointer hover:opacity-80 transition-opacity"
-                        title={localAssignee.full_name || localAssignee.username}
+                        className="w-6 h-6 rounded-full bg-error text-base-content flex items-center justify-center text-[11px] font-bold shrink-0"
+                        title={assigneeItem.full_name || assigneeItem.username}
                       >
-                        {localAssignee.full_name?.[0] || localAssignee.username?.[0] || 'A'}
+                        {assigneeItem.full_name?.[0] || assigneeItem.username?.[0] || 'U'}
                       </div>
-                    ) : (
+                      <span className="truncate max-w-[100px] font-medium">{assigneeItem.first_name || assigneeItem.full_name || assigneeItem.username}</span>
                       <button
-                        onClick={() => setIsMembersMenuOpen(true)}
-                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-base-content/10 flex items-center justify-center text-base-content transition-colors ms-1"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newAssignees = localAssignees.filter((a: any) => String(a.id) !== String(assigneeItem.id));
+                          setLocalAssignees(newAssignees);
+                          updateMutation.mutate({ assignees: newAssignees.map((u: any) => u.id) });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-error transition-opacity"
+                        title={t("Remove")}
                       >
-                        <span className="text-lg leading-none mb-0.5">+</span>
+                        <CloseSquare size={12} />
                       </button>
-                    )}
+                    </div>
+                  ))}
+
+                  <div className="relative" ref={membersButtonRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsMembersMenuOpen(!isMembersMenuOpen)}
+                      className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-dashed border-base-content/20 flex items-center justify-center text-base-content transition-colors"
+                      title={t("Add member")}
+                    >
+                      <span className="text-base leading-none mb-0.5">+</span>
+                    </button>
                   </div>
 
                   {isMembersMenuOpen && membersButtonRef.current && createPortal(
                     <>
                       <div className="fixed inset-0 z-[110]" onClick={() => setIsMembersMenuOpen(false)} />
                       <div
-                        className="fixed z-[120] bg-base-100 border border-base-content/10 rounded-lg shadow-2xl py-1.5 w-48 text-[13px] text-base-content flex flex-col max-h-64 overflow-y-auto custom-scrollbar"
+                        className="fixed z-[120] bg-base-100 border border-base-content/10 rounded-lg shadow-2xl py-1.5 w-52 text-[13px] text-base-content flex flex-col max-h-64 overflow-y-auto custom-scrollbar"
                         style={{
                           top: membersButtonRef.current.getBoundingClientRect().bottom + 4,
                           left: membersButtonRef.current.getBoundingClientRect().left,
                         }}
                       >
                         <div className="px-3 py-1.5 text-xs text-base-content font-semibold mb-1">{t("Select Member")}</div>
-                        <button
-                          className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start text-base-content hover:text-base-content"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateMutation.mutate({ assignee: undefined });
-                            setLocalAssignee(null);
-                            setIsMembersMenuOpen(false);
-                          }}
-                        >
-                          <div className="w-5 h-5 rounded-full border border-dashed border-base-content/40 flex items-center justify-center font-bold text-base-content">
-                            -
-                          </div>
-                          <span className="truncate">{t("بدون مسئول")}</span>
-                        </button>
-                        {users.map((user: any) => (
+                        {localAssignees.length > 0 && (
                           <button
-                            key={user.id}
-                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start"
-                            onClick={() => {
-                              setLocalAssignee(user);
-                              updateMutation.mutate({ assignee: user.id });
+                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start text-error hover:text-error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocalAssignees([]);
+                              updateMutation.mutate({ assignees: [] });
                               setIsMembersMenuOpen(false);
                             }}
                           >
-                            <div className="w-5 h-5 rounded-full bg-error text-[13px] flex items-center justify-center font-bold text-base-content">
-                              {user.full_name?.[0] || user.username?.[0] || 'U'}
+                            <div className="w-5 h-5 rounded-full border border-dashed border-error/40 flex items-center justify-center font-bold text-error">
+                              ✕
                             </div>
-                            <span className="truncate">{user.full_name || user.username || user.email}</span>
+                            <span className="truncate">{t("حذف همه")}</span>
                           </button>
-                        ))}
+                        )}
+                        {users.map((user: any) => {
+                          const isAssigned = localAssignees.some((a: any) => String(a.id) === String(user.id));
+                          return (
+                            <button
+                              key={user.id}
+                              className={`flex items-center justify-between gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start ${
+                                isAssigned ? "bg-primary/10 text-primary font-bold" : ""
+                              }`}
+                              onClick={() => {
+                                const newAssignees = isAssigned
+                                  ? localAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                                  : [...localAssignees, user];
+                                setLocalAssignees(newAssignees);
+                                updateMutation.mutate({ assignees: newAssignees.map((u: any) => u.id) });
+                              }}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <div className="w-5 h-5 rounded-full bg-error text-[11px] flex items-center justify-center font-bold text-white shrink-0">
+                                  {user.full_name?.[0] || user.username?.[0] || 'U'}
+                                </div>
+                                <span className="truncate">{user.full_name || user.username || user.email}</span>
+                              </div>
+                              {isAssigned && <span className="text-primary text-xs shrink-0">✓</span>}
+                            </button>
+                          );
+                        })}
                       </div>
                     </>,
                     document.body
                   )}
                 </div>
               </div>
+
 
               {/* Description */}
               <div className="flex flex-col mt-2">

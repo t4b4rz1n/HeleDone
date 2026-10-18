@@ -501,11 +501,15 @@ function MilestonesTab({
                         {task.priority}
                       </span>
                     )}
-                    {task.assignee_detail && (
-                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
-                        {`${task.assignee_detail.first_name} ${task.assignee_detail.last_name}`.trim() || task.assignee_detail.username || t("Assigned")}
+                    {(task.assignees_detail && task.assignees_detail.length > 0) ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[120px]">
+                        {task.assignees_detail.map((u: any) => `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username).join(", ")}
                       </span>
-                    )}
+                    ) : task.assignee_detail ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
+                        {`${task.assignee_detail.first_name || ""} ${task.assignee_detail.last_name || ""}`.trim() || task.assignee_detail.username || t("Assigned")}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               ))}

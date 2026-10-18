@@ -877,3 +877,140 @@ class StandupGridTestCase(APITestCase):
         url = reverse("task-standup-grid")
         res = self.client.get(url, {"project": str(self.project.id)})
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class MultiAssigneeTaskTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.org = Organization.objects.create(name="Multi Org", slug="multi-org")
+        cls.user1 = User.objects.create_user(
+            username="alice",
+            email="alice@example.com",
+            password="Password123!",
+        )
+        cls.user2 = User.objects.create_user(
+            username="bob",
+            email="bob@example.com",
+            password="Password123!",
+        )
+        OrganizationMembership.objects.create(
+            user=cls.user1, organization=cls.org, role="employee"
+        )
+        OrganizationMembership.objects.create(
+            user=cls.user2, organization=cls.org, role="employee"
+        )
+
+        cls.project = Project.objects.create(
+            name="Multi Project",
+            description="Testing multi assignees",
+            organization=cls.org,
+            owner=cls.user1,
+        )
+        ProjectMember.objects.create(project=cls.project, user=cls.user1, is_active=True)
+        ProjectMember.objects.create(project=cls.project, user=cls.user2, is_active=True)
+
+        cls.board = Board.objects.create(
+            title="Sprint Board",
+            project=cls.project,
+            created_by=cls.user1,
+        )
+        cls.status_todo = TaskStatus.objects.create(
+            board=cls.board, code="todo", name="To Do", order=1
+        )
+
+    def test_create_task_with_multiple_assignees(self):
+        """Task created via API with multiple assignees should persist all assignees."""
+        self.client.force_authenticate(user=self.user1)
+        url = reverse("task-list")
+        payload = {
+            "title": "Shared Task",
+            "project": str(self.project.id),
+            "status": str(self.status_todo.id),
+            "priority": "high",
+            "assignees": [str(self.user1.id), str(self.user2.id)],
+        }
+        res = self.client.post(url, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        task_id = res.data["id"]
+        task = Task.objects.get(id=task_id)
+        assigned_ids = set(task.assignees.values_list("id", flat=True))
+        self.assertIn(self.user1.id, assigned_ids)
+        self.assertIn(self.user2.id, assigned_ids)
+
+        # Check API response format
+        self.assertEqual(len(res.data["assignees_detail"]), 2)
+        returned_usernames = {u["username"] for u in res.data["assignees_detail"]}
+        self.assertIn("alice", returned_usernames)
+        self.assertIn("bob", returned_usernames)
+
+    def test_filter_tasks_by_assignee_matches_multi_assignee(self):
+        """Filtering by ?assignee=<id> should return the task if user is one of the assignees."""
+        self.client.force_authenticate(user=self.user1)
+        task = Task.objects.create(
+            project=self.project,
+            title="Collaborative Task",
+            reporter=self.user1,
+            status=self.status_todo,
+        )
+        task.assignees.set([self.user1, self.user2])
+
+        url = reverse("task-list")
+        # Alice query
+        res_alice = self.client.get(url, {"assignee": str(self.user1.id)})
+        self.assertEqual(res_alice.status_code, status.HTTP_200_OK)
+        alice_ids = [t["id"] for t in res_alice.data["results"]]
+        self.assertIn(str(task.id), [str(i) for i in alice_ids])
+
+        # Bob query
+        res_bob = self.client.get(url, {"assignee": str(self.user2.id)})
+        self.assertEqual(res_bob.status_code, status.HTTP_200_OK)
+        bob_ids = [t["id"] for t in res_bob.data["results"]]
+        self.assertIn(str(task.id), [str(i) for i in bob_ids])
+
+    def test_employee_dashboard_displays_task_for_all_assignees(self):
+        """Dashboard _get_upcoming_tasks should return task for every assigned user."""
+        from reports.services import EmployeeDashboardService
+
+        task = Task.objects.create(
+            project=self.project,
+            title="Shared Feature",
+            reporter=self.user1,
+            status=self.status_todo,
+        )
+        task.assignees.set([self.user1, self.user2])
+
+        now = timezone.now()
+        alice_upcoming = list(EmployeeDashboardService._get_upcoming_tasks(self.user1, now))
+        bob_upcoming = list(EmployeeDashboardService._get_upcoming_tasks(self.user2, now))
+
+        alice_titles = [t["title"] for t in alice_upcoming]
+        bob_titles = [t["title"] for t in bob_upcoming]
+
+        self.assertIn("Shared Feature", alice_titles)
+        self.assertIn("Shared Feature", bob_titles)
+
+    def test_both_assignees_can_start_timer(self):
+        """Any of the assignees should be permitted to start a timer on the task."""
+        from attendance.services import TimeLogService
+
+        task = Task.objects.create(
+            project=self.project,
+            title="Time Loggable Task",
+            reporter=self.user1,
+            status=self.status_todo,
+        )
+        task.assignees.set([self.user1, self.user2])
+
+        # Bob (not reporter, not owner) starts timer
+        timer_bob = TimeLogService.start_timer(self.user2, task)
+        self.assertIsNotNone(timer_bob)
+        self.assertEqual(timer_bob.user, self.user2)
+        TimeLogService.stop_timer(self.user2, timer_bob.id)
+
+        # Alice starts timer
+        timer_alice = TimeLogService.start_timer(self.user1, task)
+        self.assertIsNotNone(timer_alice)
+        self.assertEqual(timer_alice.user, self.user1)
+        TimeLogService.stop_timer(self.user1, timer_alice.id)
+
