@@ -1,5 +1,5 @@
 import { useEffect, type ComponentType } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Home,
   FolderOpen,
@@ -14,7 +14,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
-import { Brand } from "../../../components/Brand";
+import { Brand, BrandBeats } from "../../../components/Brand";
 import ThemeToggle from "../../../components/ThemeToggle";
 import { useTranslation } from "../../../i18n/locale";
 import { useLayoutStore } from "../../layout/store/layoutStore";
@@ -229,6 +229,14 @@ export function HomeSidebar() {
         </nav>
 
         <div className="home-sidebar-bottom">
+          <div className="home-seascape" aria-hidden="true">
+            <img
+              className="home-coast-art"
+              src={assets + "home-sidebar-coast.png"}
+              alt=""
+            />
+          </div>
+
           <Link to="/profile" className="home-user" aria-label={t("حساب من")}>
             <img
               src={user?.profile_image_url || user?.avatar_url || assets + "avatar-04.png"}
@@ -263,7 +271,6 @@ export function HomeSidebar() {
 export function HomeHeader({ onSearch }: { onSearch: () => void }) {
   const t = useTranslation();
   const location = useLocation();
-  const navigate = useNavigate();
   const setSidebarOpen = useLayoutStore((s) => s.setSidebarOpen);
   const openProjectWizard = useProjectWizardStore((s) => s.open);
   const user = useAuthStore((s) => s.user);
@@ -272,94 +279,146 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
   const isStaff = user?.is_staff === true;
   const canCreateProject =
     hasAnyPermission(["project.create", "org.manage_settings"]) || isStaff;
-  const canCreateTask =
-    hasAnyPermission(["task.create", "task.manage_all", "org.manage_settings"]) || isStaff;
+  const canViewManagerOverview =
+    hasAnyPermission([
+      "report.view",
+      "attendance.view_all",
+      "org.manage_members",
+      "finance.view_reports",
+      "org.manage_settings",
+    ]) || isStaff;
+  const canViewTeamOverview =
+    hasAnyPermission([
+      "report.view_team_lead",
+      "report.view",
+      "attendance.view_all",
+      "org.manage_members",
+    ]) || isStaff;
 
-  const topNavItems = [
-    {
+  const topNavItems: { label: string; path: string; active: boolean }[] = [];
+  if (canViewManagerOverview) {
+    topNavItems.push({
+      label: "دید کلی سرپرست",
+      path: "/manager",
+      active: location.pathname === "/manager",
+    });
+  }
+  if (canViewTeamOverview) {
+    topNavItems.push({
+      label: "دید کلی تیم",
+      path: "/team-lead",
+      active: location.pathname === "/team-lead",
+    });
+  }
+  if (topNavItems.length === 0) {
+    topNavItems.push({
       label: "زمان و درخواست‌ها",
       path: "/attendance",
       active: location.pathname.startsWith("/attendance"),
-    },
-    {
-      label: "حقوق و هزینه‌ها",
-      path: "/finance/my-reports",
-      active: location.pathname.startsWith("/finance"),
-    },
-  ];
+    });
+  }
+  // Kanban board always visible in top nav
+  topNavItems.push({
+    label: "برد کانبان",
+    path: "/tasks",
+    active: location.pathname.startsWith("/tasks"),
+  });
+
+  const isTasksPage = location.pathname.startsWith("/tasks");
 
   return (
     <header className="home-topbar">
-      {/* Mobile Toggle */}
-      <button
-        type="button"
-        className="home-menu lg:hidden"
-        aria-label={t("باز کردن منو")}
-        onClick={() => setSidebarOpen(true)}
-      >
-        <Menu size={22} />
-      </button>
+      {/* Start Group: Mobile menu toggle + quick links + primary actions */}
+      <div className="home-topbar-start">
+        {isTasksPage ? (
+          <div className="flex items-center gap-2.5">
+            <Link to="/tasks" className="flex items-center gap-2 text-decoration-none hover:opacity-90 transition-opacity">
+              <BrandBeats />
+              <span className="font-extrabold text-sm tracking-tight text-base-content hidden sm:inline">
+                {t("هله‌دان")}
+              </span>
+            </Link>
+            <div className="h-4 w-px bg-base-300" />
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all border border-primary/20 shadow-xs"
+              title={t("بازگشت به پیشخوان و سایدبار اصلی")}
+            >
+              <Home size={15} />
+              <span>{t("پیشخوان")}</span>
+            </Link>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="home-menu lg:hidden"
+              aria-label={t("باز کردن منو")}
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={22} />
+            </button>
 
-      {/* Top Navigation: Dedicated Quick Links */}
-      <nav aria-label={t("منوی اصلی")} className="home-top-nav hidden md:flex items-center gap-1 xl:gap-2">
-        {topNavItems.map((item) => (
-          <Link
-            key={item.label}
-            to={item.path}
-            className={`home-top-nav-item relative text-xs xl:text-sm font-bold px-3 py-2 transition-colors ${
-              item.active
-                ? "text-primary active"
-                : "text-slate-600 dark:text-slate-300 hover:text-primary"
-            }`}
-          >
-            {t(item.label)}
-            {item.active && <span className="home-top-nav-indicator" />}
-          </Link>
-        ))}
-      </nav>
-
-      {/* Action Buttons: New Project & New Task */}
-      <div className="home-quick-actions flex items-center gap-2 shrink-0">
-        {canCreateProject && (
-          <button
-            type="button"
-            onClick={() => openProjectWizard()}
-            className="home-btn-new-project flex items-center gap-1.5 bg-primary hover:bg-[#006D73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-xs"
-          >
-            <Plus size={16} />
-            <span>{t("پروژه جدید")}</span>
-          </button>
+            {/* Dedicated Quick Links */}
+            <nav aria-label={t("منوی سریع")} className="home-top-nav hidden md:flex items-center gap-1.5">
+              {topNavItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.path}
+                  className={`home-top-nav-item ${item.active ? "active" : ""}`}
+                >
+                  {t(item.label)}
+                </Link>
+              ))}
+            </nav>
+          </>
         )}
-        {canCreateTask && (
-          <button
-            type="button"
-            onClick={() => navigate("/tasks")}
-            className="home-btn-new-task hidden sm:flex items-center gap-1.5 bg-base-100 hover:bg-base-200 border border-base-300 text-base-content text-xs font-bold px-3.5 py-2 rounded-xl transition-all"
-          >
-            <Plus size={16} />
-            <span>{t("تسک جدید")}</span>
-          </button>
+
+        {/* Action Buttons: New Project only */}
+        {!isTasksPage && canCreateProject && (
+          <div className="home-quick-actions flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openProjectWizard()}
+              className="home-btn-new-project flex items-center gap-1.5 bg-primary hover:bg-[#006D73] text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs"
+            >
+              <Plus size={15} />
+              <span>{t("ایجاد پروژه")}</span>
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Search Input Box */}
-      <button
-        type="button"
-        className="home-search"
-        onClick={onSearch}
-        aria-label={t("جستجو...")}
-      >
-        <span>{t("جستجو...")}</span>
-        <Search size={18} className="shrink-0 text-slate-400" />
-      </button>
+      {/* End Group: Search Box + Divider + Notifications + Theme Toggle + Settings + User Menu */}
+      <div className="home-topbar-end">
+        <button
+          type="button"
+          className="home-search"
+          onClick={onSearch}
+          aria-label={t("جستجو...")}
+        >
+          <Search size={16} className="shrink-0 text-heledone-ink-muted" />
+          <span>{t("جستجو...")}</span>
+          <kbd className="home-search-kbd">⌘K</kbd>
+        </button>
 
-      {/* Header End Actions (Notifications, Theme Toggle, User Profile) */}
-      <div className="home-header-actions">
-        <div className="home-notifications">
-          <NotificationCenter />
+        <div className="home-topbar-divider hidden sm:block" />
+
+        <div className="home-header-actions flex items-center gap-1.5">
+          <div className="home-notifications">
+            <NotificationCenter />
+          </div>
+          <ThemeToggle />
+          <Link
+            to="/settings"
+            className="flex items-center justify-center w-8 h-8 rounded-xl text-base-content/70 hover:text-base-content hover:bg-base-200 transition-colors"
+            title={t("تنظیمات")}
+            aria-label={t("تنظیمات")}
+          >
+            <Settings size={18} />
+          </Link>
+          <UserMenu />
         </div>
-        <ThemeToggle />
-        <UserMenu />
       </div>
     </header>
   );

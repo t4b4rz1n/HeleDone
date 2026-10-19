@@ -996,7 +996,7 @@ export const KanbanBoard: React.FC = () => {
                     </div>
                   }
                 >
-                  <div className="custom-scrollbar flex flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-xl px-0.5 pb-1 pe-1" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  <div className="custom-scrollbar flex flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-xl px-0.5 pb-1 pe-1" style={{ maxHeight: 'calc(100dvh - 210px)' }}>
                     <SortableContext items={displayColumnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
                       {displayColumnTasks.map(task => (
                         <SortableTask

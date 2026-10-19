@@ -12,6 +12,7 @@ import { getVisibleDrawerItems } from "./DrawerItems";
 import { HomeHeader, HomeSidebar } from "../dashboard/components/HomeShell";
 import { getOrganizations } from "../organizations/api/organizationsApi";
 import { OnboardingWizard } from "../onboarding/components/OnboardingWizard";
+import { ProjectWizard } from "../projects/components/wizard/ProjectWizard";
 import PageLoader from "../../components/PageLoader";
 import ContentLoader from "../../components/ContentLoader";
 import TopProgressBar from "../../components/TopProgressBar";
@@ -86,6 +87,8 @@ export const MainLayout = () => {
     }
   }
 
+  const isTasksView = pathname.startsWith("/tasks");
+
   return (
     <div className={`${pathname === "/dashboard" ? "home-reference-shell " : ""}heledone-workspace flex h-screen overflow-hidden bg-base-200 font-sans text-base-content`}>
       <TopProgressBar />
@@ -94,12 +97,12 @@ export const MainLayout = () => {
         className="fixed start-4 top-3 z-[200] -translate-y-24 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-content shadow-lg transition-transform focus:translate-y-0"
       >
         {t("رفتن به محتوای اصلی")}</a>
-      <HomeSidebar />
+      {!isTasksView && <HomeSidebar />}
 
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <HomeHeader onSearch={() => setCommandMenuOpen(true)} />
 
-        <main id="main-content" data-section={pathname.split('/')[1] || 'dashboard'} tabIndex={-1} className="heledone-page flex-1 overflow-x-hidden overflow-y-auto bg-base-200 px-4 py-5 outline-none sm:px-6 sm:py-5">
+        <main id="main-content" data-section={pathname.split('/')[1] || 'dashboard'} tabIndex={-1} className={`heledone-page flex-1 overflow-x-hidden ${isTasksView ? 'overflow-hidden p-0 sm:p-0' : 'overflow-y-auto px-4 py-5 sm:px-6 sm:py-5'} bg-base-200 outline-none`}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<ContentLoader />}>
               <Outlet />
@@ -114,6 +117,7 @@ export const MainLayout = () => {
         items={commandItems}
         isStaff={isStaff}
       />
+      <ProjectWizard />
     </div>
   );
 };

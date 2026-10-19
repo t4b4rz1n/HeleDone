@@ -188,11 +188,31 @@
 
 .home-sidebar-bottom {
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--color-base-300);
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.home-seascape {
+  width: 100%;
+  height: 124px;
+  position: relative;
+  margin: 0 0 6px;
+  overflow: hidden;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-seascape .home-coast-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  display: block;
 }
 
 .home-user {
@@ -272,54 +292,77 @@
 .home-topbar {
   position: relative;
   z-index: 40;
-  height: 64px;
-  flex: 0 0 64px;
+  height: 58px;
+  flex: 0 0 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 24px;
+  padding: 0 20px;
   background: var(--color-base-100);
   border-bottom: 1px solid var(--color-base-300);
+}
+
+.home-topbar-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.home-topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .home-top-nav-item {
   position: relative;
   text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 10px;
+  color: var(--color-base-content);
+  opacity: 0.85;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.home-top-nav-indicator {
-  position: absolute;
-  bottom: -2px;
-  inset-inline-start: 12px;
-  inset-inline-end: 12px;
-  height: 3px;
-  background: var(--color-primary);
-  border-radius: 9999px;
+.home-top-nav-item:hover {
+  opacity: 1;
+  background: var(--color-base-200);
+  color: var(--color-primary);
+}
+
+.home-top-nav-item.active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-base-100));
+  color: var(--color-primary);
+  font-weight: 800;
 }
 
 .home-search {
-  min-width: 140px;
-  max-width: 320px;
-  flex: 1 1 200px;
+  width: 220px;
+  height: 38px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 8px;
   background: var(--color-base-200);
   color: var(--color-heledone-ink-muted);
-  border-radius: 12px;
-  border: 1px solid transparent;
-  height: 40px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--color-base-300);
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .home-search:hover {
   border-color: var(--color-primary);
+  background: var(--color-base-100);
 }
 
 .home-search span {
@@ -328,10 +371,28 @@
   white-space: nowrap;
 }
 
+.home-search-kbd {
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  color: var(--color-heledone-ink-muted);
+  margin-inline-start: auto;
+}
+
+.home-topbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--color-base-300);
+}
+
 .home-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -355,10 +416,72 @@
 }
 
 .home-welcome {
-  min-height: 120px;
+  position: relative;
+  min-height: 140px;
   border-radius: 16px;
   background: var(--color-base-100);
   border: 1px solid var(--color-base-300);
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+}
+
+.home-welcome-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+  z-index: -2;
+  pointer-events: none;
+}
+
+[dir="ltr"] .home-welcome-art {
+  transform: scaleX(-1);
+}
+
+.home-welcome-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to left, var(--color-base-100) 0%, color-mix(in srgb, var(--color-base-100) 94%, transparent) 45%, transparent 92%);
+}
+
+[dir="ltr"] .home-welcome-overlay {
+  background: linear-gradient(to right, var(--color-base-100) 0%, color-mix(in srgb, var(--color-base-100) 94%, transparent) 45%, transparent 92%);
+}
+
+[data-theme="dark"] .home-welcome-art {
+  opacity: 0.28;
+}
+
+/* ─── Attendance Card ────────────────────────────────────────────────────────── */
+.home-attendance-pulse {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.home-attendance-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.75;
+  animation: homePulse 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes homePulse {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
 /* Mobile Responsiveness */
@@ -400,7 +523,7 @@
   }
 
   .home-search {
-    max-width: 200px;
+    width: 150px;
   }
 }
 
@@ -412,6 +535,11 @@
   .home-search {
     font-size: 11px;
     height: 36px;
-    padding: 0 10px;
+    padding: 0 8px;
+    width: 120px;
+  }
+
+  .home-search-kbd {
+    display: none;
   }
 }

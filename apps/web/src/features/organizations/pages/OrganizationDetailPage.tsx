@@ -28,7 +28,6 @@ import type { OrganizationMember } from "../types";
 import { teamsApi } from "../../teams/api/teamsApi";
 import * as projectsApi from "../../projects/api/projectsApi";
 import { CreateEditTeamModal } from "../../teams/components/CreateEditTeamModal";
-import { ProjectWizard } from "../../projects/components/wizard/ProjectWizard";
 import { useProjectWizardStore } from "../../projects/store/useProjectWizardStore";
 import { CreateEditUserModal } from "../../users/components/CreateEditUserModal";
 import type { User } from "../../users/types";
@@ -463,7 +462,6 @@ export default function OrganizationDetailPage() {
         onClose={() => setIsCreateTeamOpen(false)}
         organizationId={orgId!}
       />
-      <ProjectWizard />
       {selectedUserToEdit && (
         <CreateEditUserModal
           isOpen={!!selectedUserToEdit}

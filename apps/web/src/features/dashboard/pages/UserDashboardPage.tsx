@@ -7,9 +7,8 @@ import {
   Hourglass,
   MoreVertical,
   Monitor,
-  Square,
-  Play,
-  RotateCcw,
+  LogIn,
+  LogOut,
   Megaphone,
   FolderOpen,
   Calendar,
@@ -24,8 +23,12 @@ import {
 import { getEmployeeDashboard } from "../api/dashboardApi";
 import {
   getTimeOffRequests,
-  stopTimer,
+  checkIn,
+  checkOut,
+  getTodayAttendance,
+  getOrganizations,
 } from "../../attendance/api/attendanceApi";
+import { useAttendanceStore } from "../../attendance/store/useAttendanceStore";
 import { getProjects, getProjectMembers } from "../../projects/api/projectsApi";
 import { getNotificationHistory } from "../../notifications/api/notificationsApi";
 import { buildNotificationLink } from "../../notifications/utils/routing";
@@ -83,52 +86,188 @@ const Sparkline = ({
   );
 };
 
-/* Circular gauge for timer card in reference design */
-const TimerGauge = ({
-  progress = 0,
-  value = "00",
-}: {
-  progress?: number;
-  value?: string | number;
-}) => {
-  const radius = 52;
-  const stroke = 8;
-  const normalizedRadius = radius - stroke;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset =
-    circumference - (Math.min(100, Math.max(0, progress)) / 100) * circumference;
+/* Attendance check-in / check-out widget */
+const HomeAttendanceCard = () => {
+  const t = useTranslation();
+  const queryClient = useQueryClient();
+  const { activeOrganizationId } = useAttendanceStore();
+
+  const orgsQuery = useQuery({
+    queryKey: ["user-organizations"],
+    queryFn: getOrganizations,
+    enabled: !activeOrganizationId,
+    staleTime: 60_000,
+  });
+
+  const resolvedOrgId: string | undefined =
+    activeOrganizationId || orgsQuery.data?.[0]?.id;
+
+  const {
+    data: todayAttendance,
+    isLoading,
+    dataUpdatedAt,
+  } = useQuery({
+    queryKey: ["today-attendance"],
+    queryFn: getTodayAttendance,
+    retry: false,
+  });
+
+  const [timer, setTimer] = useState(0);
+  const attendanceData = (todayAttendance as any)?.data ?? todayAttendance;
+  const isActive = attendanceData?.is_active || false;
+
+  useEffect(() => {
+    setTimer(attendanceData?.total_seconds || 0);
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const todayStr = new Date(now).toISOString().slice(0, 10);
+
+      if (attendanceData?.date && attendanceData.date !== todayStr) {
+        queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
+        clearInterval(interval);
+        return;
+      }
+
+      if (isActive && attendanceData?.active_session_start) {
+        const startTime = new Date(attendanceData.active_session_start).getTime();
+        const diffSeconds = Math.floor((now - startTime) / 1000);
+        setTimer((attendanceData.base_total_seconds || 0) + diffSeconds);
+      } else if (!isActive) {
+        setTimer(attendanceData?.total_seconds || 0);
+      }
+    }, 1000);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [
+    isActive,
+    attendanceData?.date,
+    attendanceData?.total_seconds,
+    attendanceData?.active_session_start,
+    attendanceData?.base_total_seconds,
+    dataUpdatedAt,
+    queryClient,
+  ]);
+
+  const checkInMutation = useMutation({
+    mutationFn: (organizationId: string) => checkIn(organizationId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["today-attendance"], data);
+      queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      toast.success(t("ورود شما با موفقیت ثبت شد"));
+    },
+    onError: (error: any) =>
+      toast.error(
+        getErrorMessage(error?.detail || error?.message || "امکان ثبت ورود وجود ندارد.")
+      ),
+  });
+
+  const checkOutMutation = useMutation({
+    mutationFn: checkOut,
+    onSuccess: (data) => {
+      queryClient.setQueryData(["today-attendance"], data);
+      queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      toast.success(t("خروج شما با موفقیت ثبت شد"));
+    },
+    onError: (error: any) =>
+      toast.error(
+        getErrorMessage(error?.detail || error?.message || "امکان ثبت خروج وجود ندارد.")
+      ),
+  });
+
+  const formatTimer = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div className="relative inline-flex items-center justify-center shrink-0">
-      <svg height={radius * 2} width={radius * 2} className="transform -rotate-90">
-        <circle
-          stroke="currentColor"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-          className="text-base-300"
-        />
-        <circle
-          stroke="#087F83"
-          fill="transparent"
-          strokeWidth={stroke}
-          strokeDasharray={`${circumference} ${circumference}`}
-          style={{ strokeDashoffset }}
-          strokeLinecap="round"
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-          className="transition-all duration-500 ease-out"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-black text-base-content tabular-nums">
-          {value}
-        </span>
+    <section className="bg-base-100 rounded-2xl border border-base-300 p-5 shadow-xs">
+      <div className="flex items-center justify-between border-b border-base-200 pb-3 mb-4">
+        <Link
+          to="/attendance"
+          className="text-heledone-ink-muted hover:text-base-content transition-colors flex items-center gap-1 text-xs font-semibold"
+          aria-label={t("مشاهده کارکرد کامل")}
+        >
+          <span>{t("مشاهده جزئیات")}</span>
+          <MoreVertical size={16} />
+        </Link>
+        <h2 className="text-sm font-bold text-base-content flex items-center gap-2">
+          <span>{t("ثبت حضور و غیاب")}</span>
+          <Clock3 size={17} className="text-primary" />
+        </h2>
       </div>
-    </div>
+
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+        {/* Status and live time */}
+        <div className="flex items-center gap-3.5">
+          <div
+            className={`size-12 rounded-2xl flex items-center justify-center shrink-0 ${
+              isActive
+                ? "bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400"
+                : "bg-base-200 text-heledone-ink-muted"
+            }`}
+          >
+            {isActive ? <LogIn size={22} /> : <LogOut size={22} />}
+          </div>
+
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span
+                className={`home-attendance-pulse ${
+                  isActive ? "bg-emerald-500 text-emerald-500" : "bg-slate-400 text-slate-400"
+                }`}
+              />
+              <span className="text-xs font-bold text-base-content">
+                {isActive ? t("در حال حاضر حاضر هستید") : t("ثبت خروج شده‌اید")}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-xs font-medium text-heledone-ink-muted">
+                {t("کارکرد امروز:")}
+              </span>
+              <span className="text-xl md:text-2xl font-black text-base-content tabular-nums tracking-wide">
+                {isLoading ? "--:--:--" : formatTimer(timer)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="w-full sm:w-auto">
+          {!isActive ? (
+            <button
+              type="button"
+              disabled={checkInMutation.isPending}
+              onClick={() =>
+                resolvedOrgId
+                  ? checkInMutation.mutate(resolvedOrgId)
+                  : toast.warning(t("سازمان فعالی انتخاب نشده است"))
+              }
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-[#006D73] text-white text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-sm active:scale-98 disabled:opacity-50"
+            >
+              <LogIn size={18} />
+              <span>{checkInMutation.isPending ? t("در حال ثبت...") : t("ثبت ورود (شروع کار)")}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={checkOutMutation.isPending}
+              onClick={() => checkOutMutation.mutate()}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-sm active:scale-98 disabled:opacity-50"
+            >
+              <LogOut size={18} />
+              <span>{checkOutMutation.isPending ? t("در حال ثبت...") : t("ثبت خروج (پایان کار)")}</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -237,14 +376,6 @@ export const UserDashboardPage = () => {
       .map((n) => formatNumber(n, { minimumIntegerDigits: 2, useGrouping: false }))
       .join(":");
 
-  const timer = dashboard.data?.active_timers[0];
-  const activeTimerSeconds = timer
-    ? Math.max(
-        0,
-        Math.floor((liveNow - new Date(timer.start_time).getTime()) / 1000)
-      )
-    : 0;
-
   const todaySeconds = dashboard.data?.attendance_today?.check_in
     ? Math.max(
         0,
@@ -319,15 +450,6 @@ export const UserDashboardPage = () => {
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 
-  const stop = useMutation({
-    mutationFn: () => stopTimer(timer?.id),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
-      toast.success(t("زمان ثبت شد"));
-    },
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
-
   const primaryError =
     dashboard.isError ||
     projectQuery.isError ||
@@ -337,22 +459,28 @@ export const UserDashboardPage = () => {
 
   return (
     <div className="reference-home space-y-4">
-      {/* High-Contrast Welcome Header Banner */}
-      <section className="home-welcome flex items-center justify-between overflow-hidden relative rounded-2xl bg-base-100 border border-base-300 p-5 sm:p-6 shadow-xs">
-        <div className="relative z-10 max-w-xl">
-          <h1 className="text-xl md:text-2xl font-black text-base-content">
-            {t("سلام، روزت بخیر!")}
-          </h1>
-          <p className="text-xs md:text-sm font-medium text-heledone-ink-muted mt-1">
-            {t("کارهای امروزت اینجاست.")}
-          </p>
-        </div>
+      {/* High-Contrast Coastal Welcome Header Banner */}
+      <section className="home-welcome">
         <img
           src={asset + "home-welcome-v2.png"}
           alt=""
           aria-hidden="true"
-          className="absolute inset-y-0 end-0 h-full w-auto max-w-[42%] object-cover object-left opacity-30 pointer-events-none"
+          className="home-welcome-art"
         />
+        <div className="home-welcome-overlay" />
+        <div className="relative z-10 max-w-xl">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+              {t("میز کار هله‌دان")}
+            </span>
+          </div>
+          <h1 className="text-xl md:text-2xl font-black text-base-content tracking-tight">
+            {t("سلام، روزت بخیر!")}
+          </h1>
+          <p className="text-xs md:text-sm font-medium text-heledone-ink-muted mt-1 leading-relaxed">
+            {t("کارهای امروزت اینجاست.")}
+          </p>
+        </div>
       </section>
 
       {/* ─── Row 1: 5 Top Metric KPI Cards ─────────────────────────────────── */}
@@ -638,65 +766,8 @@ export const UserDashboardPage = () => {
             </div>
           </section>
 
-          {/* Card: زمان‌سنج (Timer & Gauge) */}
-          <section className="bg-base-100 rounded-2xl border border-base-300 p-5 shadow-xs">
-            <div className="flex items-center justify-between border-b border-base-200 pb-3 mb-4">
-              <Link
-                to="/attendance"
-                className="text-heledone-ink-muted hover:text-base-content transition-colors"
-                aria-label={t("جزئیات زمان‌سنج")}
-              >
-                <MoreVertical size={18} />
-              </Link>
-              <h2 className="text-sm font-bold text-base-content">
-                {t("زمان‌سنج")}
-              </h2>
-            </div>
-
-            <div className="flex items-center justify-around py-3">
-              {/* Circular Gauge */}
-              <TimerGauge
-                progress={timer ? ((activeTimerSeconds % 60) / 60) * 100 : 0}
-                value={timer ? formatNumber(activeTimerSeconds % 60) : "00"}
-              />
-
-              {/* Digital Clock Display & Actions */}
-              <div className="flex flex-col items-center gap-3">
-                <span className="text-3xl md:text-4xl font-black text-base-content tabular-nums tracking-wide">
-                  {clock(timer ? activeTimerSeconds : todaySeconds)}
-                </span>
-
-                <div className="flex items-center gap-3 mt-1">
-                  <Link
-                    to="/attendance"
-                    className="size-10 rounded-full flex items-center justify-center bg-base-200 hover:bg-base-300 text-base-content transition-colors"
-                    aria-label={t("شروع زمان‌سنج")}
-                  >
-                    <Play size={17} fill="currentColor" />
-                  </Link>
-
-                  <button
-                    type="button"
-                    disabled={!timer || stop.isPending}
-                    onClick={() => stop.mutate()}
-                    className="size-11 rounded-full flex items-center justify-center bg-primary hover:bg-[#006D73] text-white transition-all shadow-sm disabled:opacity-40"
-                    aria-label={t("توقف زمان‌سنج")}
-                  >
-                    <Square size={17} fill="currentColor" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => void dashboard.refetch()}
-                    className="size-10 rounded-full flex items-center justify-center bg-base-200 hover:bg-base-300 text-base-content transition-colors"
-                    aria-label={t("تلاش دوباره")}
-                  >
-                    <RotateCcw size={17} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+          {/* Card: ثبت حضور و غیاب (Check In / Check Out) */}
+          <HomeAttendanceCard />
         </div>
       </div>
 

@@ -28,7 +28,6 @@ import {
 import type { Project, ProjectStatus } from "../types";
 import { CreateEditProjectModal } from "../components/CreateEditProjectModal";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
-import { ProjectWizard } from "../components/wizard/ProjectWizard";
 import { useProjectWizardStore } from "../store/useProjectWizardStore";
 import { useDeleteProject } from "../hooks/useProjects";
 import { usePermissions } from "../../auth/hooks/usePermissions";
@@ -422,6 +421,7 @@ export default function ProjectsPage() {
     >
       <header className="projects-coastal-heading">
         <img src="/images/heledone-assets/projects-coastal-v1.png" alt="" aria-hidden="true" className="projects-coastal-art" />
+        <div className="projects-coastal-overlay" />
         <div className="projects-heading-copy">
           <BrandBeats className="mb-3" />
           <div className="flex items-center gap-3">
@@ -540,8 +540,6 @@ export default function ProjectsPage() {
         onClose={() => setIsProjectModalOpen(false)}
         project={selectedProject}
       />
-
-      <ProjectWizard />
 
       <DeleteConfirmModal
         isOpen={deleteModalState.open}
