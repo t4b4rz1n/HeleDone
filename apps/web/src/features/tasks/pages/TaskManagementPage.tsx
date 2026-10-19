@@ -53,6 +53,26 @@ export const TaskManagementPage: React.FC = () => {
     enabled: !!activeProjectId,
   });
 
+  // Auto-select board: restore last board if it still exists,
+  // otherwise pick the first board. If no boards exist, clear selection.
+  React.useEffect(() => {
+    if (!boards) return; // still loading
+
+    if (boards.length === 0) {
+      // No boards in this project — show workspace/empty view
+      if (activeBoardId) setActiveBoard(null);
+      return;
+    }
+
+    const boardStillExists = boards.some(b => b.id.toString() === activeBoardId);
+    if (!boardStillExists) {
+      // Last board was deleted (or nothing was set) → jump to first board
+      setActiveBoard(boards[0].id.toString());
+      setViewMode('kanban');
+    }
+  }, [boards, activeBoardId, setActiveBoard, setViewMode]);
+
+
   const createBoardMutation = useMutation({
     mutationFn: ({ title, backgroundColor }: { title: string; backgroundColor: string }) => {
       if (!activeProjectId) throw new Error(t("No active project"));
