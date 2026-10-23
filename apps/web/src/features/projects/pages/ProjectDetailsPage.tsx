@@ -733,9 +733,9 @@ export default function ProjectDetailsPage() {
         <button
           type="button"
           onClick={handleOpenTasksBoard}
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-bold text-primary-content shadow-md shadow-primary/15 hover:bg-primary/90 transition-all self-start sm:self-auto"
+          className="inline-flex h-9 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all self-start sm:self-auto shrink-0"
         >
-          <TaskSquare size={15} />
+          <TaskSquare size={16} />
           <span>{t("Open Tasks Board")}</span>
         </button>
       </div>

@@ -65,7 +65,7 @@ export const StepConfirm: React.FC = () => {
         window.location.href = '/projects?wizard=1';
       }, 1200);
     } catch (err: any) {
-      toast.error(translateError(err.response?.data?.detail || 'Failed to create organization'));
+      toast.error(translateError(err.response?.data?.detail || t('خطا در ساخت سازمان')));
       setLoading(false);
     }
   };

@@ -1,201 +1,190 @@
-import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
-import { useTranslation } from "../../../i18n/locale";
-import React, { lazy, useState } from 'react';
+import React, { lazy, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Add } from 'iconsax-reactjs';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { GlobalProjectSelector } from '../components/GlobalProjectSelector';
+import { useTranslation } from '../../../i18n/locale';
+import { getErrorMessage as translateError } from '../../../core/utils/errorHandler';
+import { ProjectWorkspaceSidebar } from '../components/ProjectWorkspaceSidebar';
 import { WorkspaceView } from '../components/WorkspaceView';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { TaskListView } from '../components/TaskListView';
+import { TaskCalendarView } from '../components/TaskCalendarView';
+import { ProjectFilesView } from '../components/ProjectFilesView';
 import { CreateBoardModal } from '../components/CreateBoardModal';
+import { TaskSheet } from '../components/TaskSheet';
 import { useTaskStore } from '../store/useTaskStore';
-import { getBoards, createBoard } from '../api/tasksApi';
+import { getBoards, createBoard, getTasks, getProjectMembers, updateTask } from '../api/tasksApi';
+import { useProjects } from '../../projects/hooks/useProjects';
 
 const AttendancePage = lazy(() => import('../../attendance/pages/AttendancePage'));
 
 export const TaskManagementPage: React.FC = () => {
   const t = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeProjectId, activeBoardId, setActiveProject, setActiveBoard, setSelectedTaskId, viewMode, setViewMode } = useTaskStore();
+  const queryClient = useQueryClient();
 
-  React.useEffect(() => {
+  const {
+    activeProjectId,
+    activeBoardId,
+    setActiveProject,
+    setActiveBoard,
+    selectedTaskId,
+    setSelectedTaskId,
+    viewMode,
+    setViewMode,
+  } = useTaskStore();
+
+  const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // URL search params sync
+  useEffect(() => {
     const project = searchParams.get('project');
     const board = searchParams.get('board');
     const task = searchParams.get('task');
 
     let shouldClear = false;
-
     if (project) {
       setActiveProject(project);
       shouldClear = true;
     }
     if (board) {
       setActiveBoard(board);
-      setViewMode('kanban');
       shouldClear = true;
     }
     if (task) {
       setSelectedTaskId(task);
       shouldClear = true;
     }
-
     if (shouldClear) {
       setSearchParams({});
     }
-  }, [searchParams, setActiveProject, setActiveBoard, setViewMode, setSelectedTaskId, setSearchParams]);
-  const queryClient = useQueryClient();
-  const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
+  }, [searchParams, setActiveProject, setActiveBoard, setSelectedTaskId, setSearchParams]);
 
-  const { data: boards } = useQuery({
+  // Queries
+  const { data: projects = [] } = useProjects();
+
+  // Auto-select first project if none selected
+  useEffect(() => {
+    if (!activeProjectId && projects.length > 0) {
+      setActiveProject(String(projects[0].id));
+    }
+  }, [activeProjectId, projects, setActiveProject]);
+
+  const { data: boards = [] } = useQuery({
     queryKey: ['boards', activeProjectId],
     queryFn: () => getBoards(activeProjectId!),
-    enabled: !!activeProjectId,
+    enabled: Boolean(activeProjectId),
   });
 
-  // Auto-select board: restore last board if it still exists,
-  // otherwise pick the first board. If no boards exist, clear selection.
-  React.useEffect(() => {
-    if (!boards) return; // still loading
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks', activeProjectId, activeBoardId],
+    queryFn: () => getTasks(activeProjectId || undefined, activeBoardId || undefined),
+    enabled: Boolean(activeProjectId),
+  });
 
-    if (boards.length === 0) {
-      // No boards in this project — show workspace/empty view
+  const { data: members = [] } = useQuery({
+    queryKey: ['project-members', activeProjectId],
+    queryFn: () => getProjectMembers(activeProjectId!),
+    enabled: Boolean(activeProjectId),
+  });
+
+  // Auto-select board
+  useEffect(() => {
+    if (!boards || boards.length === 0) {
       if (activeBoardId) setActiveBoard(null);
       return;
     }
-
-    const boardStillExists = boards.some(b => b.id.toString() === activeBoardId);
-    if (!boardStillExists) {
-      // Last board was deleted (or nothing was set) → jump to first board
+    const exists = boards.some((b) => b.id.toString() === activeBoardId);
+    if (!exists) {
       setActiveBoard(boards[0].id.toString());
-      setViewMode('kanban');
     }
-  }, [boards, activeBoardId, setActiveBoard, setViewMode]);
+  }, [boards, activeBoardId, setActiveBoard]);
 
+  const activeBoard = boards.find((b) => b.id.toString() === activeBoardId);
+  const statuses = activeBoard?.statuses || [];
 
   const createBoardMutation = useMutation({
     mutationFn: ({ title, backgroundColor }: { title: string; backgroundColor: string }) => {
-      if (!activeProjectId) throw new Error(t("No active project"));
+      if (!activeProjectId) throw new Error(t('No active project'));
       return createBoard(activeProjectId, title, backgroundColor);
     },
     onSuccess: (newBoard) => {
       queryClient.invalidateQueries({ queryKey: ['boards', activeProjectId] });
       setActiveBoard(newBoard.id.toString());
-      setViewMode('kanban');
       setIsCreateBoardOpen(false);
-      toast.success(t("کانبان ساخته شد"));
+      toast.success(t('کانبان ساخته شد'));
     },
     onError: (error: any) => {
-      toast.error(translateError(error?.response?.data?.detail || t("ساخت کانبان ممکن نشد")));
+      toast.error(translateError(error?.response?.data?.detail || t('ساخت کانبان ممکن نشد')));
     },
   });
 
   return (
-    <div className="heledone-task-workspace flex h-full w-full flex-col bg-base-200 overflow-hidden">
-      {/* Top Navigation Bar */}
-      <div className="heledone-task-toolbar relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-heledone-border bg-base-100 px-5 py-2.5 shrink-0">
-        {/* Left side: Project selector + Board tabs */}
-        <div className="flex min-w-0 flex-1 items-center gap-4">
-          <GlobalProjectSelector />
+    <div className="flex h-full w-full overflow-hidden bg-base-100">
+      {/* ─── 1. Left Workspace Sidebar ─── */}
+      <ProjectWorkspaceSidebar
+        activeProjectId={activeProjectId}
+        onSelectProject={(projId) => {
+          setActiveProject(projId);
+          // Navigate to tasks view when a project is selected
+          if (window.location.pathname !== '/tasks') {
+            window.location.href = '/tasks';
+          }
+        }}
+        activeView={viewMode}
+        onSelectView={(v) => setViewMode(v)}
+        collapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
 
-          {/* Board tabs */}
-          {activeProjectId && boards && boards.length > 0 && (
-            <div className="flex items-center gap-4 overflow-x-auto px-1 custom-scrollbar self-stretch h-8">
-              <div className="h-4 w-px bg-base-content/10 shrink-0" />
-              {boards.map((board, idx) => {
-                const pastelFallback = ['#EAF5F2', '#C6E6E1', '#A7D4CD', '#D8E6D6', '#F7DFAD', '#F5D3C6'][idx % 6];
-                const isActive = activeBoardId === board.id.toString();
-                return (
-                  <button
-                    key={board.id}
-                    onClick={() => {
-                      setActiveBoard(board.id.toString());
-                      setViewMode('kanban');
-                    }}
-                    className={`flex items-center gap-1.5 py-1 text-xs font-semibold transition-all shrink-0 hover:text-base-content relative h-full ${isActive
-                      ? 'text-base-content font-bold'
-                      : 'text-heledone-ink-muted'
-                      }`}
-                  >
-                    <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ background: board.background_color || pastelFallback }}
-                    />
-                    <span>{board.title}</span>
-                    {isActive && (
-                      <span className="absolute bottom-0 start-0 end-0 h-0.5 bg-primary rounded-full" />
-                    )}
-                  </button>
-                );
-              })}
-              {/* Add Board Button */}
-              <button
-                onClick={() => setIsCreateBoardOpen(true)}
-                className="flex items-center gap-1 shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-heledone-ink-muted transition-all hover:bg-base-200 hover:text-primary"
-                title={t("ساخت کانبان تازه")}
-              >
-                <Add size={14} />
-                <span>{t("افزودن")}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Show add button even when no boards exist */}
-          {activeProjectId && (!boards || boards.length === 0) && (
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-px bg-base-content/10 shrink-0" />
-              <button
-                onClick={() => setIsCreateBoardOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/20"
-              >
-                <Add size={14} />
-                <span>{t("اولین کانبان را بسازید")}</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Right side: View mode toggle */}
-        <div className="flex items-center gap-2 shrink-0">
-          {activeBoardId && (
-            <div className="flex items-center rounded-xl bg-base-200 p-0.5">
-              {(['kanban', 'attendance'] as const).map((mode) => {
-                const isActive = viewMode === mode;
-                const labels: Record<string, string> = {
-                  kanban: t("کانبان"),
-                  attendance: t("حضور و کارکرد"),
-                };
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setViewMode(mode)}
-                    className={`rounded-lg px-3 py-1 text-[13px] font-bold transition-all shrink-0 ${isActive
-                      ? 'bg-base-100 text-primary shadow-xs'
-                      : 'text-heledone-ink-muted hover:text-base-content'
-                      }`}
-                  >
-                    <span>{labels[mode]}</span>
-                  </button>
-                );
-              })}
+      {/* ─── 2. Main Workspace Canvas ─── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-base-100">
+        {/* Workspace View Area */}
+        <div className="flex-1 overflow-hidden relative bg-base-200/50">
+          {!activeBoardId && boards.length === 0 ? (
+            <WorkspaceView />
+          ) : viewMode === 'kanban' ? (
+            <KanbanBoard onCreateBoard={() => setIsCreateBoardOpen(true)} />
+          ) : viewMode === 'list' ? (
+            <TaskListView
+              tasks={tasks}
+              statuses={statuses}
+              activeProjectId={activeProjectId}
+              activeBoardId={activeBoardId}
+              members={members}
+              onSelectTask={(task) => setSelectedTaskId(String(task.id))}
+            />
+          ) : viewMode === 'calendar' ? (
+            <TaskCalendarView
+              tasks={tasks}
+              onSelectTask={(task) => setSelectedTaskId(String(task.id))}
+            />
+          ) : viewMode === 'files' ? (
+            <ProjectFilesView
+              tasks={tasks}
+              activeProjectId={activeProjectId}
+              onSelectTask={(task) => setSelectedTaskId(String(task.id))}
+            />
+          ) : (
+            <div className="h-full overflow-hidden bg-base-100">
+              <AttendancePage />
             </div>
           )}
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="relative flex-1 overflow-hidden bg-base-200 transition-colors duration-300">
-        {!activeBoardId ? (
-          <WorkspaceView />
-        ) : viewMode === 'kanban' ? (
-          <KanbanBoard />
-        ) : (
-          <div className="h-full overflow-hidden bg-base-100">
-            <AttendancePage />
-          </div>
-        )}
-      </div>
+      {/* TaskSheet for non-kanban views */}
+      {viewMode !== 'kanban' && selectedTaskId && (
+        <TaskSheet
+          task={tasks.find((t) => String(t.id) === String(selectedTaskId)) || null}
+          onClose={() => setSelectedTaskId(null)}
+          onPatch={async (taskId, patch) => {
+            await updateTask(taskId, patch);
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          }}
+        />
+      )}
 
       {/* Create Board Modal */}
       <CreateBoardModal

@@ -1,15 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type TaskViewMode = 'kanban' | 'list' | 'calendar' | 'files' | 'attendance';
+
 interface TaskStore {
   activeProjectId: string | null;
   activeBoardId: string | null;
   selectedTaskId: string | null;
-  viewMode: 'kanban' | 'attendance';
+  viewMode: TaskViewMode;
   setActiveProject: (id: string | null) => void;
   setActiveBoard: (id: string | null) => void;
   setSelectedTaskId: (id: string | null) => void;
-  setViewMode: (mode: 'kanban' | 'attendance') => void;
+  setViewMode: (mode: TaskViewMode) => void;
   reset: () => void;
 }
 

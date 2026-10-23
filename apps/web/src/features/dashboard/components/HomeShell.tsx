@@ -23,6 +23,7 @@ import { UserMenu } from "../../layout/UserMenu";
 import { useAuthStore } from "../../auth/store/authStore";
 import { usePermissions } from "../../auth/hooks/usePermissions";
 import { useProjectWizardStore } from "../../projects/store/useProjectWizardStore";
+import { HeaderAttendanceControl } from "../../attendance/components/HeaderAttendanceControl";
 import "../home.css";
 
 const assets = "/images/heledone-assets/";
@@ -73,10 +74,10 @@ export function HomeSidebar() {
   const managerDefaultPath = canViewManagerOverview
     ? "/manager"
     : canViewTeamOverview
-    ? "/team-lead"
-    : canViewTeamManagement
-    ? "/teams"
-    : "/standups";
+      ? "/team-lead"
+      : canViewTeamManagement
+        ? "/teams"
+        : "/standups";
 
   const items: {
     label: string;
@@ -247,7 +248,7 @@ export function HomeSidebar() {
               <strong>
                 {[user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
                   user?.username ||
-                  "Admin User"}
+                  t("کاربر مدیر")}
               </strong>
               <small>{t("حساب من")}</small>
             </div>
@@ -334,9 +335,6 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
           <div className="flex items-center gap-2.5">
             <Link to="/tasks" className="flex items-center gap-2 text-decoration-none hover:opacity-90 transition-opacity">
               <BrandBeats />
-              <span className="font-extrabold text-sm tracking-tight text-base-content hidden sm:inline">
-                {t("هله‌دان")}
-              </span>
             </Link>
             <div className="h-4 w-px bg-base-300" />
             <Link
@@ -347,6 +345,7 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
               <Home size={15} />
               <span>{t("پیشخوان")}</span>
             </Link>
+            <HeaderAttendanceControl />
           </div>
         ) : (
           <>

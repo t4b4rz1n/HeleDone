@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-@plugin "daisyui" { themes: false; }
+
+@plugin "daisyui" {
+  themes: false;
+}
 
 /* Heledone: warm surfaces, independent brand and workflow colors. */
 @font-face {
@@ -45,30 +48,30 @@
   --noise: 0;
 }
 
-/* Dark surfaces use a separately checked palette; bright actions use dark ink. */
+/* Dark mode is a graphite command centre, not a dimmed green workspace. */
 @plugin "daisyui/theme" {
   name: "dark";
   color-scheme: "dark";
-  --color-base-100: #18343B;
-  --color-base-200: #10282F;
-  --color-base-300: #3D5960;
-  --color-base-content: #FFF8EE;
-  --color-primary: #75D4CF;
-  --color-primary-content: #10282F;
-  --color-secondary: #9CDED5;
-  --color-secondary-content: #10282F;
+  --color-base-100: #151A23;
+  --color-base-200: #0B0E14;
+  --color-base-300: #2C3442;
+  --color-base-content: #F2F5FA;
+  --color-primary: #8B9CFF;
+  --color-primary-content: #101425;
+  --color-secondary: #B4A7FF;
+  --color-secondary-content: #151126;
   --color-accent: #F2BA49;
-  --color-accent-content: #10282F;
-  --color-neutral: #10282F;
-  --color-neutral-content: #FFF8EE;
-  --color-info: #75D4CF;
-  --color-info-content: #10282F;
-  --color-success: #89D4AA;
-  --color-success-content: #10282F;
-  --color-warning: #F2C46A;
-  --color-warning-content: #10282F;
-  --color-error: #FFA4A9;
-  --color-error-content: #10282F;
+  --color-accent-content: #16242C;
+  --color-neutral: #090C12;
+  --color-neutral-content: #F2F5FA;
+  --color-info: #71B8FF;
+  --color-info-content: #081522;
+  --color-success: #76D49A;
+  --color-success-content: #09251A;
+  --color-warning: #F4C76C;
+  --color-warning-content: #302100;
+  --color-error: #FF9BA4;
+  --color-error-content: #351017;
   --radius-selector: 0.625rem;
   --radius-field: 0.75rem;
   --radius-box: 1.25rem;
@@ -80,6 +83,10 @@
 }
 
 @theme {
+  --color-primary: var(--color-primary);
+  --color-primary-content: var(--color-primary-content);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-content: var(--color-secondary-content);
   --color-heledone-canvas: #F3F6FA;
   --color-heledone-surface: #FFFFFF;
   --color-heledone-surface-muted: #EBF1F6;
@@ -146,23 +153,60 @@
 }
 
 [data-theme="dark"] {
-  --color-heledone-canvas: #10282F;
-  --color-heledone-surface: #18343B;
-  --color-heledone-surface-muted: #203F45;
-  --color-heledone-ink: #FFF8EE;
-  --color-heledone-ink-muted: #B2C5C5;
-  --color-heledone-border: #3D5960;
-  --color-heledone-brand: #75D4CF;
-  --color-heledone-brand-soft: #20474A;
-  --color-heledone-todo: #B2C5C5;
-  --heledone-focus-ring: 0 0 0 3px #75D4CF;
-  --heledone-primary-hover: #9CDED5;
-  --heledone-primary-ink: #75D4CF;
-  --heledone-secondary-ink: #9CDED5;
-  --heledone-success-ink: #89D4AA;
-  --heledone-warning-ink: #F2C46A;
-  --heledone-error-ink: #FFA4A9;
-  --heledone-control-border: #90A8AC;
+  --color-heledone-canvas: #090C12;
+  --color-heledone-surface: #151A23;
+  --color-heledone-surface-muted: #111722;
+  --color-heledone-ink: #F2F5FA;
+  --color-heledone-ink-muted: #AAB4C5;
+  --color-heledone-border: #2C3442;
+  --color-heledone-brand: #8B9CFF;
+  --color-heledone-brand-soft: #20233C;
+  --color-heledone-todo: #B4BECE;
+  --heledone-focus-ring: 0 0 0 3px rgb(139 156 255 / 38%);
+  --heledone-primary-hover: #AAB7FF;
+  --heledone-primary-ink: #B8C2FF;
+  --heledone-secondary-ink: #D0C7FF;
+  --heledone-success-ink: #9BE6B3;
+  --heledone-warning-ink: #F8D58A;
+  --heledone-error-ink: #FFB5BC;
+  --heledone-control-border: #3A5A67;
+}
+
+/* Layered midnight surfaces keep hierarchy visible across every workspace screen. */
+[data-theme="dark"] body {
+  background: var(--color-heledone-canvas);
+}
+
+[data-theme="dark"] .heledone-sidebar,
+[data-theme="dark"] .home-sidebar,
+[data-theme="dark"] .home-topbar,
+[data-theme="dark"] .heledone-topbar {
+  background: #10141D;
+}
+
+[data-theme="dark"] .heledone-kanban-column {
+  background: linear-gradient(180deg, #151B27 0%, #111722 100%);
+  border-color: #30394A;
+  box-shadow: inset 0 1px 0 rgb(242 245 250 / 4%), 0 10px 28px rgb(0 0 0 / 20%);
+}
+
+[data-theme="dark"] .heledone-kanban-column article {
+  background: #1A202C;
+  border-color: #343E50;
+  box-shadow: 0 5px 16px rgb(0 0 0 / 24%);
+}
+
+[data-theme="dark"] .heledone-kanban-column article:hover {
+  background: #202839;
+  border-color: color-mix(in srgb, var(--color-primary) 60%, #343E50);
+}
+
+[data-theme="dark"] :where(input, textarea, select, .input, .textarea, .select) {
+  background-color: #10151F;
+}
+
+[data-theme="dark"] .heledone-workspace :where(.modal-box) {
+  box-shadow: 0 24px 64px rgb(0 0 0 / 40%);
 }
 
 select option {
@@ -218,7 +262,12 @@ body {
   outline-offset: 3px;
 }
 
-input, textarea, select, .input, .textarea, .select {
+input,
+textarea,
+select,
+.input,
+.textarea,
+.select {
   font-family: inherit;
   border-color: var(--heledone-control-border);
   transition: border-color var(--heledone-duration-fast), box-shadow var(--heledone-duration-fast);
@@ -228,15 +277,22 @@ input, textarea, select, .input, .textarea, .select {
   text-align: start;
 }
 
-:where(h1, h2, h3, h4, h5, h6) { align-self: stretch; }
+:where(h1, h2, h3, h4, h5, h6) {
+  align-self: stretch;
+}
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]), textarea, select {
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]),
+textarea,
+select {
   direction: inherit;
   unicode-bidi: isolate;
   text-align: start;
 }
 
-input::placeholder, textarea::placeholder { text-align: inherit; }
+input::placeholder,
+textarea::placeholder {
+  text-align: inherit;
+}
 
 html[data-focus-modality="keyboard"] :is(.input, .textarea, .select):focus-within {
   outline: 2px solid var(--color-primary);
@@ -253,17 +309,29 @@ html[data-focus-modality="pointer"] :is([class*="focus:ring-"], [class*="focus-v
   --tw-inset-ring-shadow: 0 0 #0000 !important;
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--color-heledone-ink-muted);
   opacity: 1;
 }
 
-.btn-primary:hover, button.bg-primary:hover, a.bg-primary:hover {
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+.text-primary-content {
+  color: var(--color-primary-content);
+}
+
+.btn-primary:hover,
+button.bg-primary:hover,
+a.bg-primary:hover {
   background-color: var(--heledone-primary-hover);
   border-color: var(--heledone-primary-hover);
 }
 
-button:disabled, .btn:disabled {
+button:disabled,
+.btn:disabled {
   background: var(--color-heledone-surface-muted);
   color: var(--color-heledone-ink-muted);
   border-color: var(--color-heledone-border);
@@ -271,10 +339,26 @@ button:disabled, .btn:disabled {
   cursor: not-allowed;
 }
 
-table { font-size: 0.90625rem; font-variant-numeric: tabular-nums; }
-th { color: var(--color-heledone-ink-muted); font-weight: 600; }
-td { line-height: 1.7; }
-h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
+table {
+  font-size: 0.90625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  color: var(--color-heledone-ink-muted);
+  font-weight: 600;
+}
+
+td {
+  line-height: 1.7;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 
 /* Opt-in motion prevents global transitions from fighting drag, scroll and focus. */
 .motion-interactive {
@@ -365,25 +449,102 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
 }
 
 /* Brand motifs: three beats, a dot-and-line rhythm, and a soft lattice frame. */
-.heledone-brand { display: inline-flex; align-items: center; gap: 0.7rem; }
-.heledone-brand-name { font-size: 1.5rem; font-weight: 850; line-height: 1.5; color: var(--color-heledone-ink); }
-.heledone-brand-latin { font-size: 0.8125rem; color: var(--color-heledone-ink-muted); letter-spacing: 0.035em; }
-.heledone-beats { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.heledone-beats > span { width: 9px; border-radius: 8px; background: #087F83; height: 22px; transform: rotate(-18deg); }
-.heledone-beats > span:nth-child(2) { height: 32px; background: #DF765B; }
-.heledone-beats > span:nth-child(3) { height: 18px; background: #F2BA49; }
-.heledone-rhythm { background-image: url('/images/heledone-rhythm.svg'); background-repeat: repeat-x; background-size: 96px 12px; height: 12px; }
-.heledone-lattice { background-image: url('/images/heledone-lattice.svg'); background-size: 96px 96px; }
-.heledone-sidebar { border-inline-end: 1px solid var(--color-heledone-border); box-shadow: 4px 0 24px rgb(23 60 70 / 0.025); }
-.heledone-welcome { border: 1px solid var(--color-heledone-border); border-inline-start: 4px solid #DF765B; border-radius: 1.25rem; background: var(--color-heledone-surface); padding: 1rem 1.25rem; }
-.heledone-wave { width: 100%; height: 28px; display: block; color: var(--color-heledone-brand); }
+.heledone-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.heledone-brand-name {
+  font-size: 1.5rem;
+  font-weight: 850;
+  line-height: 1.5;
+  color: var(--color-heledone-ink);
+}
+
+.heledone-brand-latin {
+  font-size: 0.8125rem;
+  color: var(--color-heledone-ink-muted);
+  letter-spacing: 0.035em;
+}
+
+.heledone-beats {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.heledone-beats>span {
+  width: 9px;
+  border-radius: 8px;
+  background: #087F83;
+  height: 22px;
+  transform: rotate(-18deg);
+}
+
+.heledone-beats>span:nth-child(2) {
+  height: 32px;
+  background: #DF765B;
+}
+
+.heledone-beats>span:nth-child(3) {
+  height: 18px;
+  background: #F2BA49;
+}
+
+.heledone-rhythm {
+  background-image: url('/images/heledone-rhythm.svg');
+  background-repeat: repeat-x;
+  background-size: 96px 12px;
+  height: 12px;
+}
+
+.heledone-lattice {
+  background-image: url('/images/heledone-lattice.svg');
+  background-size: 96px 96px;
+}
+
+.heledone-sidebar {
+  border-inline-end: 1px solid var(--color-heledone-border);
+  box-shadow: 4px 0 24px rgb(23 60 70 / 0.025);
+}
+
+.heledone-welcome {
+  border: 1px solid var(--color-heledone-border);
+  border-inline-start: 4px solid #DF765B;
+  border-radius: 1.25rem;
+  background: var(--color-heledone-surface);
+  padding: 1rem 1.25rem;
+}
+
+.heledone-wave {
+  width: 100%;
+  height: 28px;
+  display: block;
+  color: var(--color-heledone-brand);
+}
 
 /* Tinted status/brand surfaces need darker label ink than solid action fills. */
-.text-primary { color: var(--heledone-primary-ink); }
-.text-secondary { color: var(--heledone-secondary-ink); }
-.text-success { color: var(--heledone-success-ink); }
-.text-warning { color: var(--heledone-warning-ink); }
-.text-error { color: var(--heledone-error-ink); }
+.text-primary {
+  color: var(--heledone-primary-ink);
+}
+
+.text-secondary {
+  color: var(--heledone-secondary-ink);
+}
+
+.text-success {
+  color: var(--heledone-success-ink);
+}
+
+.text-warning {
+  color: var(--heledone-warning-ink);
+}
+
+.text-error {
+  color: var(--heledone-error-ink);
+}
 
 /* Feedback follows the same surface/status separation as the working UI. */
 :root [data-sonner-toaster][data-sonner-theme] {
@@ -408,15 +569,31 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
 .heledone-topbar {
   background: var(--color-heledone-canvas);
   border-bottom: 1px solid var(--color-heledone-border);
+  height: 52px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
 }
+
 .heledone-global-search {
   background: color-mix(in srgb, var(--color-heledone-ink-muted) 7%, var(--color-heledone-surface));
   border: 1px solid transparent;
   max-width: 46rem;
 }
-.heledone-global-search:hover { border-color: var(--color-primary); }
-.heledone-topbar nav { margin-inline-end: 1rem; }
-.heledone-sidebar { background: var(--color-heledone-canvas); }
+
+.heledone-global-search:hover {
+  border-color: var(--color-primary);
+}
+
+.heledone-topbar nav {
+  margin-inline-end: 1rem;
+}
+
+.heledone-sidebar {
+  background: var(--color-heledone-canvas);
+}
+
 /* Mobile sidebar animation - only apply on mobile */
 @media (max-width: 1023px) {
   .heledone-sidebar {
@@ -424,9 +601,17 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
     transform: translateX(-100%);
     transition: transform 300ms ease, visibility 300ms;
   }
-  [dir="rtl"] .heledone-sidebar { transform: translateX(100%); }
-  .heledone-sidebar[data-open="true"] { visibility: visible; transform: translateX(0); }
+
+  [dir="rtl"] .heledone-sidebar {
+    transform: translateX(100%);
+  }
+
+  .heledone-sidebar[data-open="true"] {
+    visibility: visible;
+    transform: translateX(0);
+  }
 }
+
 /* Desktop sidebar - always visible, no transform */
 @media (min-width: 1024px) {
   .heledone-sidebar {
@@ -435,13 +620,21 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
     transform: none !important;
   }
 }
-.heledone-sidebar nav a { min-height: 3rem; }
+
+.heledone-sidebar nav a {
+  min-height: 3rem;
+}
+
 .heledone-sidebar a[aria-current="page"] {
   background: var(--color-heledone-brand-soft);
   color: var(--heledone-primary-ink);
 }
-.heledone-page { scroll-padding-top: 1.5rem; }
-.heledone-page > :not(.heledone-task-workspace) { max-width: 1480px; margin-inline: auto; }
+
+.heledone-page {
+  scroll-padding-top: 1.5rem;
+}
+
+/* .heledone-page > :not(.heledone-task-workspace) { max-width: 1480px; margin-inline: auto; } */
 .heledone-page-heading {
   position: relative;
   display: flex;
@@ -458,6 +651,7 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
   isolation: isolate;
   z-index: 10;
 }
+
 .heledone-page-heading::before {
   content: '';
   position: absolute;
@@ -467,10 +661,28 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
   border-radius: 6px;
   background: linear-gradient(#DF765B 0 33%, #F2BA49 33% 66%, #087F83 66%);
 }
-.heledone-page-heading h1 { font-size: clamp(1.5rem, 2vw, 1.875rem); font-weight: 800; line-height: 1.6; overflow-wrap: anywhere; }
-.heledone-page-heading p { font-size: 0.90625rem; line-height: 1.75; }
-.heledone-heading-beats { transform: scale(0.7); transform-origin: center; }
-.heledone-page-heading-illustrated { min-height: 135px; }
+
+.heledone-page-heading h1 {
+  font-size: clamp(1.5rem, 2vw, 1.875rem);
+  font-weight: 800;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.heledone-page-heading p {
+  font-size: 0.90625rem;
+  line-height: 1.75;
+}
+
+.heledone-heading-beats {
+  transform: scale(0.7);
+  transform-origin: center;
+}
+
+.heledone-page-heading-illustrated {
+  min-height: 135px;
+}
+
 .heledone-heading-art {
   position: absolute;
   inset-block: 0;
@@ -484,55 +696,173 @@ h1, h2, h3 { line-height: 1.6; overflow-wrap: anywhere; }
   mask-image: linear-gradient(to right, transparent, black 45%);
   z-index: -1;
 }
-[dir="rtl"] .heledone-heading-art { mask-image: linear-gradient(to left, transparent, black 45%); }
-.heledone-page-heading-illustrated > div:first-child { max-width: 70%; }
-.heledone-heading-actions { min-width: 0; }
-.heledone-page-heading .heledone-heading-actions > label { flex: 1 1 12rem; }
-.heledone-page-content > :not(.heledone-page-heading) { min-width: 0; }
-.heledone-workspace :where(.btn) { box-shadow: none; font-weight: 700; border-radius: 0.75rem; }
-.heledone-workspace :where(.btn-primary) { box-shadow: 0 3px 8px rgb(8 127 131 / 0.13); }
-.heledone-workspace :where(.btn-primary:hover:not(:disabled)) { background: var(--heledone-primary-hover); }
+
+[dir="rtl"] .heledone-heading-art {
+  mask-image: linear-gradient(to left, transparent, black 45%);
+}
+
+.heledone-page-heading-illustrated>div:first-child {
+  max-width: 70%;
+}
+
+.heledone-heading-actions {
+  min-width: 0;
+}
+
+.heledone-page-heading .heledone-heading-actions>label {
+  flex: 1 1 12rem;
+}
+
+.heledone-page-content> :not(.heledone-page-heading) {
+  min-width: 0;
+}
+
+.heledone-workspace :where(.btn) {
+  box-shadow: none;
+  font-weight: 700;
+  border-radius: 0.75rem;
+}
+
+.heledone-workspace :where(.btn-primary) {
+  box-shadow: 0 3px 8px rgb(8 127 131 / 0.13);
+}
+
+.heledone-workspace :where(.btn-primary:hover:not(:disabled)) {
+  background: var(--heledone-primary-hover);
+}
+
 .heledone-page :where(section, article, div)[class*="bg-base-100"][class*="rounded"]:not([class*="absolute"]):not([class*="border-error"]):not([class*="border-success"]):not(.heledone-page-heading) {
   border-color: var(--color-heledone-border);
 }
-.heledone-page :where(section, article)[class*="bg-base-100"][class*="rounded"] { box-shadow: var(--shadow-heledone-card); }
-.heledone-project-card { box-shadow: var(--shadow-heledone-card); }
-.heledone-project-card:hover { box-shadow: var(--shadow-heledone-raised); }
-.heledone-project-card:focus-within { z-index: 20; }
-.heledone-workspace :where(table) { background: var(--color-heledone-surface); font-size: 0.90625rem; }
-.heledone-workspace :where(thead) { background: var(--color-heledone-brand-soft); color: var(--color-heledone-ink); }
-.heledone-workspace :where(th) { font-weight: 750; font-size: 0.875rem; padding-block: 1rem; }
-.heledone-workspace :where(td) { border-color: var(--color-heledone-border); padding-block: 1rem; }
-.heledone-workspace :where(tbody tr:hover) { background: color-mix(in srgb, var(--color-heledone-brand-soft) 65%, var(--color-heledone-surface)); }
+
+.heledone-page :where(section, article)[class*="bg-base-100"][class*="rounded"] {
+  box-shadow: var(--shadow-heledone-card);
+}
+
+.heledone-project-card {
+  box-shadow: var(--shadow-heledone-card);
+}
+
+.heledone-project-card:hover {
+  box-shadow: var(--shadow-heledone-raised);
+}
+
+.heledone-project-card:focus-within {
+  z-index: 20;
+}
+
+.heledone-workspace :where(table) {
+  background: var(--color-heledone-surface);
+  font-size: 0.90625rem;
+}
+
+.heledone-workspace :where(thead) {
+  background: var(--color-heledone-brand-soft);
+  color: var(--color-heledone-ink);
+}
+
+.heledone-workspace :where(th) {
+  font-weight: 750;
+  font-size: 0.875rem;
+  padding-block: 1rem;
+}
+
+.heledone-workspace :where(td) {
+  border-color: var(--color-heledone-border);
+  padding-block: 1rem;
+}
+
+.heledone-workspace :where(tbody tr:hover) {
+  background: color-mix(in srgb, var(--color-heledone-brand-soft) 65%, var(--color-heledone-surface));
+}
+
 .heledone-workspace :where(.modal-box) {
   border: 1px solid var(--color-heledone-border);
   background: var(--color-heledone-surface);
   border-radius: 1.25rem;
   box-shadow: var(--shadow-heledone-floating);
 }
-.heledone-workspace :where(.input, .select, .textarea) { background: var(--color-heledone-surface); border-radius: 0.75rem; }
-.heledone-workspace :where(.badge) { border-radius: 999px; }
-.heledone-task-toolbar { border-inline-start: 3px solid var(--color-primary); }
+
+.heledone-workspace :where(.input, .select, .textarea) {
+  background: var(--color-heledone-surface);
+  border-radius: 0.75rem;
+}
+
+.heledone-workspace :where(.badge) {
+  border-radius: 999px;
+}
+
+.heledone-task-toolbar {
+  border-inline-start: 3px solid var(--color-primary);
+}
+
 .heledone-kanban-column {
-  padding: 0.875rem 0.625rem;
+  padding: 0.75rem 0.5rem;
   border: 1px solid var(--color-heledone-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-heledone-brand-soft) 40%, var(--color-heledone-canvas));
+}
+
+.heledone-kanban-column-done {
+  border-top: 2px solid var(--color-success);
+}
+
+.heledone-attendance>div>div:has(> button) {
   border-radius: 1rem;
-  background: color-mix(in srgb, var(--color-heledone-brand-soft) 55%, var(--color-heledone-canvas));
 }
-.heledone-kanban-column-done { border-top: 3px solid var(--color-success); }
-.heledone-attendance > div > div:has(> button) { border-radius: 1rem; }
+
 @media (max-width: 640px) {
-  .heledone-topbar { gap: 0.5rem; }
-  .heledone-global-search { padding: 0.6rem 0.75rem; font-size: 0.8125rem; }
-  .heledone-page-heading { padding: 1rem; min-height: 100px; gap: 1rem; align-items: stretch; }
-  .heledone-page-heading > div { width: 100%; min-width: 0; }
-  .heledone-page-heading-illustrated > div:first-child { max-width: 100%; }
-  .heledone-heading-art { width: 45%; opacity: 0.14; }
-  .heledone-page-heading .heledone-heading-actions { gap: 0.5rem; }
-  .heledone-page-heading .heledone-heading-actions > label { flex-basis: 100%; }
-  .heledone-task-toolbar > div:first-child { flex-basis: 100%; }
+  .heledone-topbar {
+    gap: 0.5rem;
+  }
+
+  .heledone-global-search {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .heledone-page-heading {
+    padding: 1rem;
+    min-height: 100px;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .heledone-page-heading>div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .heledone-page-heading-illustrated>div:first-child {
+    max-width: 100%;
+  }
+
+  .heledone-heading-art {
+    width: 45%;
+    opacity: 0.14;
+  }
+
+  .heledone-page-heading .heledone-heading-actions {
+    gap: 0.5rem;
+  }
+
+  .heledone-page-heading .heledone-heading-actions>label {
+    flex-basis: 100%;
+  }
+
+  .heledone-task-toolbar>div:first-child {
+    flex-basis: 100%;
+  }
 }
+
 @media (prefers-contrast: more) {
-  .heledone-page-heading, .heledone-global-search { border-color: var(--color-heledone-ink); }
-  .heledone-heading-art { display: none; }
+
+  .heledone-page-heading,
+  .heledone-global-search {
+    border-color: var(--color-heledone-ink);
+  }
+
+  .heledone-heading-art {
+    display: none;
+  }
 }

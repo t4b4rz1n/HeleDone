@@ -161,7 +161,7 @@ const HomeAttendanceCard = () => {
     },
     onError: (error: any) =>
       toast.error(
-        getErrorMessage(error?.detail || error?.message || "امکان ثبت ورود وجود ندارد.")
+        getErrorMessage(error?.detail || error?.message || t("امکان ثبت ورود وجود ندارد"))
       ),
   });
 
@@ -175,7 +175,7 @@ const HomeAttendanceCard = () => {
     },
     onError: (error: any) =>
       toast.error(
-        getErrorMessage(error?.detail || error?.message || "امکان ثبت خروج وجود ندارد.")
+        getErrorMessage(error?.detail || error?.message || t("امکان ثبت خروج وجود ندارد"))
       ),
   });
 
@@ -207,11 +207,10 @@ const HomeAttendanceCard = () => {
         {/* Status and live time */}
         <div className="flex items-center gap-3.5">
           <div
-            className={`size-12 rounded-2xl flex items-center justify-center shrink-0 ${
-              isActive
-                ? "bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400"
-                : "bg-base-200 text-heledone-ink-muted"
-            }`}
+            className={`size-12 rounded-2xl flex items-center justify-center shrink-0 ${isActive
+              ? "bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400"
+              : "bg-base-200 text-heledone-ink-muted"
+              }`}
           >
             {isActive ? <LogIn size={22} /> : <LogOut size={22} />}
           </div>
@@ -219,9 +218,8 @@ const HomeAttendanceCard = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span
-                className={`home-attendance-pulse ${
-                  isActive ? "bg-emerald-500 text-emerald-500" : "bg-slate-400 text-slate-400"
-                }`}
+                className={`home-attendance-pulse ${isActive ? "bg-emerald-500 text-emerald-500" : "bg-slate-400 text-slate-400"
+                  }`}
               />
               <span className="text-xs font-bold text-base-content">
                 {isActive ? t("در حال حاضر حاضر هستید") : t("ثبت خروج شده‌اید")}
@@ -351,8 +349,8 @@ export const UserDashboardPage = () => {
   });
   const tasks = week
     ? realTasks.filter(
-        (task) => !task.due_date || new Date(task.due_date).getTime() <= weekEnd
-      )
+      (task) => !task.due_date || new Date(task.due_date).getTime() <= weekEnd
+    )
     : todayTasks;
 
   const formatNews = (item: Parameters<typeof formatNotificationMessage>[0]) => ({
@@ -364,12 +362,12 @@ export const UserDashboardPage = () => {
     task.status_code === "in_progress" || task.status_code === "doing"
       ? t("در حال انجام")
       : task.status_code === "review" || task.status_code === "in_review"
-      ? t("در حال بررسی")
-      : task.status_code === "done"
-      ? t("انجام‌شده")
-      : task.status_code === "todo" || task.status_code === "to_do"
-      ? t("برای انجام")
-      : task.status_name ?? t("برای انجام");
+        ? t("در حال بررسی")
+        : task.status_code === "done"
+          ? t("انجام‌شده")
+          : task.status_code === "todo" || task.status_code === "to_do"
+            ? t("برای انجام")
+            : task.status_name ?? t("برای انجام");
 
   const clock = (value: number) =>
     [Math.floor(value / 3600), Math.floor(value / 60) % 60, value % 60]
@@ -378,15 +376,15 @@ export const UserDashboardPage = () => {
 
   const todaySeconds = dashboard.data?.attendance_today?.check_in
     ? Math.max(
-        0,
-        Math.round(
-          ((dashboard.data.attendance_today.check_out
-            ? new Date(dashboard.data.attendance_today.check_out).getTime()
-            : liveNow) -
-            new Date(dashboard.data.attendance_today.check_in).getTime()) /
-            1000
-        )
+      0,
+      Math.round(
+        ((dashboard.data.attendance_today.check_out
+          ? new Date(dashboard.data.attendance_today.check_out).getTime()
+          : liveNow) -
+          new Date(dashboard.data.attendance_today.check_in).getTime()) /
+        1000
       )
+    )
     : 0;
 
   // 5 Top KPI Cards with distinct, accurate metrics and zero duplicate labels
@@ -689,22 +687,20 @@ export const UserDashboardPage = () => {
                   <button
                     type="button"
                     onClick={() => setWeek(false)}
-                    className={`text-xs px-2.5 py-1 rounded-md font-bold transition-all ${
-                      !week
-                        ? "bg-base-100 text-primary shadow-xs"
-                        : "text-heledone-ink-muted hover:text-base-content"
-                    }`}
+                    className={`text-xs px-2.5 py-1 rounded-md font-bold transition-all ${!week
+                      ? "bg-base-100 text-primary shadow-xs"
+                      : "text-heledone-ink-muted hover:text-base-content"
+                      }`}
                   >
                     {t("امروز")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setWeek(true)}
-                    className={`text-xs px-2.5 py-1 rounded-md font-bold transition-all ${
-                      week
-                        ? "bg-base-100 text-primary shadow-xs"
-                        : "text-heledone-ink-muted hover:text-base-content"
-                    }`}
+                    className={`text-xs px-2.5 py-1 rounded-md font-bold transition-all ${week
+                      ? "bg-base-100 text-primary shadow-xs"
+                      : "text-heledone-ink-muted hover:text-base-content"
+                      }`}
                   >
                     {t("این هفته")}
                   </button>
@@ -722,13 +718,12 @@ export const UserDashboardPage = () => {
                   className="flex items-center justify-between py-3 gap-3 hover:bg-base-200/60 rounded-xl px-2 transition-colors"
                 >
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                      task.priority === "high"
-                        ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
-                        : task.priority === "urgent"
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${task.priority === "high"
+                      ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+                      : task.priority === "urgent"
                         ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
                         : "bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400"
-                    }`}
+                      }`}
                   >
                     {statusLabel(task)}
                   </span>

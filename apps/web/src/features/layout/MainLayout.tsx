@@ -102,7 +102,7 @@ export const MainLayout = () => {
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <HomeHeader onSearch={() => setCommandMenuOpen(true)} />
 
-        <main id="main-content" data-section={pathname.split('/')[1] || 'dashboard'} tabIndex={-1} className={`heledone-page flex-1 overflow-x-hidden ${isTasksView ? 'overflow-hidden p-0 sm:p-0' : 'overflow-y-auto px-4 py-5 sm:px-6 sm:py-5'} bg-base-200 outline-none`}>
+        <main id="main-content" data-section={pathname.split('/')[1] || 'dashboard'} tabIndex={-1} className={`heledone-page flex-1 overflow-x-hidden ${isTasksView ? 'overflow-hidden p-0' : 'overflow-y-auto px-4 py-5 sm:px-6 sm:py-5'} bg-base-200 outline-none`}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<ContentLoader />}>
               <Outlet />

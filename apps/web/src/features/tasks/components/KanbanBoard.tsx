@@ -33,13 +33,18 @@ import type {
 import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { SortableTask } from './SortableTask';
 import { Add, More, SearchNormal1, TickCircle, Category, Activity, User, Danger, Flash } from 'iconsax-reactjs';
+import { ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { usePermissions } from '../../auth/hooks/usePermissions';
 
-export const KanbanBoard: React.FC = () => {
+interface KanbanBoardProps {
+  onCreateBoard?: () => void;
+}
+
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
   const t = useTranslation();
-  const { activeProjectId, activeBoardId, selectedTaskId, setSelectedTaskId } = useTaskStore();
+  const { activeProjectId, activeBoardId, selectedTaskId, setSelectedTaskId, setActiveBoard } = useTaskStore();
   const currentUser = useAuthStore((state) => state.user);
   const { hasPermission, isStaff } = usePermissions();
 
@@ -59,6 +64,7 @@ export const KanbanBoard: React.FC = () => {
   const [focusedTaskId, setFocusedTaskId] = useState<string | number | null>(null);
   const [columnSorts, setColumnSorts] = useState<Record<string, 'priority' | 'due_date' | 'title' | null>>({});
   const [columnMenuAnchor, setColumnMenuAnchor] = useState<{ id: string | number; rect: DOMRect } | null>(null);
+  const [isBoardMenuOpen, setIsBoardMenuOpen] = useState(false);
 
 
   const setSelectedTaskForSheet = (task: Task | null) => {
@@ -332,8 +338,9 @@ export const KanbanBoard: React.FC = () => {
   };
 
   const patchLocalTask = (taskId: string | number, patch: Partial<Task>) => {
-    setLocalTasks(tasks => tasks.map(task => task.id === taskId ? { ...task, ...patch } : task));
-    queryClient.setQueryData<Task[]>(['tasks', activeProjectId, activeBoardId], tasks => tasks?.map(task => task.id === taskId ? { ...task, ...patch } : task));
+    setLocalTasks(tasks => tasks.map(task => sameId(task.id, taskId) ? { ...task, ...patch } : task));
+    queryClient.setQueryData<Task[]>(['tasks', activeProjectId, activeBoardId], tasks => tasks?.map(task => sameId(task.id, taskId) ? { ...task, ...patch } : task));
+    queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId, activeBoardId] });
   };
 
   const toggleFinishedMutation = useMutation({
@@ -668,82 +675,104 @@ export const KanbanBoard: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
   const focusTask = filteredTasks.find(task => task.id === focusedTaskId) || filteredTasks[0];
-  const completedCount = localTasks.filter(task => task.is_finished || task.status_detail?.code?.toLowerCase() === 'done').length;
-  const boardProgress = localTasks.length > 0 ? Math.round((completedCount / localTasks.length) * 100) : 0;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-base-200">
-      {/* ─── Streamlined Linear-Style Toolbar ─── */}
-      <div className="shrink-0 border-b border-base-content/10 bg-base-100/90 px-4 py-3 backdrop-blur-xl sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Quick Filters & Board Progress */}
-          <div className="flex max-w-full items-center gap-2 flex-wrap min-w-0">
-            {/* Quick Filter Pills */}
-            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-base-200/80 p-1 custom-scrollbar">
-              {(['all', 'active', 'my-tasks', 'blocked', 'priority'] as const).map((item) => {
-                const labels: Record<string, string> = {
-                  all: t("همه"),
-                  active: t("فعال"),
-                  'my-tasks': t("تسک‌های من"),
-                  blocked: t("مسدود"),
-                  priority: t("اولویت بالا"),
-                };
-                const icons: Record<string, React.ReactNode> = {
-                  all: <Category size={13} />,
-                  active: <Activity size={13} />,
-                  'my-tasks': <User size={13} />,
-                  blocked: <Danger size={13} className="text-error" />,
-                  priority: <Flash size={13} className="text-warning" />,
-                };
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setFilter(item)}
-                    className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                      filter === item
-                        ? 'bg-base-100 text-primary shadow-xs'
-                        : 'text-heledone-ink-muted hover:text-base-content'
-                    }`}
-                  >
-                    {icons[item]}
-                    <span>{labels[item]}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Progress Bar & Stats */}
-            {localTasks.length > 0 && (
-              <div className="hidden items-center gap-2 rounded-xl bg-base-200/50 px-3 py-1 md:flex">
-                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-base-200">
-                  <div
-                    className="h-full rounded-full bg-success transition-all duration-700"
-                    style={{ width: `${boardProgress}%` }}
-                  />
-                </div>
-                <span className="text-[13px] font-bold text-success">{formatUiNumber(boardProgress)}%</span>
-                <span className="text-[13px] font-semibold text-heledone-ink-muted">
-                  ({formatUiNumber(completedCount)}/{formatUiNumber(localTasks.length)}  {t("انجام‌شده)")}</span>
-              </div>
-            )}
+    <div className="flex h-full w-full flex-col overflow-hidden bg-base-100">
+      {/* ─── Top Header with Board Info ─── */}
+      <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-6 py-4">
+        <div className="flex items-start justify-between gap-4">
+          {/* Left: Board Info */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-extrabold text-base-content mb-1 flex items-center gap-2">
+              {board.title}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-xs font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                {t("فعال")}
+              </span>
+            </h1>
+            <p className="text-xs text-heledone-ink-muted font-medium">
+              {t("مدیریت پروژه و ردیابی تسک‌ها")}
+            </p>
           </div>
 
-          {/* Right: Search + Focus + Quick Add */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Compact Search Box */}
-            <label className="flex h-8.5 items-center gap-2 rounded-xl border border-base-content/10 bg-base-200/70 px-2.5 text-heledone-ink-muted focus-within:border-primary/40 focus-within:bg-base-100 w-36 sm:w-52 transition-all">
-              <SearchNormal1 size={14} />
-              <input
-                aria-label={t("جست‌وجوی تسک‌ها")}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={t("جست‌وجوی تسک‌ها…")}
-                className="w-full bg-transparent text-xs font-medium text-base-content outline-none placeholder:text-heledone-ink-muted"
-              />
-            </label>
+          {/* Right: Board controls and quick actions */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsBoardMenuOpen((open) => !open)}
+                className="inline-flex max-w-[13rem] items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-3 py-1.5 text-xs font-bold text-base-content shadow-xs transition hover:border-primary/40 hover:bg-primary/5"
+                aria-haspopup="menu"
+                aria-expanded={isBoardMenuOpen}
+              >
+                <Category size={14} className="shrink-0 text-primary" />
+                <span className="truncate">{board.title}</span>
+                <ChevronDown size={14} className="shrink-0 text-heledone-ink-muted" />
+              </button>
 
-            {/* Focus Mode Toggle */}
+              {isBoardMenuOpen && (
+                <>
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-40 cursor-default"
+                    aria-label={t("بستن منو")}
+                    onClick={() => setIsBoardMenuOpen(false)}
+                  />
+                  <div className="absolute end-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-base-300 bg-base-100 p-1.5 shadow-xl" role="menu">
+                    <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-heledone-ink-muted">
+                      {t("Select board")}
+                    </div>
+                    {boards.map((item) => {
+                      const isSelected = item.id.toString() === activeBoardId;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setActiveBoard(item.id.toString());
+                            setIsBoardMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-start text-xs font-bold transition-colors ${isSelected ? 'bg-primary/10 text-primary' : 'text-base-content hover:bg-base-200'}`}
+                        >
+                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.background_color || '#087F83' }} />
+                          <span className="truncate">{item.title}</span>
+                        </button>
+                      );
+                    })}
+                    {canManageBoard && onCreateBoard && (
+                      <>
+                        <div className="my-1 border-t border-base-200" />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setIsBoardMenuOpen(false);
+                            onCreateBoard();
+                          }}
+                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-start text-xs font-bold text-primary hover:bg-primary/10"
+                        >
+                          <Add size={14} />
+                          {t("New Board")}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {canManageBoard && onCreateBoard && (
+              <button
+                type="button"
+                onClick={onCreateBoard}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-content shadow-sm transition hover:bg-[#006D73]"
+              >
+                <Add size={14} />
+                <span>{t("New Board")}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -751,28 +780,98 @@ export const KanbanBoard: React.FC = () => {
                 setFocusMode(next);
                 if (next && !focusedTaskId) setFocusedTaskId(focusTask?.id || null);
               }}
-              className={`inline-flex h-8.5 items-center gap-1.5 rounded-xl border px-2.5 text-xs font-bold transition-all ${
-                focusMode
-                  ? 'border-primary/30 bg-primary/10 text-primary'
-                  : 'border-base-content/10 text-heledone-ink-muted hover:border-primary/30 hover:text-primary'
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${focusMode
+                ? 'bg-primary/10 text-primary'
+                : 'bg-base-200 text-base-content hover:bg-base-300'
+                }`}
               title={t("حالت تمرکز")}
             >
               <span className="text-sm">◉</span>
-              <span className="hidden sm:inline">{focusMode ? t("Exit Focus") : t("تمرکز")}</span>
+              <span>{focusMode ? t("خروج") : t("تمرکز")}</span>
             </button>
 
-            {/* Quick Add Button */}
             {canCreateTask && (
               <button
                 type="button"
                 onClick={() => setAddingTaskToStatusId(board.statuses[0]?.id || null)}
-                className="inline-flex h-8.5 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-bold text-primary-content shadow-md shadow-primary/15 hover:bg-primary/90 transition-all"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-content hover:bg-[#006D73] transition-all shadow-sm"
               >
-                <Add size={15} />
-                <span>{t("تسک تازه")}</span>
+                <Add size={14} />
+                <span>{t("تسک جدید")}</span>
               </button>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Filters and Search Bar ─── */}
+      <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-6 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Filters */}
+          <div className="flex items-center gap-1">
+            {(['all', 'active', 'my-tasks', 'blocked', 'priority'] as const).map((item) => {
+              const labels: Record<string, string> = {
+                all: t("همه"),
+                active: t("فعال"),
+                'my-tasks': t("تسک‌های من"),
+                blocked: t("مسدود"),
+                priority: t("اولویت بالا"),
+              };
+              const icons: Record<string, React.ReactNode> = {
+                all: <Category size={13} className="text-primary" />,
+                active: <Activity size={13} className="text-info" />,
+                'my-tasks': <User size={13} className="text-heledone-ink-muted" />,
+                blocked: <Danger size={13} className="text-error" />,
+                priority: <Flash size={13} className="text-warning" />,
+              };
+              const counts: Record<string, number> = {
+                all: localTasks.length,
+                active: localTasks.filter(t => !t.is_finished && t.status_detail?.code !== 'done').length,
+                'my-tasks': localTasks.filter(t => Boolean(currentUser?.id) && (t.assignee_detail?.id === currentUser?.id || t.assignee === currentUser?.id)).length,
+                blocked: localTasks.filter(t => t.is_blocked).length,
+                priority: localTasks.filter(t => ['high', 'critical'].includes(t.priority)).length,
+              };
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setFilter(item)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all ${filter === item
+                    ? 'border-primary/15 bg-primary/10 text-primary shadow-2xs'
+                    : 'border-transparent text-heledone-ink-muted hover:border-base-300/70 hover:bg-base-200 hover:text-base-content'
+                    }`}
+                >
+                  {icons[item]}
+                  <span>{labels[item]}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${filter === item ? 'bg-primary/10 text-primary' : 'bg-base-300/60 text-heledone-ink-muted'}`}>
+                    {formatUiNumber(counts[item])}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: Search */}
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-3 py-1.5 text-heledone-ink-muted focus-within:border-primary focus-within:bg-base-100 transition-all w-64">
+              <SearchNormal1 size={14} />
+              <input
+                aria-label={t("جستجو در تسک‌ها")}
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t("جستجو در تسک‌ها...")}
+                className="flex-1 bg-transparent text-xs font-medium text-base-content outline-none placeholder:text-heledone-ink-muted"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-heledone-ink-muted hover:text-base-content"
+                >
+                  ✕
+                </button>
+              )}
+            </label>
           </div>
         </div>
       </div>
@@ -791,391 +890,397 @@ export const KanbanBoard: React.FC = () => {
           activeTimer={activeTimers?.[0]}
         />
       ) : (
-        <div className="custom-scrollbar flex-1 overflow-x-auto overflow-y-visible">
-          <div className="flex items-start gap-3 p-4 pb-4 sm:gap-4 sm:p-6">
+        <div className="custom-scrollbar flex-1 overflow-x-auto overflow-y-visible bg-base-200/30">
+          <div className="flex min-w-max items-start gap-3 p-4 pb-6 sm:gap-4 sm:p-6 sm:pb-8">
             <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={board.statuses.map(s => `col-${s.id}`)} strategy={horizontalListSortingStrategy}>
-            {[...board.statuses].sort((a, b) => a.order - b.order).map((status) => {
-              const columnTasks = filteredTasks.filter(t => t.status_detail?.id?.toString() === status.id.toString()) || [];
-              const isDoneColumn = status.code === 'done' || status.name.toLowerCase() === 'done' || status.name.toLowerCase() === 'completed';
-              const appearance = getWorkflowAppearance(status);
-              const statusColor = appearance.color;
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={board.statuses.map(s => `col-${s.id}`)} strategy={horizontalListSortingStrategy}>
+                {[...board.statuses].sort((a, b) => a.order - b.order).map((status) => {
+                  const columnTasks = filteredTasks.filter(t => t.status_detail?.id?.toString() === status.id.toString()) || [];
+                  const isDoneColumn = status.code === 'done' || status.name.toLowerCase() === 'done' || status.name.toLowerCase() === 'completed';
+                  const appearance = getWorkflowAppearance(status);
+                  const statusColor = appearance.color;
 
-              const sortType = columnSorts[status.id.toString()];
-              const displayColumnTasks = [...columnTasks];
-              if (sortType === 'priority') {
-                const prioWeight: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-                displayColumnTasks.sort((a, b) => (prioWeight[b.priority] || 0) - (prioWeight[a.priority] || 0));
-              } else if (sortType === 'due_date') {
-                displayColumnTasks.sort((a, b) => {
-                  if (!a.due_date) return 1;
-                  if (!b.due_date) return -1;
-                  return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-                });
-              } else if (sortType === 'title') {
-                displayColumnTasks.sort((a, b) => a.title.localeCompare(b.title));
-              }
-
-              return (
-                <DroppableColumn
-                  key={status.id}
-                  id={`col-${status.id}`}
-                  className={`heledone-kanban-column min-w-[282px] w-[282px] flex flex-col transition-opacity ${
-                    isDoneColumn ? 'heledone-kanban-column-done' : ''
-                  }`}
-                  header={
-                    <div className="mb-3 flex shrink-0 items-center justify-between px-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="size-2.5 rounded-full"
-                          style={{ background: statusColor }}
-                        />
-                        <h3 className="text-sm font-semibold text-base-content">{appearance.label}</h3>
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[13px] font-bold text-white"
-                          style={{ background: `color-mix(in srgb, ${statusColor} 12%, transparent)`, color: appearance.ink }}
-                        >
-                          {formatUiNumber(columnTasks.length)}
-                        </span>
-                      </div>
-
-                      {/* Interactive Column Actions Menu */}
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (columnMenuAnchor?.id === status.id) {
-                              setColumnMenuAnchor(null);
-                            } else {
-                              setColumnMenuAnchor({
-                                id: status.id,
-                                rect: e.currentTarget.getBoundingClientRect(),
-                              });
-                            }
-                          }}
-                          className="rounded-lg p-1 text-heledone-ink-muted hover:bg-base-200 hover:text-base-content transition"
-                          title={t("تنظیمات ستون")}
-                        >
-                          <More size={16} />
-                        </button>
-
-                        {columnMenuAnchor && columnMenuAnchor.id === status.id && createPortal(
-                          <>
-                            <div className="fixed inset-0 z-45" onClick={() => setColumnMenuAnchor(null)} />
-                            <div
-                              className="fixed z-50 w-52 rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-xs font-semibold shadow-2xl animate-in fade-in zoom-in-95 duration-100"
-                              style={{
-                                top: columnMenuAnchor.rect.bottom + 4,
-                                left: Math.max(10, columnMenuAnchor.rect.right - 208),
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {canCreateTask && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setColumnMenuAnchor(null);
-                                    setAddingTaskToStatusId(status.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
-                                >
-                                  <Add size={14} />  {t("افزودن تسک به ستون")}</button>
-                              )}
-
-                              {canCreateTask && <div className="my-1 h-px bg-base-content/8" />}
-
-                              <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                                {t("Sort Column")}</div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: null }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  !sortType ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("Default Order")}</button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'priority' }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  sortType === 'priority' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("By Priority (High → Low)")}</button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'due_date' }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  sortType === 'due_date' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("By Due Date")}</button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'title' }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  sortType === 'title' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("By Title (A - Z)")}</button>
-
-                              {canManageBoard && (
-                                <>
-                                  <div className="my-1 h-px bg-base-content/8" />
-
-                                  <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                                    {t("Move Column")}</div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnMenuAnchor(null);
-                                      handleMoveStatus(status.id, 'left');
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
-                                  >
-                                    {t("Move Left")}</button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnMenuAnchor(null);
-                                      handleMoveStatus(status.id, 'right');
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
-                                  >
-                                    {t("Move Right")}</button>
-                                </>
-                              )}
-
-                              {canEditTask && columnTasks.length > 0 && (
-                                <>
-                                  <div className="my-1 h-px bg-base-content/8" />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnMenuAnchor(null);
-                                      columnTasks.forEach((t) => {
-                                        if (!t.is_finished) handleToggleDone(t.id);
-                                      });
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-success hover:bg-success/10"
-                                  >
-                                    <TickCircle size={14} />  {t("Mark all as done")}</button>
-                                </>
-                              )}
-
-                            </div>
-                          </>,
-                          document.body
-                        )}
-                      </div>
-                    </div>
+                  const sortType = columnSorts[status.id.toString()];
+                  const displayColumnTasks = [...columnTasks];
+                  if (sortType === 'priority') {
+                    const prioWeight: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+                    displayColumnTasks.sort((a, b) => (prioWeight[b.priority] || 0) - (prioWeight[a.priority] || 0));
+                  } else if (sortType === 'due_date') {
+                    displayColumnTasks.sort((a, b) => {
+                      if (!a.due_date) return 1;
+                      if (!b.due_date) return -1;
+                      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+                    });
+                  } else if (sortType === 'title') {
+                    displayColumnTasks.sort((a, b) => a.title.localeCompare(b.title));
                   }
-                >
-                  <div className="custom-scrollbar flex flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-xl px-0.5 pb-1 pe-1" style={{ maxHeight: 'calc(100dvh - 210px)' }}>
-                    <SortableContext items={displayColumnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
-                      {displayColumnTasks.map(task => (
-                        <SortableTask
-                          key={task.id}
-                          task={task}
-                          onClick={() => { setSelectedTaskForSheet(task); if (focusMode) setFocusedTaskId(task.id); }}
-                          onPlayTimer={handlePlayTimer}
-                          onStopTimer={handleStopTimer}
-                          onToggleDone={handleToggleDone}
-                          activeTimer={activeTimers.find(t => t.task?.toString() === task.id?.toString()) || null}
-                          onDueDateClick={() => openTaskSheetWithDueDate(task)}
-                        />
-                      ))}
-                    </SortableContext>
 
-
-                    {addingTaskToStatusId === status.id && (
-                      <div
-                        className="mt-2 rounded-2xl border border-primary/20 bg-base-100 p-3.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-150"
-                        tabIndex={-1}
-                        onBlur={(e) => {
-                          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                            setAddingTaskToStatusId(null);
-                            setNewTaskTitle('');
-                            setNewTaskPriority('low');
-                          }
-                        }}
-                      >
-                        <textarea
-                          autoFocus
-                          rows={2}
-                          value={newTaskTitle}
-                          onChange={e => setNewTaskTitle(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleCreateTask(status.id);
-                            }
-                            if (e.key === 'Escape') {
-                              setAddingTaskToStatusId(null);
-                              setNewTaskTitle('');
-                              setNewTaskPriority('low');
-                            }
-                          }}
-
-                          placeholder={t("What needs to be done?")}
-                          className="w-full bg-transparent text-[13px] font-semibold text-base-content outline-none placeholder:text-heledone-ink-muted resize-none leading-snug"
-                        />
-
-                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-base-content/6 pt-2">
-                          {/* Custom Priority Dot Buttons */}
-                          <div className="flex items-center gap-1.5">
-                            {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
-                              const pColors: Record<string, string> = {
-                                low: 'bg-base-content/20 hover:bg-base-content/40 active:ring-base-content/10',
-                                medium: 'bg-primary hover:bg-primary active:ring-primary/20',
-                                high: 'bg-warning hover:bg-warning active:ring-warning/20',
-                                critical: 'bg-error hover:bg-error active:ring-error/20',
-                              };
-                              const isSelected = newTaskPriority === p;
-                              return (
-                                <button
-                                  key={p}
-                                  type="button"
-                                  onClick={() => setNewTaskPriority(p)}
-                                  className={`size-3.5 rounded-full transition-all active:ring-4 ${pColors[p]} ${
-                                    isSelected ? 'ring-2 ring-primary scale-125' : 'opacity-60 hover:opacity-100'
-                                  }`}
-                                  title={t("{value0} priority", { value0: p.toUpperCase() })}
-                                />
-                              );
-                            })}
-                            <span className="text-[13px] font-bold text-heledone-ink-muted capitalize ms-1">
-                              {newTaskPriority}
+                  return (
+                    <DroppableColumn
+                      key={status.id}
+                      id={`col-${status.id}`}
+                      className={`heledone-kanban-column min-w-[220px] w-[clamp(220px,20vw,280px)] flex flex-col rounded-2xl bg-base-100 transition-all ${isDoneColumn ? 'heledone-kanban-column-done opacity-90' : ''
+                        }`}
+                      header={
+                        <div className="mb-3 flex shrink-0 items-center justify-between px-4 pt-4">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="size-2 rounded-full"
+                              style={{ background: statusColor }}
+                            />
+                            <h3 className="text-sm font-extrabold text-base-content tracking-tight">{appearance.label}</h3>
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[11px] font-black"
+                              style={{ background: `color-mix(in srgb, ${statusColor} 12%, transparent)`, color: statusColor }}
+                            >
+                              {formatUiNumber(columnTasks.length)}
                             </span>
                           </div>
 
-                          {/* Actions */}
-                          <div className="flex items-center gap-1">
+                          {/* Interactive Column Actions Menu */}
+                          <div className="relative">
                             <button
                               type="button"
-                              onClick={() => { setAddingTaskToStatusId(null); setNewTaskTitle(''); setNewTaskPriority('low'); }}
-                              className="rounded-lg px-2 py-1 text-[13px] font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (columnMenuAnchor?.id === status.id) {
+                                  setColumnMenuAnchor(null);
+                                } else {
+                                  setColumnMenuAnchor({
+                                    id: status.id,
+                                    rect: e.currentTarget.getBoundingClientRect(),
+                                  });
+                                }
+                              }}
+                              className="rounded-lg p-1 text-heledone-ink-muted hover:bg-base-200 hover:text-base-content transition"
+                              title={t("تنظیمات ستون")}
                             >
-                              {t("انصراف")}</button>
-                            <button
-                              type="button"
-                              onClick={() => handleCreateTask(status.id)}
-                              disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
-                              className="rounded-lg bg-primary px-2.5 py-1 text-[13px] font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              {createTaskMutation.isPending ? '...' : t("افزودن")}
+                              <More size={16} />
                             </button>
+
+                            {columnMenuAnchor && columnMenuAnchor.id === status.id && createPortal(
+                              <>
+                                <div className="fixed inset-0 z-45" onClick={() => setColumnMenuAnchor(null)} />
+                                <div
+                                  className="fixed z-50 w-52 rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-xs font-semibold shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+                                  style={{
+                                    top: columnMenuAnchor.rect.bottom + 4,
+                                    left: Math.max(10, columnMenuAnchor.rect.right - 208),
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {canCreateTask && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnMenuAnchor(null);
+                                        setAddingTaskToStatusId(status.id);
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
+                                    >
+                                      <Add size={14} />  {t("افزودن تسک به ستون")}</button>
+                                  )}
+
+                                  {canCreateTask && <div className="my-1 h-px bg-base-content/8" />}
+
+                                  <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                                    {t("Sort Column")}</div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: null }));
+                                      setColumnMenuAnchor(null);
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${!sortType ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                      }`}
+                                  >
+                                    {t("Default Order")}</button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'priority' }));
+                                      setColumnMenuAnchor(null);
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'priority' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                      }`}
+                                  >
+                                    {t("By Priority (High → Low)")}</button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'due_date' }));
+                                      setColumnMenuAnchor(null);
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'due_date' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                      }`}
+                                  >
+                                    {t("By Due Date")}</button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'title' }));
+                                      setColumnMenuAnchor(null);
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'title' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                      }`}
+                                  >
+                                    {t("By Title (A - Z)")}</button>
+
+                                  {canManageBoard && (
+                                    <>
+                                      <div className="my-1 h-px bg-base-content/8" />
+
+                                      <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                                        {t("Move Column")}</div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColumnMenuAnchor(null);
+                                          handleMoveStatus(status.id, 'left');
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
+                                      >
+                                        {t("Move Left")}</button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColumnMenuAnchor(null);
+                                          handleMoveStatus(status.id, 'right');
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
+                                      >
+                                        {t("Move Right")}</button>
+                                    </>
+                                  )}
+
+                                  {canEditTask && columnTasks.length > 0 && (
+                                    <>
+                                      <div className="my-1 h-px bg-base-content/8" />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColumnMenuAnchor(null);
+                                          columnTasks.forEach((t) => {
+                                            if (!t.is_finished) handleToggleDone(t.id);
+                                          });
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-success hover:bg-success/10"
+                                      >
+                                        <TickCircle size={14} />  {t("Mark all as done")}</button>
+                                    </>
+                                  )}
+
+                                </div>
+                              </>,
+                              document.body
+                            )}
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {canCreateTask && addingTaskToStatusId !== status.id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddingTaskToStatusId(status.id);
-                        setNewTaskTitle('');
-                        setNewTaskPriority('low');
-                      }}
-                      className="mt-1.5 flex shrink-0 w-full items-center justify-center gap-1 rounded-xl border border-dashed border-base-content/10 py-2 text-xs font-bold text-heledone-ink-muted transition hover:border-base-content/25 hover:text-heledone-ink-muted hover:bg-base-100/50"
+                      }
                     >
-                      <span className="text-sm leading-none mb-0.5">+</span>
-                      <span>{t("افزودن تسک")}</span>
-                    </button>
-                  )}
-                </DroppableColumn>
-              );
-            })}
-          </SortableContext>
+                      <div className="custom-scrollbar flex min-w-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden px-4 pb-3" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
+                        <SortableContext items={displayColumnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
+                          {displayColumnTasks.map(task => (
+                            <SortableTask
+                              key={task.id}
+                              task={task}
+                              onClick={() => { setSelectedTaskForSheet(task); if (focusMode) setFocusedTaskId(task.id); }}
+                              onPlayTimer={handlePlayTimer}
+                              onStopTimer={handleStopTimer}
+                              onToggleDone={handleToggleDone}
+                              activeTimer={activeTimers.find(t => t.task?.toString() === task.id?.toString()) || null}
+                              onDueDateClick={() => openTaskSheetWithDueDate(task)}
+                            />
+                          ))}
+                        </SortableContext>
 
-          {canManageBoard && (
-            isAddingStatus ? (
-              <div className="min-w-[282px] w-[282px] rounded-2xl border border-primary/20 bg-base-100 p-3.5 flex flex-col h-fit shadow-md animate-in fade-in slide-in-from-top-2 duration-150">
-                <input
-                  autoFocus
-                  value={newStatusName}
-                  onChange={e => setNewStatusName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleCreateStatus();
-                    if (e.key === 'Escape') {
-                      setIsAddingStatus(false);
-                      setNewStatusName('');
-                    }
-                  }}
 
-                  placeholder={t("New column name...")}
-                  className="w-full bg-transparent text-[13px] font-semibold text-base-content outline-none placeholder:text-heledone-ink-muted px-2 py-1 mb-3.5 border-b border-base-content/10"
-                />
-                <div className="flex gap-1.5 justify-end">
+                        {addingTaskToStatusId === status.id && (
+                          <div
+                            className="mt-2 box-border w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-primary/25 bg-base-100 p-2.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-150"
+                            tabIndex={-1}
+                            onBlur={(e) => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                setAddingTaskToStatusId(null);
+                                setNewTaskTitle('');
+                                setNewTaskPriority('low');
+                              }
+                            }}
+                          >
+                            <textarea
+                              autoFocus
+                              rows={2}
+                              value={newTaskTitle}
+                              onChange={e => setNewTaskTitle(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleCreateTask(status.id);
+                                }
+                                if (e.key === 'Escape') {
+                                  setAddingTaskToStatusId(null);
+                                  setNewTaskTitle('');
+                                  setNewTaskPriority('low');
+                                }
+                              }}
+
+                              placeholder={t("What needs to be done?")}
+                              className="block w-full min-w-0 resize-none bg-transparent text-[13px] font-semibold leading-snug text-base-content outline-none placeholder:text-heledone-ink-muted"
+                            />
+
+                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-base-content/8 pt-2">
+                              {/* Custom Priority Dot Buttons */}
+                              <div className="flex items-center gap-1.5">
+                                {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
+                                  const pColors: Record<string, string> = {
+                                    low: 'bg-base-content/20 hover:bg-base-content/40 active:ring-base-content/10',
+                                    medium: 'bg-primary hover:bg-primary active:ring-primary/20',
+                                    high: 'bg-warning hover:bg-warning active:ring-warning/20',
+                                    critical: 'bg-error hover:bg-error active:ring-error/20',
+                                  };
+                                  const isSelected = newTaskPriority === p;
+                                  return (
+                                    <button
+                                      key={p}
+                                      type="button"
+                                      onClick={() => setNewTaskPriority(p)}
+                                      className={`size-3.5 rounded-full transition-all active:ring-4 ${pColors[p]} ${isSelected ? 'ring-2 ring-primary scale-125' : 'opacity-60 hover:opacity-100'
+                                        }`}
+                                      title={t("{value0} priority", { value0: p.toUpperCase() })}
+                                    />
+                                  );
+                                })}
+                                <span className="text-[13px] font-bold text-heledone-ink-muted capitalize ms-1">
+                                  {newTaskPriority}
+                                </span>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => { setAddingTaskToStatusId(null); setNewTaskTitle(''); setNewTaskPriority('low'); }}
+                                  className="rounded-lg px-2 py-1 text-xs font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
+                                >
+                                  {t("انصراف")}</button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCreateTask(status.id)}
+                                  disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
+                                  className="rounded-lg bg-primary px-2.5 py-1 text-xs font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  {createTaskMutation.isPending ? '...' : t("افزودن")}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {canCreateTask && addingTaskToStatusId !== status.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddingTaskToStatusId(status.id);
+                            setNewTaskTitle('');
+                            setNewTaskPriority('low');
+                          }}
+                          className="mx-4 mb-3 flex shrink-0 w-[calc(100%-2rem)] items-center justify-center gap-1 rounded-xl border border-dashed border-base-300 py-2 text-xs font-bold text-heledone-ink-muted transition hover:border-primary/50 hover:text-primary hover:bg-primary/5"
+                        >
+                          <span className="text-sm leading-none">+</span>
+                          <span>{t("افزودن تسک")}</span>
+                        </button>
+                      )}
+                    </DroppableColumn>
+                  );
+                })}
+              </SortableContext>
+
+              {canManageBoard && (
+                isAddingStatus ? (
+                  <div className="min-w-[220px] w-[clamp(220px,20vw,280px)] rounded-2xl border border-primary/30 bg-base-100 p-4 flex flex-col h-fit shadow-lg animate-in fade-in slide-in-from-right-2 duration-200">
+                    <input
+                      autoFocus
+                      value={newStatusName}
+                      onChange={e => setNewStatusName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleCreateStatus();
+                        if (e.key === 'Escape') {
+                          setIsAddingStatus(false);
+                          setNewStatusName('');
+                        }
+                      }}
+                      placeholder={t("نام ستون جدید...")}
+                      className="w-full bg-transparent text-sm font-bold text-base-content outline-none placeholder:text-heledone-ink-muted px-2 py-1.5 mb-3 border-b border-base-300"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => { setIsAddingStatus(false); setNewStatusName(''); }}
+                        className="rounded-lg px-3 py-1.5 text-xs font-bold text-heledone-ink-muted hover:bg-base-200 transition"
+                      >
+                        {t("انصراف")}</button>
+                      <button
+                        type="button"
+                        onClick={handleCreateStatus}
+                        disabled={!newStatusName.trim() || createStatusMutation.isPending}
+                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-content shadow-sm transition hover:bg-[#006D73] disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {createStatusMutation.isPending ? '...' : t("ایجاد ستون")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
-                    type="button"
-                    onClick={() => { setIsAddingStatus(false); setNewStatusName(''); }}
-                    className="rounded-lg px-2.5 py-1 text-[13px] font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
+                    onClick={() => setIsAddingStatus(true)}
+                    aria-label={t("افزودن ستون")}
+                    className="group min-w-[220px] w-[clamp(220px,20vw,280px)] h-[320px] rounded-2xl border border-dashed border-primary/35 bg-base-100/70 px-5 py-6 text-heledone-ink-muted transition-all hover:border-primary hover:bg-base-100 hover:text-primary"
                   >
-                    {t("انصراف")}</button>
-                  <button
-                    type="button"
-                    onClick={handleCreateStatus}
-                    disabled={!newStatusName.trim() || createStatusMutation.isPending}
-                    className="rounded-lg bg-primary px-3 py-1 text-[13px] font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {createStatusMutation.isPending ? '...' : t("افزودن ستون")}
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                      <div className="mb-4 grid size-14 place-items-center rounded-2xl border border-primary/15 bg-primary/5 text-primary transition-transform group-hover:scale-105">
+                        <Add size={26} />
+                      </div>
+                      <span className="text-sm font-extrabold text-base-content">{t("افزودن ستون")}</span>
+                      <span className="mt-2 max-w-[13rem] text-xs font-medium leading-5 text-heledone-ink-muted">
+                        {t("برای سازمان‌دهی بهتر کارها، یک مرحلهٔ تازه به جریان کار اضافه کنید.")}
+                      </span>
+                      <span className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-primary/25 px-3 py-1.5 text-xs font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-content">
+                        <Add size={14} />
+                        {t("افزودن ستون")}
+                      </span>
+                    </div>
                   </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsAddingStatus(true)}
-                className="min-w-[282px] w-[282px] rounded-2xl p-4 flex items-center justify-center gap-1.5 border border-dashed border-base-content/15 text-heledone-ink-muted hover:border-base-content/25 hover:bg-base-100/50 hover:text-heledone-ink-muted transition h-[56px] font-bold text-xs"
-              >
-                <span className="text-sm leading-none mb-0.5">+</span>
-                {t("افزودن ستون")}</button>
-            )
-          )}
+                )
+              )}
 
-          <DragOverlay>
-            {activeColumn ? (
-              <div className="min-w-[282px] w-[282px] rounded-2xl border border-primary/20 bg-base-100 p-4 shadow-xl opacity-85">
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full bg-primary" />
-                  <h3 className="text-sm font-semibold text-base-content">{activeColumn.name}</h3>
-                </div>
-              </div>
-            ) : activeTask ? (
-              <TaskCard task={activeTask} onClick={() => {}} activeTimer={activeTimers.find(t => t.task?.toString() === activeTask.id?.toString()) || null} onToggleDone={handleToggleDone} />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
-    </div>
-  )}
+              <DragOverlay>
+                {activeColumn ? (
+                  <div className="min-w-[282px] w-[282px] rounded-2xl border border-primary/20 bg-base-100 p-4 shadow-xl opacity-85">
+                    <div className="flex items-center gap-2">
+                      <span className="size-2.5 rounded-full bg-primary" />
+                      <h3 className="text-sm font-semibold text-base-content">{activeColumn.name}</h3>
+                    </div>
+                  </div>
+                ) : activeTask ? (
+                  <TaskCard task={activeTask} onClick={() => { }} activeTimer={activeTimers.find(t => t.task?.toString() === activeTask.id?.toString()) || null} onToggleDone={handleToggleDone} />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+        </div>
+      )}
 
       <TaskSheet
         task={selectedTaskIdParam ? localTasks.find(t => String(t.id) === selectedTaskIdParam) || null : null}

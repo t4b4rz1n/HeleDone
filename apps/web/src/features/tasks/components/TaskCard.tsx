@@ -1,18 +1,15 @@
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { useTranslation } from "../../../i18n/locale";
-import { getWorkflowAppearance } from "../../../core/config/designTokens";
 import { formatDisplayDate } from "../../../utils/date";
 import { createPortal } from "react-dom";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar1, Flag,
   CloseCircle,
   More,
-  Play,
   Profile2User,
-  Stop,
   TaskSquare,
   TickCircle,
   Trash,
@@ -23,6 +20,7 @@ import { deleteTask, getProjectMembers, updateTask } from "../api/tasksApi";
 import { useTaskStore } from "../store/useTaskStore";
 import type { Task } from "../types";
 import type { TimeLog } from "../../attendance/types";
+import { MessageSquare, CheckSquare } from "lucide-react";
 import { LiveActivityIndicator } from "./LiveActivityIndicator";
 
 interface TaskCardProps {
@@ -35,15 +33,6 @@ interface TaskCardProps {
   activeTimer?: TimeLog | null;
   onDueDateClick?: () => void;
 }
-
-
-const priorityLeftBorder: Record<Task["priority"], string> = {
-  low:      "#DCE6E2",
-  medium:   "#A7D4CD",
-  high:     "#F2BA49",
-  critical: "#EBC0AF",
-};
-
 
 
 import { useAuthStore } from "../../auth/store/authStore";
@@ -66,13 +55,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const currentUserId = currentUser?.id;
   const isAssignee = Boolean(
     currentUserId &&
-      (String(task.assignee) === String(currentUserId) ||
-        String(task.assignee_detail?.id) === String(currentUserId))
+    (String(task.assignee) === String(currentUserId) ||
+      String(task.assignee_detail?.id) === String(currentUserId))
   );
   const isReporter = Boolean(
     currentUserId &&
-      (String(task.reporter) === String(currentUserId) ||
-        String((task as any).reporter_detail?.id) === String(currentUserId))
+    (String(task.reporter) === String(currentUserId) ||
+      String((task as any).reporter_detail?.id) === String(currentUserId))
   );
   const canManageAll = hasPermission("task.manage_all") || isStaff;
   const canEditTask = canManageAll || isAssignee || isReporter || hasPermission("task.create");
@@ -89,6 +78,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
 
   const isActuallyDone = Boolean(task.is_finished);
+  const timerBelongsToTask = Boolean(
+    activeTimer &&
+    String(activeTimer.task ?? (activeTimer as { task_id?: string | number }).task_id ?? "") === String(task.id)
+  );
+  const handleTimerToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (timerBelongsToTask) {
+      onStopTimer?.(task.id);
+      return;
+    }
+    onPlayTimer?.(task.id);
+  };
   const isOverdue = Boolean(
     task.due_date && new Date(task.due_date).getTime() < Date.now() && !isActuallyDone
   );
@@ -101,7 +102,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       toast.success(t("تسک حذف شد"));
     },
     onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || "Could not delete task.")),
+      toast.error(translateError(error.response?.data?.detail || t("خطا در حذف تسک"))),
   });
 
   const updateMutation = useMutation({
@@ -112,7 +113,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       queryClient.invalidateQueries({ queryKey: ["taskActivities", task.id] });
     },
     onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || "Could not update task.")),
+      toast.error(translateError(error.response?.data?.detail || t("خطا در به‌روزرسانی تسک"))),
   });
 
   const storeProjectId = useTaskStore((state) => state.activeProjectId);
@@ -139,62 +140,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const initials = task.assignee_detail
     ? (task.assignee_detail.first_name || task.assignee_detail.last_name
-        ? `${task.assignee_detail.first_name?.[0] || ""}${task.assignee_detail.last_name?.[0] || ""}`
-        : task.assignee_detail.username?.[0] || "?").toUpperCase()
+      ? `${task.assignee_detail.first_name?.[0] || ""}${task.assignee_detail.last_name?.[0] || ""}`
+      : task.assignee_detail.username?.[0] || "?").toUpperCase()
     : "";
-
-
-  const timerBelongsToTask = Boolean(
-    activeTimer && activeTimer.task.toString() === task.id.toString()
+  const hasBadges = Boolean(task.milestone_detail || task.is_blocked || task.priority === 'critical' || task.priority === 'high');
+  const hasMeta = Boolean(
+    task.due_date ||
+    (task.checklist_stats && task.checklist_stats.total > 0) ||
+    task.subtasks_count > 0 ||
+    (task.comments_count && task.comments_count > 0) ||
+    (task.comments && task.comments.length > 0)
   );
-  const timerIsRunning = Boolean(task.is_active_timer_running || timerBelongsToTask);
-  const [now, setNow] = useState(Date.now());
-  const [localStartedAt, setLocalStartedAt] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!timerIsRunning) {
-      setLocalStartedAt(null);
-      return undefined;
-    }
-    setLocalStartedAt((prev) => prev || Date.now());
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(interval);
-  }, [timerIsRunning]);
-
-  const elapsedSeconds = timerBelongsToTask && activeTimer
-    ? Math.max(
-        0,
-        Math.floor((now - new Date(activeTimer.start_time).getTime()) / 1000) +
-          Number(activeTimer.duration_seconds || 0)
-      )
-    : timerIsRunning && localStartedAt
-    ? Number(task.spent_seconds || 0) + Math.max(0, Math.floor((now - localStartedAt) / 1000))
-    : Number(task.spent_seconds || 0);
-
-  const formattedElapsed = [
-    Math.floor(elapsedSeconds / 3600),
-    Math.floor((elapsedSeconds % 3600) / 60),
-    elapsedSeconds % 60,
-  ]
-    .map((part) => part.toString().padStart(2, "0"))
-    .join(":");
-
 
   return (
     <>
       <article
         onClick={onClick}
-        className={`group relative cursor-pointer rounded-2xl border bg-base-100 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-          isOverdue
-            ? "border-error/30"
-            : task.is_blocked
-            ? "border-error/30"
-            : "border-base-content/8 hover:border-base-content/20"
-        } ${isActuallyDone ? "border-success/20" : ""}`}
-        style={{
-          borderInlineStartWidth: "3px",
-          borderInlineStartColor: priorityLeftBorder[task.priority],
-        }}
+        className={`group relative cursor-pointer rounded-lg border bg-base-100 p-2.5 shadow-xs transition-all duration-150 hover:shadow-md ${isOverdue
+          ? "border-error/20 bg-error/[0.02]"
+          : task.is_blocked
+            ? "border-error/20 bg-error/[0.02]"
+            : "border-base-300/60 hover:border-base-300"
+          } ${isActuallyDone ? "opacity-70" : ""}`}
         aria-label={t("Open task {value0}: {value1}", { value0: task.key, value1: task.title })}
       >
         {/* Loading overlay */}
@@ -204,33 +171,61 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         )}
 
-        {/* ─── Top Hover Options Menu ─── */}
-        <button
-          ref={menuTriggerRef}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMenuOpen(true);
-          }}
-          className="absolute top-2 end-2 z-10 grid size-6 place-items-center rounded-lg text-heledone-ink-muted opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 focus-visible:opacity-100 hover:bg-base-200 hover:text-base-content transition duration-150"
-          aria-label={t("Actions for {value0}", { value0: task.title })}
-        >
-          <More size={14} />
-        </button>
+        {/* ─── Top Header: Task Key & Options Menu ─── */}
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-[10px] font-extrabold text-heledone-ink-muted/80 tracking-tight">
+              {task.key || `#${task.id}`}
+            </span>
+            {timerBelongsToTask ? (
+              <button
+                type="button"
+                onClick={handleTimerToggle}
+                className="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-bold text-success transition hover:bg-success/15"
+                aria-label={t("Stop timer")}
+              >
+                <span className="size-1.5 rounded-full bg-success animate-pulse" />
+                {t("Timer running")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleTimerToggle}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary transition hover:bg-primary/15"
+                aria-label={t("Start timer")}
+              >
+                <span className="size-1.5 rounded-full bg-primary" />
+                {t("Start timer")}
+              </button>
+            )}
+          </div>
 
-        {/* ─── Title & Checkbox (Inline with ) ─── */}
-        <div className="flex items-start gap-2 pe-4">
+          <button
+            ref={menuTriggerRef}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(true);
+            }}
+            className="grid size-5 place-items-center rounded-md text-heledone-ink-muted/60 opacity-0 group-hover:opacity-100 hover:bg-base-200 hover:text-base-content transition shrink-0"
+            aria-label={t("Actions for {value0}", { value0: task.title })}
+          >
+            <More size={13} />
+          </button>
+        </div>
+
+        {/* ─── Title & Checkbox ─── */}
+        <div className="mb-2 flex items-start gap-2">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               (onToggleDone || onMarkDone)?.(task.id);
             }}
-            className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded transition ${
-              isActuallyDone
-                ? "bg-success text-success-content"
-                : "border border-heledone-ink-muted hover:border-success hover:bg-success/10"
-            }`}
+            className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded transition ${isActuallyDone
+              ? "bg-success text-white"
+              : "border border-base-300 hover:border-base-400"
+              }`}
             title={isActuallyDone ? t("بازگشت به انجام") : t("ثبت انجام‌شدن")}
           >
             {isActuallyDone && <TickCircle size={11} variant="Bold" />}
@@ -238,27 +233,100 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
           <div className="min-w-0 flex-1">
             <h3
-
-              className={`text-sm font-semibold leading-relaxed tracking-tight ${
-                isActuallyDone
-                  ? "text-heledone-ink-muted line-through"
-                  : "text-base-content"
-              }`}
+              className={`text-xs font-semibold leading-snug ${isActuallyDone
+                ? "text-heledone-ink-muted/60 line-through"
+                : "text-base-content"
+                }`}
             >
               {task.title}
             </h3>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full px-2.5 py-0.5 font-medium" style={{ color: getWorkflowAppearance(task.status_detail).ink, background: `color-mix(in srgb, ${getWorkflowAppearance(task.status_detail).color} 10%, transparent)` }}>{getWorkflowAppearance(task.status_detail).label}</span>
-          {task.is_blocked && <span className="rounded-full bg-error/10 px-2.5 py-0.5 font-semibold text-error">{t("مسدود · نیاز به رفع مانع")}</span>}
-        </div>
+        {/* ─── Properties / Badges Row ─── */}
+        {hasBadges && <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          {/* Tags/Labels */}
+          {task.milestone_detail && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-primary bg-primary/8 border border-primary/15">
+              <Flag size={9} variant="Bold" />
+              <span>{task.milestone_detail.title}</span>
+            </span>
+          )}
 
-        {/* ─── Footer: Assignee Avatar, Metadata & Timer ─── */}
-        <div className="mt-3 flex items-center justify-between border-t border-base-content/6 pt-2">
+          {/* Priority Badge - Only show high/critical */}
+          {(task.priority === 'critical' || task.priority === 'high') && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-rose-600 bg-rose-500/8 border border-rose-500/15">
+              <Flag size={9} variant="Bold" />
+              <span>
+                {task.priority === 'critical' ? t('بحرانی') : t('بالا')}
+              </span>
+            </span>
+          )}
 
-          <div className="flex items-center gap-3">
+          {/* Blocked Badge */}
+          {task.is_blocked && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-error bg-error/8 border border-error/15">
+              {t("مسدود")}
+            </span>
+          )}
+        </div>}
+
+        {/* ─── Meta Info Row ─── */}
+        {hasMeta && <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Due date */}
+          {task.due_date && (
+            <span
+              onClick={(e) => {
+                if (onDueDateClick) {
+                  e.stopPropagation();
+                  onDueDateClick();
+                }
+              }}
+              className={`inline-flex items-center gap-1 text-[11px] font-medium ${isOverdue && !isActuallyDone
+                ? 'text-error font-bold'
+                : 'text-heledone-ink-muted'
+                }`}
+              title={t("سررسید")}
+            >
+              <Calendar1 size={11} variant={isOverdue && !isActuallyDone ? "Bold" : "Linear"} />
+              <span>{formatDisplayDate(task.due_date, "MMM d")}</span>
+            </span>
+          )}
+
+          {/* Checklist stats */}
+          {task.checklist_stats && task.checklist_stats.total > 0 && (
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-medium ${task.checklist_stats.done === task.checklist_stats.total && !isActuallyDone
+                ? 'text-success font-bold'
+                : 'text-heledone-ink-muted'
+                }`}
+              title={t("Checklist items")}
+            >
+              <CheckSquare size={11} />
+              <span>{formatUiNumber(task.checklist_stats.done)}/{formatUiNumber(task.checklist_stats.total)}</span>
+            </span>
+          )}
+
+          {/* Subtasks Count */}
+          {task.subtasks_count > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-heledone-ink-muted bg-base-200/80 border border-base-300/50" title={t("زیرتسک‌ها")}>
+              <TaskSquare size={10} />
+              <span>{formatUiNumber(task.subtasks_count)} {t("زیرتسک")}</span>
+            </span>
+          )}
+
+          {/* Comments count */}
+          {Boolean((task.comments_count && task.comments_count > 0) || (task.comments && task.comments.length > 0)) && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-heledone-ink-muted">
+              <MessageSquare size={11} />
+              <span>{formatUiNumber(task.comments_count || task.comments?.length || 0)}</span>
+            </span>
+          )}
+        </div>}
+
+        {/* ─── Footer: Assignee ─── */}
+        <div className="mt-2 flex items-center justify-between border-t border-base-200/60 pt-1.5">
+          <div className="flex items-center gap-2">
             {/* Assignee Interactive Trigger */}
             <button
               ref={assigneeTriggerRef}
@@ -270,20 +338,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   setIsAssigneePopoverOpen(!isAssigneePopoverOpen);
                 }
               }}
-              className={`rounded-full p-0.5 transition ${
-                canEditTask ? "hover:ring-2 hover:ring-primary/30" : "cursor-default"
-              }`}
+              className={`flex items-center gap-1.5 py-0.5 transition ${canEditTask ? "hover:opacity-80 cursor-pointer" : "cursor-default"
+                }`}
               title={
                 task.assignee_detail
                   ? t("Assigned to {value0}", { value0: task.assignee_detail.first_name || task.assignee_detail.username })
                   : canEditTask
-                  ? t("Assign member")
-                  : t("بدون مسئول")
+                    ? t("Assign member")
+                    : t("بدون مسئول")
               }
             >
-
               <div className="relative shrink-0">
-                <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shadow-xs">
+                <span className="grid size-5 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-base-content">
                   {task.assignee_detail?.avatar_url || task.assignee_detail?.avatar ? (
                     <img
                       src={
@@ -291,15 +357,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                         task.assignee_detail.avatar
                       }
                       alt=""
-                      className="size-6 rounded-full object-cover"
+                      className="size-5 rounded-full object-cover"
                     />
                   ) : (
-                    initials || <Profile2User size={12} className="text-heledone-ink-muted" />
+                    initials || <Profile2User size={11} className="text-heledone-ink-muted" />
                   )}
                 </span>
-
                 {task.project && (
-                  <div className="absolute -bottom-1 -end-1 z-10">
+                  <div className="absolute -bottom-0.5 -end-0.5 z-10">
                     <LiveActivityIndicator
                       projectId={task.project.toString()}
                       taskId={task.id}
@@ -307,56 +372,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   </div>
                 )}
               </div>
+              <span className="text-[11px] font-medium text-heledone-ink-muted truncate max-w-[110px]">
+                {task.assignee_detail
+                  ? (task.assignee_detail.first_name || task.assignee_detail.username)
+                  : t("بدون مسئول")}
+              </span>
             </button>
-
-            {/* ─── Task Metadata (Due Date, Checklist & Milestone) ─── */}
-            {(task.due_date || (task.checklist_stats && task.checklist_stats.total > 0) || task.milestone_detail) && (
-              <div className="flex flex-wrap items-center gap-2.5 text-[13px] font-medium text-heledone-ink-muted">
-                {task.due_date && (
-                  <div className={`flex items-center gap-1 ${isOverdue && !isActuallyDone ? 'text-error font-bold bg-error/10 px-1.5 py-0.5 rounded-md -ms-1' : ''}`} title={t("سررسید")}>
-                    <Calendar1 size={13} variant={isOverdue && !isActuallyDone ? "Bold" : "Linear"} />
-                    <span>{formatDisplayDate(task.due_date, "MMM d")}</span>
-                  </div>
-                )}
-                {task.milestone_detail && (
-                  <div className="flex items-center gap-1 max-w-[100px]" title={t("Milestone")}>
-                    <Flag size={13} className="shrink-0" />
-                    <span className="truncate">{task.milestone_detail.title}</span>
-                  </div>
-                )}
-                {task.checklist_stats && task.checklist_stats.total > 0 && (
-                  <div className={`flex items-center gap-1 ${task.checklist_stats.done === task.checklist_stats.total && !isActuallyDone ? 'text-success font-bold bg-success/10 px-1.5 py-0.5 rounded-md -ms-1' : ''}`} title={t("Checklist items")}>
-                    <TaskSquare size={13} variant={task.checklist_stats.done === task.checklist_stats.total && !isActuallyDone ? "Bold" : "Linear"} />
-                    <span>{formatUiNumber(task.checklist_stats.done)}/{formatUiNumber(task.checklist_stats.total)}</span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Timer controls (visible always if running, or on hover if not running) */}
-          <div className={`flex items-center gap-1.5 shrink-0 transition-opacity duration-150 ${timerIsRunning ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 focus-visible:opacity-100"}`}>
-            {timerIsRunning && (
-              <span className="font-mono text-[13px] font-bold tabular-nums text-success bg-success/10 px-1.5 py-0.5 rounded-md">
-                {formattedElapsed}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (timerIsRunning) onStopTimer?.(task.id);
-                else onPlayTimer?.(task.id);
-              }}
-              className={`grid size-6.5 place-items-center rounded-lg transition ${
-                timerIsRunning
-                  ? "bg-error/10 text-error hover:bg-error/20"
-                  : "bg-base-200/80 text-heledone-ink-muted hover:bg-primary/10 hover:text-primary"
-              }`}
-              title={timerIsRunning ? t("توقف زمان‌سنج") : t("شروع زمان‌سنج")}
-            >
-              {timerIsRunning ? <Stop size={13} /> : <Play size={13} />}
-            </button>
+          {/* Timer controls - hidden for cleaner card design */}
+          <div className="hidden">
           </div>
         </div>
       </article>
@@ -386,9 +411,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               {/* Unassigned Option */}
               <button
                 type="button"
-                className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
-                  !task.assignee ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
-                }`}
+                className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${!task.assignee ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
+                  }`}
                 onClick={() => {
                   updateMutation.mutate({ assignee: undefined });
                   closeMenu();
@@ -405,11 +429,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   <button
                     type="button"
                     key={user.id}
-                    className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
-                      isSelected
-                        ? "bg-primary/10 text-primary font-bold"
-                        : "hover:bg-base-200"
-                    }`}
+                    className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${isSelected
+                      ? "bg-primary/10 text-primary font-bold"
+                      : "hover:bg-base-200"
+                      }`}
                     onClick={() => {
                       updateMutation.mutate({ assignee: user.id });
                       closeMenu();

@@ -22,9 +22,9 @@ export const getWorkflowAppearance = (status?: WorkflowStatus | null) => {
   const category = status?.category || status?.code?.toLowerCase().replace(/[ -]/g, "_") || "";
   const key = /block|مسدود/.test(category) ? "blocked"
     : /done|complete|publish|live|انجام.شده/.test(category) ? "done"
-    : /review|بررسی/.test(category) ? "review"
-    : /progress|doing|draft|در.حال.انجام/.test(category) ? "doing"
-    : "todo";
+      : /review|بررسی/.test(category) ? "review"
+        : /progress|doing|draft|در.حال.انجام/.test(category) ? "doing"
+          : "todo";
   const appearances = {
     todo: { label: t("برای انجام"), color: "var(--color-heledone-todo)" },
     doing: { label: t("در حال انجام"), color: "var(--color-primary)" },
@@ -33,9 +33,11 @@ export const getWorkflowAppearance = (status?: WorkflowStatus | null) => {
     blocked: { label: t("مسدود"), color: "var(--color-error)" },
   };
   const appearance = appearances[key];
-  const standardNames = /^(to do|todo|backlog|doing|in progress|review|done|completed|complete|blocked|برای انجام|در حال انجام|در حال بررسی|انجام‌شده|مسدود)$/i;
+  const standardNames = /^(to do|todo|backlog|doing|in progress|review|done|completed|complete|blocked|برای انجام|در حال انجام|در حال بررسی|انجام‌شده|مسدود|planning|live|in review)$/i;
   const ink = key === "todo" ? appearance.color : `var(--heledone-${{ doing: "primary", review: "warning", done: "success", blocked: "error" }[key]}-ink)`;
-  return { ...appearance, ink, label: status?.name && !standardNames.test(status.name) ? status.name : appearance.label };
+  // If status.name is not standard, try translating it first before falling back to raw name
+  const translatedName = status?.name && !standardNames.test(status.name) ? t(status.name) : null;
+  return { ...appearance, ink, label: translatedName || (status?.name && !standardNames.test(status.name) ? status.name : appearance.label) };
 };
 
 /** Decorative choices shared by project and board color pickers. */
