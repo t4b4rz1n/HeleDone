@@ -2020,5 +2020,14 @@ const messages = {
   "پایین": "Low",
   "ویرایش عنوان": "Edit title",
   "مسئول": "Assignee",
+  "Leave blank to keep current": "Leave blank to keep current",
+  "Enter new password (optional)": "Enter new password (optional)",
+  "Leave blank to keep current password": "Leave blank to keep current password",
+  "رمز عبور باید حداقل ۸ نویسه و شامل حروف بزرگ، کوچک و عدد باشد": "Password must be at least 8 characters with uppercase, lowercase and numbers",
+  "حذف ستون": "Delete Column",
+  "این ستون و تمام تسک‌هایش حذف می‌شوند. مطمئنی؟": "This column and all its tasks will be deleted. Are you sure?",
+  "بله، حذف کن": "Yes, delete",
+  "ستون با موفقیت حذف شد": "Column deleted successfully",
+  "Failed to delete column": "Failed to delete column"
 };
 export default messages;
