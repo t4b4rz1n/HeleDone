@@ -956,521 +956,516 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                     });
                   } else if (sortType === 'title') {
                     displayColumnTasks.sort((a, b) => a.title.localeCompare(b.title));
-              const sortType = columnSorts[status.id.toString()];
-              const displayColumnTasks = [...columnTasks];
-              if (sortType === 'priority') {
-                const prioWeight: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-                displayColumnTasks.sort((a, b) => (prioWeight[b.priority] || 0) - (prioWeight[a.priority] || 0));
-              } else if (sortType === 'due_date') {
-                displayColumnTasks.sort((a, b) => {
-                  if (!a.due_date) return 1;
-                  if (!b.due_date) return -1;
-                  return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-                });
-              } else if (sortType === 'title') {
-                displayColumnTasks.sort((a, b) => a.title.localeCompare(b.title));
-              }
+                    const sortType = columnSorts[status.id.toString()];
+                    const displayColumnTasks = [...columnTasks];
+                    if (sortType === 'priority') {
+                      const prioWeight: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+                      displayColumnTasks.sort((a, b) => (prioWeight[b.priority] || 0) - (prioWeight[a.priority] || 0));
+                    } else if (sortType === 'due_date') {
+                      displayColumnTasks.sort((a, b) => {
+                        if (!a.due_date) return 1;
+                        if (!b.due_date) return -1;
+                        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+                      });
+                    } else if (sortType === 'title') {
+                      displayColumnTasks.sort((a, b) => a.title.localeCompare(b.title));
+                    }
 
-              return (
-                <DroppableColumn
-                  key={status.id}
-                  id={`col-${status.id}`}
-                  className={`heledone-kanban-column min-w-[282px] w-[282px] flex flex-col transition-opacity ${
-                    isDoneColumn ? 'heledone-kanban-column-done' : ''
-                  }`}
-                  header={
-                    <div className="mb-3 flex shrink-0 items-center justify-between px-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="size-2.5 rounded-full"
-                          style={{ background: statusColor }}
-                        />
-                        <h3 className="text-sm font-semibold text-base-content">{appearance.label}</h3>
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[13px] font-bold text-white"
-                          style={{ background: `color-mix(in srgb, ${statusColor} 12%, transparent)`, color: appearance.ink }}
-                        >
-                          {formatUiNumber(columnTasks.length)}
-                        </span>
-                      </div>
-
-                      {/* Interactive Column Actions Menu */}
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (columnMenuAnchor?.id === status.id) {
-                              setColumnMenuAnchor(null);
-                            } else {
-                              setColumnMenuAnchor({
-                                id: status.id,
-                                rect: e.currentTarget.getBoundingClientRect(),
-                              });
-                            }
-                          }}
-                          className="rounded-lg p-1 text-heledone-ink-muted hover:bg-base-200 hover:text-base-content transition"
-                          title={t("تنظیمات ستون")}
-                        >
-                          <More size={16} />
-                        </button>
-
-                        {columnMenuAnchor && columnMenuAnchor.id === status.id && createPortal(
-                          <>
-                            <div className="fixed inset-0 z-45" onClick={() => { setColumnMenuAnchor(null); setDeleteColumnConfirmId(null); }} />
-                            <div
-                              className="fixed z-50 w-52 rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-xs font-semibold shadow-2xl animate-in fade-in zoom-in-95 duration-100"
-                              style={{
-                                top: columnMenuAnchor.rect.bottom + 4,
-                                left: Math.max(10, columnMenuAnchor.rect.right - 208),
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {canCreateTask && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setColumnMenuAnchor(null);
-                                    setAddingTaskToStatusId(status.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
-                                >
-                                  <Add size={14} />  {t("افزودن تسک به ستون")}</button>
-                              )}
-
-                              {canCreateTask && <div className="my-1 h-px bg-base-content/8" />}
-
-                              <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                                {t("Sort Column")}</div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: null }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  !sortType ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
+                    return (
+                      <DroppableColumn
+                        key={status.id}
+                        id={`col-${status.id}`}
+                        className={`heledone-kanban-column min-w-[282px] w-[282px] flex flex-col transition-opacity ${isDoneColumn ? 'heledone-kanban-column-done' : ''
+                          }`}
+                        header={
+                          <div className="mb-3 flex shrink-0 items-center justify-between px-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="size-2.5 rounded-full"
+                                style={{ background: statusColor }}
+                              />
+                              <h3 className="text-sm font-semibold text-base-content">{appearance.label}</h3>
+                              <span
+                                className="rounded-full px-2 py-0.5 text-[13px] font-bold text-white"
+                                style={{ background: `color-mix(in srgb, ${statusColor} 12%, transparent)`, color: appearance.ink }}
                               >
-                                {t("Default Order")}</button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'priority' }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  sortType === 'priority' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("By Priority (High → Low)")}</button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'due_date' }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  sortType === 'due_date' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("By Due Date")}</button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'title' }));
-                                  setColumnMenuAnchor(null);
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${
-                                  sortType === 'title' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                }`}
-                              >
-                                {t("By Title (A - Z)")}</button>
-
-                              {canManageBoard && (
-                                <>
-                                  <div className="my-1 h-px bg-base-content/8" />
-
-                                  <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                                    {t("Move Column")}</div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnMenuAnchor(null);
-                                      handleMoveStatus(status.id, 'left');
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
-                                  >
-                                    {t("Move Left")}</button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnMenuAnchor(null);
-                                      handleMoveStatus(status.id, 'right');
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
-                                  >
-                                    {t("Move Right")}</button>
-                                </>
-                              )}
-
-                              {canEditTask && columnTasks.length > 0 && (
-                                <>
-                                  <div className="my-1 h-px bg-base-content/8" />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnMenuAnchor(null);
-                                      columnTasks.forEach((t) => {
-                                        if (!t.is_finished) handleToggleDone(t.id);
-                                      });
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-success hover:bg-success/10"
-                                  >
-                                    <TickCircle size={14} />  {t("Mark all as done")}</button>
-                                </>
-                              )}
-
-                              {canManageBoard && (
-                                <>
-                                  <div className="my-1 h-px bg-base-content/8" />
-                                  {deleteColumnConfirmId === status.id ? (
-                                    <div className="rounded-xl bg-error/8 p-2.5">
-                                      <p className="mb-2 text-[12px] font-semibold text-error leading-snug">
-                                        {t("این ستون و تمام تسک‌هایش حذف می‌شوند. مطمئنی؟")}
-                                      </p>
-                                      <div className="flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => setDeleteColumnConfirmId(null)}
-                                          className="flex-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-base-content/60 hover:bg-base-200 transition"
-                                        >
-                                          {t("انصراف")}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          disabled={deleteStatusMutation.isPending}
-                                          onClick={() => {
-                                            deleteStatusMutation.mutate(status.id);
-                                            setColumnMenuAnchor(null);
-                                          }}
-                                          className="flex-1 rounded-lg bg-error px-2 py-1 text-[12px] font-bold text-white hover:bg-error/90 transition disabled:opacity-50"
-                                        >
-                                          {deleteStatusMutation.isPending ? '...' : t("بله، حذف کن")}
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => setDeleteColumnConfirmId(status.id)}
-                                      className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-error hover:bg-error/10"
-                                    >
-                                      <Trash size={14} /> {t("حذف ستون")}
-                                    </button>
-                                  )}
-                                </>
-                              )}
-
+                                {formatUiNumber(columnTasks.length)}
+                              </span>
                             </div>
-                          </>,
-                          document.body
-                        )}
-                      </div>
-                    </div>
-                  }
 
-                  return (
-                    <DroppableColumn
-                      key={status.id}
-                      id={`col-${status.id}`}
-                      className={`heledone-kanban-column min-w-[220px] w-[clamp(220px,20vw,280px)] flex flex-col rounded-2xl bg-base-100 transition-all ${isDoneColumn ? 'heledone-kanban-column-done opacity-90' : ''
-                        }`}
-                      header={
-                        <div className="mb-3 flex shrink-0 items-center justify-between px-4 pt-4">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ background: statusColor }}
-                            />
-                            <h3 className="text-sm font-extrabold text-base-content tracking-tight">{appearance.label}</h3>
-                            <span
-                              className="rounded-full px-2 py-0.5 text-[11px] font-black"
-                              style={{ background: `color-mix(in srgb, ${statusColor} 12%, transparent)`, color: statusColor }}
-                            >
-                              {formatUiNumber(columnTasks.length)}
-                            </span>
-                          </div>
+                            {/* Interactive Column Actions Menu */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (columnMenuAnchor?.id === status.id) {
+                                    setColumnMenuAnchor(null);
+                                  } else {
+                                    setColumnMenuAnchor({
+                                      id: status.id,
+                                      rect: e.currentTarget.getBoundingClientRect(),
+                                    });
+                                  }
+                                }}
+                                className="rounded-lg p-1 text-heledone-ink-muted hover:bg-base-200 hover:text-base-content transition"
+                                title={t("تنظیمات ستون")}
+                              >
+                                <More size={16} />
+                              </button>
 
-                          {/* Interactive Column Actions Menu */}
-                          <div className="relative">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (columnMenuAnchor?.id === status.id) {
-                                  setColumnMenuAnchor(null);
-                                } else {
-                                  setColumnMenuAnchor({
-                                    id: status.id,
-                                    rect: e.currentTarget.getBoundingClientRect(),
-                                  });
-                                }
-                              }}
-                              className="rounded-lg p-1 text-heledone-ink-muted hover:bg-base-200 hover:text-base-content transition"
-                              title={t("تنظیمات ستون")}
-                            >
-                              <More size={16} />
-                            </button>
+                              {columnMenuAnchor && columnMenuAnchor.id === status.id && createPortal(
+                                <>
+                                  <div className="fixed inset-0 z-45" onClick={() => { setColumnMenuAnchor(null); setDeleteColumnConfirmId(null); }} />
+                                  <div
+                                    className="fixed z-50 w-52 rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-xs font-semibold shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+                                    style={{
+                                      top: columnMenuAnchor.rect.bottom + 4,
+                                      left: Math.max(10, columnMenuAnchor.rect.right - 208),
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {canCreateTask && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColumnMenuAnchor(null);
+                                          setAddingTaskToStatusId(status.id);
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
+                                      >
+                                        <Add size={14} />  {t("افزودن تسک به ستون")}</button>
+                                    )}
 
-                            {columnMenuAnchor && columnMenuAnchor.id === status.id && createPortal(
-                              <>
-                                <div className="fixed inset-0 z-45" onClick={() => setColumnMenuAnchor(null)} />
-                                <div
-                                  className="fixed z-50 w-52 rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-xs font-semibold shadow-2xl animate-in fade-in zoom-in-95 duration-100"
-                                  style={{
-                                    top: columnMenuAnchor.rect.bottom + 4,
-                                    left: Math.max(10, columnMenuAnchor.rect.right - 208),
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {canCreateTask && (
+                                    {canCreateTask && <div className="my-1 h-px bg-base-content/8" />}
+
+                                    <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                                      {t("Sort Column")}</div>
+
                                     <button
                                       type="button"
                                       onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: null }));
                                         setColumnMenuAnchor(null);
-                                        setAddingTaskToStatusId(status.id);
                                       }}
-                                      className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${!sortType ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
                                     >
-                                      <Add size={14} />  {t("افزودن تسک به ستون")}</button>
-                                  )}
+                                      {t("Default Order")}</button>
 
-                                  {canCreateTask && <div className="my-1 h-px bg-base-content/8" />}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'priority' }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'priority' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("By Priority (High → Low)")}</button>
 
-                                  <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                                    {t("Sort Column")}</div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'due_date' }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'due_date' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("By Due Date")}</button>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: null }));
-                                      setColumnMenuAnchor(null);
-                                    }}
-                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${!sortType ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                      }`}
-                                  >
-                                    {t("Default Order")}</button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'title' }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'title' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("By Title (A - Z)")}</button>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'priority' }));
-                                      setColumnMenuAnchor(null);
-                                    }}
-                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'priority' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                      }`}
-                                  >
-                                    {t("By Priority (High → Low)")}</button>
+                                    {canManageBoard && (
+                                      <>
+                                        <div className="my-1 h-px bg-base-content/8" />
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'due_date' }));
-                                      setColumnMenuAnchor(null);
-                                    }}
-                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'due_date' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                      }`}
-                                  >
-                                    {t("By Due Date")}</button>
+                                        <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                                          {t("Move Column")}</div>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'title' }));
-                                      setColumnMenuAnchor(null);
-                                    }}
-                                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'title' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
-                                      }`}
-                                  >
-                                    {t("By Title (A - Z)")}</button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setColumnMenuAnchor(null);
+                                            handleMoveStatus(status.id, 'left');
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
+                                        >
+                                          {t("Move Left")}</button>
 
-                                  {canManageBoard && (
-                                    <>
-                                      <div className="my-1 h-px bg-base-content/8" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setColumnMenuAnchor(null);
+                                            handleMoveStatus(status.id, 'right');
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
+                                        >
+                                          {t("Move Right")}</button>
+                                      </>
+                                    )}
 
-                                      <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                                        {t("Move Column")}</div>
+                                    {canEditTask && columnTasks.length > 0 && (
+                                      <>
+                                        <div className="my-1 h-px bg-base-content/8" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setColumnMenuAnchor(null);
+                                            columnTasks.forEach((t) => {
+                                              if (!t.is_finished) handleToggleDone(t.id);
+                                            });
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-success hover:bg-success/10"
+                                        >
+                                          <TickCircle size={14} />  {t("Mark all as done")}</button>
+                                      </>
+                                    )}
 
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setColumnMenuAnchor(null);
-                                          handleMoveStatus(status.id, 'left');
-                                        }}
-                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
-                                      >
-                                        {t("Move Left")}</button>
+                                    {canManageBoard && (
+                                      <>
+                                        <div className="my-1 h-px bg-base-content/8" />
+                                        {deleteColumnConfirmId === status.id ? (
+                                          <div className="rounded-xl bg-error/8 p-2.5">
+                                            <p className="mb-2 text-[12px] font-semibold text-error leading-snug">
+                                              {t("این ستون و تمام تسک‌هایش حذف می‌شوند. مطمئنی؟")}
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => setDeleteColumnConfirmId(null)}
+                                                className="flex-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-base-content/60 hover:bg-base-200 transition"
+                                              >
+                                                {t("انصراف")}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                disabled={deleteStatusMutation.isPending}
+                                                onClick={() => {
+                                                  deleteStatusMutation.mutate(status.id);
+                                                  setColumnMenuAnchor(null);
+                                                }}
+                                                className="flex-1 rounded-lg bg-error px-2 py-1 text-[12px] font-bold text-white hover:bg-error/90 transition disabled:opacity-50"
+                                              >
+                                                {deleteStatusMutation.isPending ? '...' : t("بله، حذف کن")}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => setDeleteColumnConfirmId(status.id)}
+                                            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-error hover:bg-error/10"
+                                          >
+                                            <Trash size={14} /> {t("حذف ستون")}
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
 
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setColumnMenuAnchor(null);
-                                          handleMoveStatus(status.id, 'right');
-                                        }}
-                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
-                                      >
-                                        {t("Move Right")}</button>
-                                    </>
-                                  )}
-
-                                  {canEditTask && columnTasks.length > 0 && (
-                                    <>
-                                      <div className="my-1 h-px bg-base-content/8" />
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setColumnMenuAnchor(null);
-                                          columnTasks.forEach((t) => {
-                                            if (!t.is_finished) handleToggleDone(t.id);
-                                          });
-                                        }}
-                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-success hover:bg-success/10"
-                                      >
-                                        <TickCircle size={14} />  {t("Mark all as done")}</button>
-                                    </>
-                                  )}
-
-                                </div>
-                              </>,
-                              document.body
-                            )}
+                                  </div>
+                                </>,
+                                document.body
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      }
-                    >
-                      <div className="custom-scrollbar flex min-w-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden px-4 pb-3" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
-                        <SortableContext items={displayColumnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
-                          {displayColumnTasks.map(task => (
-                            <SortableTask
-                              key={task.id}
-                              task={task}
-                              onClick={() => { setSelectedTaskForSheet(task); if (focusMode) setFocusedTaskId(task.id); }}
-                              onPlayTimer={handlePlayTimer}
-                              onStopTimer={handleStopTimer}
-                              onToggleDone={handleToggleDone}
-                              activeTimer={activeTimers.find(t => t.task?.toString() === task.id?.toString()) || null}
-                              onDueDateClick={() => openTaskSheetWithDueDate(task)}
-                            />
-                          ))}
-                        </SortableContext>
+                  );
+
+                    return (
+                      <DroppableColumn
+                        key={status.id}
+                        id={`col-${status.id}`}
+                        className={`heledone-kanban-column min-w-[220px] w-[clamp(220px,20vw,280px)] flex flex-col rounded-2xl bg-base-100 transition-all ${isDoneColumn ? 'heledone-kanban-column-done opacity-90' : ''
+                          }`}
+                        header={
+                          <div className="mb-3 flex shrink-0 items-center justify-between px-4 pt-4">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="size-2 rounded-full"
+                                style={{ background: statusColor }}
+                              />
+                              <h3 className="text-sm font-extrabold text-base-content tracking-tight">{appearance.label}</h3>
+                              <span
+                                className="rounded-full px-2 py-0.5 text-[11px] font-black"
+                                style={{ background: `color-mix(in srgb, ${statusColor} 12%, transparent)`, color: statusColor }}
+                              >
+                                {formatUiNumber(columnTasks.length)}
+                              </span>
+                            </div>
+
+                            {/* Interactive Column Actions Menu */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (columnMenuAnchor?.id === status.id) {
+                                    setColumnMenuAnchor(null);
+                                  } else {
+                                    setColumnMenuAnchor({
+                                      id: status.id,
+                                      rect: e.currentTarget.getBoundingClientRect(),
+                                    });
+                                  }
+                                }}
+                                className="rounded-lg p-1 text-heledone-ink-muted hover:bg-base-200 hover:text-base-content transition"
+                                title={t("تنظیمات ستون")}
+                              >
+                                <More size={16} />
+                              </button>
+
+                              {columnMenuAnchor && columnMenuAnchor.id === status.id && createPortal(
+                                <>
+                                  <div className="fixed inset-0 z-45" onClick={() => setColumnMenuAnchor(null)} />
+                                  <div
+                                    className="fixed z-50 w-52 rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-xs font-semibold shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+                                    style={{
+                                      top: columnMenuAnchor.rect.bottom + 4,
+                                      left: Math.max(10, columnMenuAnchor.rect.right - 208),
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {canCreateTask && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColumnMenuAnchor(null);
+                                          setAddingTaskToStatusId(status.id);
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
+                                      >
+                                        <Add size={14} />  {t("افزودن تسک به ستون")}</button>
+                                    )}
+
+                                    {canCreateTask && <div className="my-1 h-px bg-base-content/8" />}
+
+                                    <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                                      {t("Sort Column")}</div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: null }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${!sortType ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("Default Order")}</button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'priority' }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'priority' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("By Priority (High → Low)")}</button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'due_date' }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'due_date' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("By Due Date")}</button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColumnSorts((prev) => ({ ...prev, [status.id.toString()]: 'title' }));
+                                        setColumnMenuAnchor(null);
+                                      }}
+                                      className={`flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-start ${sortType === 'title' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-base-200 text-base-content/70'
+                                        }`}
+                                    >
+                                      {t("By Title (A - Z)")}</button>
+
+                                    {canManageBoard && (
+                                      <>
+                                        <div className="my-1 h-px bg-base-content/8" />
+
+                                        <div className="px-2.5 py-1 text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                                          {t("Move Column")}</div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setColumnMenuAnchor(null);
+                                            handleMoveStatus(status.id, 'left');
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
+                                        >
+                                          {t("Move Left")}</button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setColumnMenuAnchor(null);
+                                            handleMoveStatus(status.id, 'right');
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-base-content/70 hover:bg-base-200"
+                                        >
+                                          {t("Move Right")}</button>
+                                      </>
+                                    )}
+
+                                    {canEditTask && columnTasks.length > 0 && (
+                                      <>
+                                        <div className="my-1 h-px bg-base-content/8" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setColumnMenuAnchor(null);
+                                            columnTasks.forEach((t) => {
+                                              if (!t.is_finished) handleToggleDone(t.id);
+                                            });
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-success hover:bg-success/10"
+                                        >
+                                          <TickCircle size={14} />  {t("Mark all as done")}</button>
+                                      </>
+                                    )}
+
+                                  </div>
+                                </>,
+                                document.body
+                              )}
+                            </div>
+                          </div>
+                        }
+                      >
+                        <div className="custom-scrollbar flex min-w-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden px-4 pb-3" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
+                          <SortableContext items={displayColumnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
+                            {displayColumnTasks.map(task => (
+                              <SortableTask
+                                key={task.id}
+                                task={task}
+                                onClick={() => { setSelectedTaskForSheet(task); if (focusMode) setFocusedTaskId(task.id); }}
+                                onPlayTimer={handlePlayTimer}
+                                onStopTimer={handleStopTimer}
+                                onToggleDone={handleToggleDone}
+                                activeTimer={activeTimers.find(t => t.task?.toString() === task.id?.toString()) || null}
+                                onDueDateClick={() => openTaskSheetWithDueDate(task)}
+                              />
+                            ))}
+                          </SortableContext>
 
 
-                        {addingTaskToStatusId === status.id && (
-                          <div
-                            className="mt-2 box-border w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-primary/25 bg-base-100 p-2.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-150"
-                            tabIndex={-1}
-                            onBlur={(e) => {
-                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                                setAddingTaskToStatusId(null);
-                                setNewTaskTitle('');
-                                setNewTaskPriority('low');
-                              }
-                            }}
-                          >
-                            <textarea
-                              autoFocus
-                              rows={2}
-                              value={newTaskTitle}
-                              onChange={e => setNewTaskTitle(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleCreateTask(status.id);
-                                }
-                                if (e.key === 'Escape') {
+                          {addingTaskToStatusId === status.id && (
+                            <div
+                              className="mt-2 box-border w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-primary/25 bg-base-100 p-2.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-150"
+                              tabIndex={-1}
+                              onBlur={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                                   setAddingTaskToStatusId(null);
                                   setNewTaskTitle('');
                                   setNewTaskPriority('low');
                                 }
                               }}
+                            >
+                              <textarea
+                                autoFocus
+                                rows={2}
+                                value={newTaskTitle}
+                                onChange={e => setNewTaskTitle(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleCreateTask(status.id);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setAddingTaskToStatusId(null);
+                                    setNewTaskTitle('');
+                                    setNewTaskPriority('low');
+                                  }
+                                }}
 
-                              placeholder={t("What needs to be done?")}
-                              className="block w-full min-w-0 resize-none bg-transparent text-[13px] font-semibold leading-snug text-base-content outline-none placeholder:text-heledone-ink-muted"
-                            />
+                                placeholder={t("What needs to be done?")}
+                                className="block w-full min-w-0 resize-none bg-transparent text-[13px] font-semibold leading-snug text-base-content outline-none placeholder:text-heledone-ink-muted"
+                              />
 
-                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-base-content/8 pt-2">
-                              {/* Custom Priority Dot Buttons */}
-                              <div className="flex items-center gap-1.5">
-                                {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
-                                  const pColors: Record<string, string> = {
-                                    low: 'bg-base-content/20 hover:bg-base-content/40 active:ring-base-content/10',
-                                    medium: 'bg-primary hover:bg-primary active:ring-primary/20',
-                                    high: 'bg-warning hover:bg-warning active:ring-warning/20',
-                                    critical: 'bg-error hover:bg-error active:ring-error/20',
-                                  };
-                                  const isSelected = newTaskPriority === p;
-                                  return (
-                                    <button
-                                      key={p}
-                                      type="button"
-                                      onClick={() => setNewTaskPriority(p)}
-                                      className={`size-3.5 rounded-full transition-all active:ring-4 ${pColors[p]} ${isSelected ? 'ring-2 ring-primary scale-125' : 'opacity-60 hover:opacity-100'
-                                        }`}
-                                      title={t("{value0} priority", { value0: p.toUpperCase() })}
-                                    />
-                                  );
-                                })}
-                                <span className="text-[13px] font-bold text-heledone-ink-muted capitalize ms-1">
-                                  {newTaskPriority}
-                                </span>
-                              </div>
+                              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-base-content/8 pt-2">
+                                {/* Custom Priority Dot Buttons */}
+                                <div className="flex items-center gap-1.5">
+                                  {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
+                                    const pColors: Record<string, string> = {
+                                      low: 'bg-base-content/20 hover:bg-base-content/40 active:ring-base-content/10',
+                                      medium: 'bg-primary hover:bg-primary active:ring-primary/20',
+                                      high: 'bg-warning hover:bg-warning active:ring-warning/20',
+                                      critical: 'bg-error hover:bg-error active:ring-error/20',
+                                    };
+                                    const isSelected = newTaskPriority === p;
+                                    return (
+                                      <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setNewTaskPriority(p)}
+                                        className={`size-3.5 rounded-full transition-all active:ring-4 ${pColors[p]} ${isSelected ? 'ring-2 ring-primary scale-125' : 'opacity-60 hover:opacity-100'
+                                          }`}
+                                        title={t("{value0} priority", { value0: p.toUpperCase() })}
+                                      />
+                                    );
+                                  })}
+                                  <span className="text-[13px] font-bold text-heledone-ink-muted capitalize ms-1">
+                                    {newTaskPriority}
+                                  </span>
+                                </div>
 
-                              {/* Actions */}
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => { setAddingTaskToStatusId(null); setNewTaskTitle(''); setNewTaskPriority('low'); }}
-                                  className="rounded-lg px-2 py-1 text-xs font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
-                                >
-                                  {t("انصراف")}</button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCreateTask(status.id)}
-                                  disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
-                                  className="rounded-lg bg-primary px-2.5 py-1 text-xs font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                  {createTaskMutation.isPending ? '...' : t("افزودن")}
-                                </button>
+                                {/* Actions */}
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => { setAddingTaskToStatusId(null); setNewTaskTitle(''); setNewTaskPriority('low'); }}
+                                    className="rounded-lg px-2 py-1 text-xs font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
+                                  >
+                                    {t("انصراف")}</button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCreateTask(status.id)}
+                                    disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
+                                    className="rounded-lg bg-primary px-2.5 py-1 text-xs font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    {createTaskMutation.isPending ? '...' : t("افزودن")}
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
 
-                      {canCreateTask && addingTaskToStatusId !== status.id && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddingTaskToStatusId(status.id);
-                            setNewTaskTitle('');
-                            setNewTaskPriority('low');
-                          }}
-                          className="mx-4 mb-3 flex shrink-0 w-[calc(100%-2rem)] items-center justify-center gap-1 rounded-xl border border-dashed border-base-300 py-2 text-xs font-bold text-heledone-ink-muted transition hover:border-primary/50 hover:text-primary hover:bg-primary/5"
-                        >
-                          <span className="text-sm leading-none">+</span>
-                          <span>{t("افزودن تسک")}</span>
-                        </button>
-                      )}
-                    </DroppableColumn>
-                  );
-                })}
+                        {canCreateTask && addingTaskToStatusId !== status.id && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddingTaskToStatusId(status.id);
+                              setNewTaskTitle('');
+                              setNewTaskPriority('low');
+                            }}
+                            className="mx-4 mb-3 flex shrink-0 w-[calc(100%-2rem)] items-center justify-center gap-1 rounded-xl border border-dashed border-base-300 py-2 text-xs font-bold text-heledone-ink-muted transition hover:border-primary/50 hover:text-primary hover:bg-primary/5"
+                          >
+                            <span className="text-sm leading-none">+</span>
+                            <span>{t("افزودن تسک")}</span>
+                          </button>
+                        )}
+                      </DroppableColumn>
+                    );
+                  })}
               </SortableContext>
 
               {canManageBoard && (
