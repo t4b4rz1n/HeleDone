@@ -291,8 +291,9 @@ export const UserDashboardPage = () => {
       className="personal-coastal-page space-y-6 pb-12"
     >
       {/* ─── 1. Header Bar with Greetings & Quick Actions ─── */}
-      <div className="heledone-welcome relative min-h-[138px] overflow-hidden rounded-2xl border border-[#DCE6E2] bg-[#FFF8EE] shadow-sm">
-        <img src="/images/heledone-assets/coastal-welcome.png" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-left" />
+      <div className="heledone-welcome relative min-h-[138px] overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+        <img src="/images/heledone-assets/coastal-welcome.png" alt="" aria-hidden="true" className="home-welcome-art" />
+        <div className="home-welcome-overlay" />
         <div className="relative z-10 flex h-full flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
         <div className="ms-auto max-w-[52%] text-end">
           <div className="flex items-center gap-3">

@@ -67,7 +67,7 @@
   --coastal-scene: url('/images/heledone-assets/leadership-coastal-v1.png');
 }
 .heledone-workspace:not(.home-reference-shell) .heledone-page {
-  background: color-mix(in srgb, var(--color-heledone-surface) 70%, var(--color-heledone-surface-muted));
+  background: var(--color-base-200);
 }
 .heledone-workspace .heledone-page-heading {
   position: relative;
@@ -130,6 +130,12 @@
   flex: none;
   padding: 12px 1.5rem;
   padding-inline-end: calc(66% + 1.5rem);
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(to left, var(--color-base-100) 0%, color-mix(in srgb, var(--color-base-100) 95%, transparent) 45%, transparent 100%);
+}
+[dir="ltr"] .heledone-workspace .heledone-page-heading > :first-child {
+  background: linear-gradient(to right, var(--color-base-100) 0%, color-mix(in srgb, var(--color-base-100) 95%, transparent) 45%, transparent 100%);
 }
 .heledone-workspace .heledone-page-heading > :not(:first-child) {
   position: relative;

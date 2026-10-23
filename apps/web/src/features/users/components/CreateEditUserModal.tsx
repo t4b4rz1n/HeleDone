@@ -109,6 +109,8 @@ export const CreateEditUserModal = ({
         role_id: data.role_id ?? null,
         salary_type: data.salary_type ?? null,
         salary_amount: data.salary_amount ?? null,
+        // Only send password if it was actually filled in
+        ...(data.password ? { password: data.password } : {}),
       };
 
       updateMutation.mutate(

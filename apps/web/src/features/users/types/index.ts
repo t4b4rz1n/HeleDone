@@ -42,4 +42,5 @@ export interface UserUpdateData {
   role_id: string | null;  // UUID
   salary_type?: 'monthly' | 'hourly' | null;
   salary_amount?: string | null;
+  password?: string | null;
 }

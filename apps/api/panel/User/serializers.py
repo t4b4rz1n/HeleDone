@@ -409,6 +409,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     salary_amount = serializers.DecimalField(
         max_digits=12, decimal_places=2, write_only=True, required=False, allow_null=True
     )
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        style={"input_type": "password"},
+    )
 
     class Meta:
         model = User
@@ -424,6 +431,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "salary_type",
             "salary_amount",
             "calendar_preference",
+            "password",
         ]
         extra_kwargs = {
             "avatar": {"validators": []},
@@ -451,6 +459,50 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         # Only superusers can modify is_staff
         if "is_staff" in validated_data and not (actor and actor.is_superuser):
             validated_data.pop("is_staff")
+
+        # Handle password change with permission check
+        new_password = validated_data.pop("password", None) or None
+        if new_password:
+            can_change_password = False
+            if actor:
+                if actor.is_superuser or actor.is_staff:
+                    can_change_password = True
+                elif actor.pk == instance.pk:
+                    # Users can always change their own password
+                    can_change_password = True
+                else:
+                    # Check if actor is owner or admin of any org the target user belongs to
+                    target_org_ids = instance.org_memberships.filter(is_deleted=False).values_list(
+                        "organization_id", flat=True
+                    )
+                    if OrganizationMembership.objects.filter(
+                        user=actor,
+                        organization_id__in=target_org_ids,
+                        role__in=[
+                            OrganizationMembership.Role.OWNER,
+                            OrganizationMembership.Role.ADMIN,
+                        ],
+                        is_deleted=False,
+                    ).exists():
+                        can_change_password = True
+                    else:
+                        # Also check dynamic role permissions (org.manage_members)
+                        from organizations.services import PermissionService
+
+                        for org_id in target_org_ids:
+                            if PermissionService.has_permission(
+                                actor, "org.manage_members", org_id
+                            ):
+                                can_change_password = True
+                                break
+
+            if can_change_password:
+                instance.set_password(new_password)
+                instance.save(update_fields=["password"])
+            else:
+                raise serializers.ValidationError(
+                    {"password": _("You do not have permission to change this user's password.")}
+                )
 
         has_role_id = "role_id" in validated_data
         role_id = validated_data.pop("role_id", None)

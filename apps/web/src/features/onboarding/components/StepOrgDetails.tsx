@@ -17,18 +17,18 @@ export const StepOrgDetails: React.FC = () => {
 
   return (
     <div className="w-full max-w-xl mx-auto">
-      <div className="bg-base-100 rounded-2xl border border-base-300 shadow-lg overflow-hidden">
+      <div className="bg-base-100 rounded-2xl border border-base-300 shadow-xs overflow-hidden">
         {/* Header */}
-        <div className="bg-primary/5 border-b border-base-300 px-8 py-6">
+        <div className="border-b border-base-200 px-6 sm:px-8 py-5">
           <h2 className="text-xl font-bold text-base-content">{t("نام سازمان")}</h2>
           <p className="text-sm text-heledone-ink-muted mt-0.5">{t("What's the name of your workspace?")}</p>
         </div>
 
         {/* Body */}
-        <form onSubmit={handleNext} className="p-8 space-y-6">
+        <form onSubmit={handleNext} className="p-6 sm:p-8 space-y-6">
           <div className="form-control">
             <label className="label pb-2">
-              <span className="label-text font-medium text-base-content">
+              <span className="label-text font-semibold text-base-content text-sm">
                 {t("نام سازمان")} <span className="text-error">*</span>
               </span>
             </label>
@@ -38,9 +38,8 @@ export const StepOrgDetails: React.FC = () => {
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="input input-bordered w-full focus:input-primary"
+              className="input input-bordered w-full rounded-xl bg-base-100 border-base-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all"
               placeholder={t("e.g. Acme Corporation")}
-
             />
           </div>
 
@@ -48,9 +47,10 @@ export const StepOrgDetails: React.FC = () => {
             <button
               type="submit"
               disabled={!name.trim()}
-              className="btn btn-primary gap-2"
+              className="btn btn-primary rounded-xl px-6 font-bold gap-2 shadow-xs rtl:[&>svg]:rotate-180"
             >
-              {t("Next: Add Users")}<ArrowRight className="w-4 h-4" />
+              <span>{t("Next: Add Users")}</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </form>

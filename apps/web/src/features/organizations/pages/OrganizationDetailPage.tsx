@@ -1,6 +1,6 @@
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
-import { getIntlLocale, useTranslation } from "../../../i18n/locale";
+import { getIntlLocale, useTranslation, t } from "../../../i18n/locale";
 import { formatDisplayDate } from "../../../utils/date";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -28,7 +28,6 @@ import type { OrganizationMember } from "../types";
 import { teamsApi } from "../../teams/api/teamsApi";
 import * as projectsApi from "../../projects/api/projectsApi";
 import { CreateEditTeamModal } from "../../teams/components/CreateEditTeamModal";
-import { ProjectWizard } from "../../projects/components/wizard/ProjectWizard";
 import { useProjectWizardStore } from "../../projects/store/useProjectWizardStore";
 import { CreateEditUserModal } from "../../users/components/CreateEditUserModal";
 import type { User } from "../../users/types";
@@ -38,7 +37,7 @@ import type { Project } from "../../projects/types";
 const getUserDisplayName = (member: OrganizationMember): string => {
   const fullName = member.full_name?.trim();
   if (fullName) return fullName;
-  return member.username || member.email || "Member";
+  return member.username || member.email || t("عضو");
 };
 
 const formatSalary = (amount?: string | null, type?: string | null) => {
@@ -48,7 +47,7 @@ const formatSalary = (amount?: string | null, type?: string | null) => {
 
   // Format number with commas (e.g. 100,000)
   const formatted = num.toLocaleString(getIntlLocale());
-  const typeText = type.toLowerCase() === 'hourly' ? '/hr' : '/mo';
+  const typeText = type.toLowerCase() === 'hourly' ? t('/ساعت') : t('/ماه');
   return `${formatted} ${typeText}`;
 };
 
@@ -112,7 +111,7 @@ export default function OrganizationDetailPage() {
       toast.success(t("Member removed successfully"));
     },
     onError: (error: any) => {
-      toast.error(translateError(error?.response?.data?.message || "Failed to remove member"));
+      toast.error(translateError(error?.response?.data?.message || t("خطا در حذف عضو")));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["organization-members", orgId] });
@@ -169,66 +168,66 @@ export default function OrganizationDetailPage() {
 
       {/* Organization header */}
       <div className="heledone-page-heading">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <People size={28} />
-            </span>
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-bold tracking-tight">
-                {organization.name}
-              </h1>
-              <p className="mt-1 truncate text-sm text-heledone-ink-muted">
-                /{organization.slug}
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <People size={28} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold tracking-tight">
+              {organization.name}
+            </h1>
+            <p className="mt-1 truncate text-sm text-heledone-ink-muted">
+              /{organization.slug}
+            </p>
+            {organization.description && (
+              <p className="mt-2 text-sm text-heledone-ink-muted">
+                {organization.description}
               </p>
-              {organization.description && (
-                <p className="mt-2 text-sm text-heledone-ink-muted">
-                  {organization.description}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end lg:w-auto">
-            {hasPermission("org.manage_members") && (
-              <button
-                type="button"
-                onClick={() => setIsCreateMemberOpen(true)}
-                className="btn btn-primary btn-sm rounded-xl gap-2 shadow-sm shadow-primary/15"
-              >
-                <Add size={16} />
-                {t("Create member")}</button>
-            )}
-            {hasPermission("org.manage_settings") && (
-              <button
-                type="button"
-                onClick={() => setIsCreateTeamOpen(true)}
-                className="btn btn-outline btn-sm rounded-xl gap-2"
-              >
-                <Profile2User size={16} />
-                {t("Create team")}</button>
-            )}
-            {hasPermission("project.create") && (
-              <button
-                type="button"
-                onClick={() => {
-                  resetWizard();
-                  if (orgId) setSelectedOrgId(orgId);
-                  openWizard();
-                }}
-                className="btn btn-outline btn-sm rounded-xl gap-2"
-              >
-                <FolderFavorite size={16} />
-                {t("ساخت پروژه")}</button>
-            )}
-            {hasPermission("org.manage_roles") && (
-              <button
-                type="button"
-                onClick={() => navigate(`/organizations/${orgId}/roles`)}
-                className="btn btn-outline btn-sm rounded-xl gap-2"
-              >
-                <Shield size={16} />
-                {t("Roles Management")}</button>
             )}
           </div>
+        </div>
+        <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end lg:w-auto">
+          {hasPermission("org.manage_members") && (
+            <button
+              type="button"
+              onClick={() => setIsCreateMemberOpen(true)}
+              className="btn btn-primary btn-sm rounded-xl gap-2 shadow-sm shadow-primary/15"
+            >
+              <Add size={16} />
+              {t("Create member")}</button>
+          )}
+          {hasPermission("org.manage_settings") && (
+            <button
+              type="button"
+              onClick={() => setIsCreateTeamOpen(true)}
+              className="btn btn-outline btn-sm rounded-xl gap-2"
+            >
+              <Profile2User size={16} />
+              {t("Create team")}</button>
+          )}
+          {hasPermission("project.create") && (
+            <button
+              type="button"
+              onClick={() => {
+                resetWizard();
+                if (orgId) setSelectedOrgId(orgId);
+                openWizard();
+              }}
+              className="btn btn-outline btn-sm rounded-xl gap-2"
+            >
+              <FolderFavorite size={16} />
+              {t("ساخت پروژه")}</button>
+          )}
+          {hasPermission("org.manage_roles") && (
+            <button
+              type="button"
+              onClick={() => navigate(`/organizations/${orgId}/roles`)}
+              className="btn btn-outline btn-sm rounded-xl gap-2"
+            >
+              <Shield size={16} />
+              {t("Roles Management")}</button>
+          )}
+        </div>
       </div>
 
       {/* Members section */}
@@ -378,9 +377,8 @@ export default function OrganizationDetailPage() {
                           {team.description || t("No description provided")}
                         </p>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[13px] font-medium ${
-                        team.is_active ? "bg-success/10 text-success" : "bg-base-200 text-heledone-ink-muted"
-                      }`}>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[13px] font-medium ${team.is_active ? "bg-success/10 text-success" : "bg-base-200 text-heledone-ink-muted"
+                        }`}>
                         {team.is_active ? t("فعال") : t("Inactive")}
                       </span>
                     </div>
@@ -463,7 +461,6 @@ export default function OrganizationDetailPage() {
         onClose={() => setIsCreateTeamOpen(false)}
         organizationId={orgId!}
       />
-      <ProjectWizard />
       {selectedUserToEdit && (
         <CreateEditUserModal
           isOpen={!!selectedUserToEdit}

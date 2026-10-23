@@ -122,6 +122,7 @@ export interface Milestone {
   weight: number;
   task_count?: number;
   completed_task_count?: number;
+  progress_percentage?: number;
   created_at: string;
   updated_at: string;
 }
