@@ -472,9 +472,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                     can_change_password = True
                 else:
                     # Check if actor is owner or admin of any org the target user belongs to
-                    target_org_ids = instance.org_memberships.filter(
-                        is_deleted=False
-                    ).values_list("organization_id", flat=True)
+                    target_org_ids = instance.org_memberships.filter(is_deleted=False).values_list(
+                        "organization_id", flat=True
+                    )
                     if OrganizationMembership.objects.filter(
                         user=actor,
                         organization_id__in=target_org_ids,
