@@ -91,7 +91,6 @@ def invalidate_on_task_change(sender, instance, **kwargs):
         _invalidate_employee(uid)
         _invalidate_manager(user_id=uid)
 
-
     if instance.project_id:
         project = Project.objects.filter(id=instance.project_id).first()
         if project:

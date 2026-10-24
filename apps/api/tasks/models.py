@@ -319,7 +319,6 @@ class Task(BaseModel):
         super().save(*args, **kwargs)
         self._sync_initial_assignee()
 
-
     @property
     def key(self):
         """Returns the human-readable task key (e.g. MAD-15)."""

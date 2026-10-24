@@ -227,3 +227,63 @@ export const mentionFile = async (
   );
   return unwrap<{ status: string; message: string; mentioned_count: number }>(response);
 };
+
+// ==========================================
+// 📂 PROJECT FILES API (PostgreSQL + MinIO)
+// ==========================================
+export interface ProjectFileRecord {
+  id: string;
+  project: string;
+  uploaded_by?: {
+    id: string | number;
+    username: string;
+    full_name?: string;
+    avatar?: string;
+  };
+  file: string;
+  file_url: string;
+  name: string;
+  description?: string;
+  file_size?: string;
+  file_type: 'image' | 'pdf' | 'document' | 'archive' | 'other';
+  created_at: string;
+  updated_at: string;
+}
+
+export const getProjectFiles = async (
+  projectId: string | number
+): Promise<ProjectFileRecord[]> => {
+  const response = await ApiService.get(`projects/${projectId}/files/`);
+  return extractList<ProjectFileRecord>(response);
+};
+
+export const uploadProjectFile = async (
+  projectId: string | number,
+  formData: FormData
+): Promise<ProjectFileRecord> => {
+  const response = await ApiService.post<ProjectFileRecord>(
+    `projects/${projectId}/files/`,
+    formData
+  );
+  return unwrap<ProjectFileRecord>(response);
+};
+
+export const updateProjectFile = async (
+  projectId: string | number,
+  fileId: string,
+  data: { description: string }
+): Promise<ProjectFileRecord> => {
+  const response = await ApiService.patch<ProjectFileRecord>(
+    `projects/${projectId}/files/${fileId}/`,
+    data
+  );
+  return unwrap<ProjectFileRecord>(response);
+};
+
+export const deleteProjectFile = async (
+  projectId: string | number,
+  fileId: string
+): Promise<void> => {
+  await ApiService.delete(`projects/${projectId}/files/${fileId}/`);
+};
+

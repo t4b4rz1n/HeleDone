@@ -35,4 +35,3 @@ def check_approaching_tasks():
                     "task_title": task.title,
                 },
             )
-

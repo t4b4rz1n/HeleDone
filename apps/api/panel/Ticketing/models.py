@@ -129,17 +129,21 @@ class Message(BaseModel):
 
             # Parse mentions (@username) in ticket messages
             import re
+
             mentioned_usernames = set(re.findall(r"@([\w.-]+)", self.text or ""))
             if mentioned_usernames:
                 try:
                     from django.contrib.auth import get_user_model
                     from django.db.models.functions import Lower
+
                     from automations.events import EventDispatcher
 
                     User = get_user_model()
                     uids = list(
                         User.objects.annotate(uname_lower=Lower("username"))
-                        .filter(uname_lower__in=[u.lower() for u in mentioned_usernames], is_active=True)
+                        .filter(
+                            uname_lower__in=[u.lower() for u in mentioned_usernames], is_active=True
+                        )
                         .values_list("id", flat=True)
                     )
                     author_name = sender.get_full_name() or sender.username
@@ -158,7 +162,10 @@ class Message(BaseModel):
                         )
                 except Exception as exc:
                     import logging
-                    logging.getLogger(__name__).warning("Failed to dispatch ticket mention notification: %s", exc)
+
+                    logging.getLogger(__name__).warning(
+                        "Failed to dispatch ticket mention notification: %s", exc
+                    )
 
 
 class Attachment(BaseModel):

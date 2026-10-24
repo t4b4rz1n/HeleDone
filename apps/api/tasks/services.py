@@ -259,7 +259,6 @@ class TaskService:
         "is_blocked",
     }
 
-
     @staticmethod
     @transaction.atomic
     def create_task(
@@ -385,7 +384,6 @@ class TaskService:
 
         return task
 
-
     @staticmethod
     @transaction.atomic
     def update_task(task, actor, **kwargs):
@@ -437,17 +435,13 @@ class TaskService:
             # Handle M2M assignees separately
             if field == "assignees":
                 old_assignees = set(task.assignees.values_list("id", flat=True))
-                new_assignees = set(u.id for u in value) if value else set()
+                new_assignees = {u.id for u in value} if value else set()
                 if old_assignees != new_assignees:
                     assignees_to_set = value
                     if field not in skip_log_fields:
                         if value:
-                            names = ", ".join(
-                                u.get_full_name() or u.username for u in value
-                            )
-                            changes.append(
-                                str(_("Task assigned to %(users)s")) % {"users": names}
-                            )
+                            names = ", ".join(u.get_full_name() or u.username for u in value)
+                            changes.append(str(_("Task assigned to %(users)s")) % {"users": names})
                         else:
                             changes.append(str(_("Task unassigned")))
                 continue
@@ -490,7 +484,9 @@ class TaskService:
             if changes:
                 action_desc = ", ".join(changes)
                 ProjectActivity.objects.create(
-                    project=task.status.board.project if task.status and task.status.board else None,
+                    project=task.status.board.project
+                    if task.status and task.status.board
+                    else None,
                     event_type=ProjectActivity.EventType.TASK_UPDATED,
                     entity_type=ProjectActivity.EntityType.TASK,
                     entity_id=str(task.id),
@@ -508,7 +504,6 @@ class TaskService:
                     pass
 
         return task
-
 
     @staticmethod
     @transaction.atomic

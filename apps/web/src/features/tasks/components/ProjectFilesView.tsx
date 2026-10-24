@@ -19,18 +19,18 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../i18n/locale';
 import type { Task } from '../types';
-import {
-  getProjectFilesFromStorage,
-  appendProjectFileToStorage,
-  updateProjectFileDescription,
-  deleteProjectFileFromStorage,
-} from '../utils/fileStorage';
 import { MentionTextarea } from '../../../components/MentionTextarea';
 import { MentionText } from '../../../components/MentionText';
-import { mentionFile } from '../../projects/api/projectsApi';
+import {
+  getProjectFiles,
+  uploadProjectFile,
+  updateProjectFile,
+  deleteProjectFile,
+  mentionFile,
+} from '../../projects/api/projectsApi';
 
 interface ProjectFilesViewProps {
   tasks: Task[];
@@ -49,6 +49,7 @@ export interface ExtractedFile {
   uploadedAt: string;
   size?: string;
   description?: string;
+  isDirectProjectFile?: boolean;
 }
 
 export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
@@ -100,42 +101,25 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
       .filter((m: any) => m.is_active && m.username);
   }, [members]);
 
-  // Local uploaded project files state (for direct project-level uploads)
-  const [directFiles, setDirectFiles] = useState<ExtractedFile[]>(() => {
-    if (!activeProjectId) return [];
-    try {
-      const stored = localStorage.getItem(`project_files_${activeProjectId}`);
-      return stored ? JSON.parse(stored) : [];
-    } catch (err) {
-      console.warn('Failed to parse cached project files from localStorage:', err);
-      return [];
-    }
+  // Fetch direct project files from PostgreSQL & MinIO
+  const { data: serverFiles = [] } = useQuery({
+    queryKey: ['project-files', activeProjectId],
+    queryFn: () => (activeProjectId ? getProjectFiles(activeProjectId) : Promise.resolve([])),
+    enabled: !!activeProjectId,
   });
 
-  // Load project files asynchronously from IndexedDB with fallback
-  useEffect(() => {
-    let isMounted = true;
-    if (activeProjectId) {
-      getProjectFilesFromStorage(activeProjectId)
-        .then((stored) => {
-          if (isMounted) {
-            setDirectFiles(stored);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to load project files from storage:', err);
-        });
-    } else {
-      setDirectFiles([]);
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [activeProjectId]);
-
-  // Extract all files from task comments and attachments
+  // Extract all files from project files (PostgreSQL & MinIO) and task comments
   const allFiles = useMemo(() => {
-    const list: ExtractedFile[] = [...directFiles];
+    const list: ExtractedFile[] = (serverFiles || []).map((f) => ({
+      id: String(f.id),
+      name: f.name,
+      url: f.file_url || f.file,
+      fileType: f.file_type || 'other',
+      uploadedAt: f.created_at,
+      size: f.file_size || '1.0 MB',
+      description: f.description,
+      isDirectProjectFile: true,
+    }));
 
     tasks.forEach((task) => {
       // 1. Comments with attachments
@@ -168,7 +152,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
     });
 
     return list;
-  }, [tasks, directFiles]);
+  }, [tasks, serverFiles]);
 
   // Handle direct navigation to target file (e.g. from notification click)
   useEffect(() => {
@@ -213,19 +197,18 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
 
     try {
       setIsSubmittingMention(true);
-      await mentionFile(activeProjectId, {
-        file_id: mentionTargetFile.id,
-        file_name: mentionTargetFile.name,
-        message: mentionMessage,
-      });
-
-      // Persist the mention message as the file's description in local storage
-      const updated = await updateProjectFileDescription(
-        activeProjectId,
-        mentionTargetFile.id,
-        mentionMessage
-      );
-      setDirectFiles(updated);
+      if (mentionTargetFile.isDirectProjectFile) {
+        await updateProjectFile(activeProjectId, mentionTargetFile.id, {
+          description: mentionMessage.trim(),
+        });
+        await queryClient.invalidateQueries({ queryKey: ['project-files', activeProjectId] });
+      } else {
+        await mentionFile(activeProjectId, {
+          file_id: mentionTargetFile.id,
+          file_name: mentionTargetFile.name,
+          message: mentionMessage,
+        });
+      }
 
       // Keep previewFile in sync if this file is currently open in lightbox
       if (previewFile && previewFile.id === mentionTargetFile.id) {
@@ -272,67 +255,35 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
     }
     if (!activeProjectId) return;
 
-    const file = uploadFile;
-    const ext = file.name.split('.').pop()?.toLowerCase() || '';
-    let fileType: ExtractedFile['fileType'] = 'other';
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) fileType = 'image';
-    else if (ext === 'pdf') fileType = 'pdf';
-    else if (['doc', 'docx', 'txt', 'md'].includes(ext)) fileType = 'document';
-    else if (['zip', 'rar', '7z'].includes(ext)) fileType = 'archive';
-
     try {
       setIsUploading(true);
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const newFile: ExtractedFile = {
-          id: `direct_${Date.now()}`,
-          name: file.name,
-          url: reader.result as string,
-          fileType,
-          uploadedAt: new Date().toISOString(),
-          size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-          description: uploadDescription.trim() || undefined,
-        };
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('name', uploadFile.name);
+      if (uploadDescription.trim()) {
+        formData.append('description', uploadDescription.trim());
+      }
 
-        try {
-          const updated = await appendProjectFileToStorage(activeProjectId, newFile);
-          setDirectFiles(updated);
+      await uploadProjectFile(activeProjectId, formData);
+      await queryClient.invalidateQueries({ queryKey: ['project-files', activeProjectId] });
 
-          // If user mentioned someone in the description, dispatch notification!
-          if (uploadDescription.includes('@')) {
-            try {
-              await mentionFile(activeProjectId, {
-                file_id: newFile.id,
-                file_name: newFile.name,
-                message: uploadDescription,
-              });
-              queryClient.invalidateQueries({ queryKey: ['notification-unread'] });
-              queryClient.invalidateQueries({ queryKey: ['notification-history'] });
-              toast.success(t('فایل با موفقیت آپلود شد و اعلان منشن ارسال گردید'));
-            } catch (err) {
-              console.warn('Mention dispatch error on upload:', err);
-              toast.success(t('فایل با موفقیت به پروژه اضافه شد'));
-            }
-          } else {
-            toast.success(t('فایل با موفقیت به پروژه اضافه شد'));
-          }
+      if (uploadDescription.includes('@')) {
+        queryClient.invalidateQueries({ queryKey: ['notification-unread'] });
+        queryClient.invalidateQueries({ queryKey: ['notification-history'] });
+        toast.success(t('فایل با موفقیت آپلود شد و اعلان منشن ارسال گردید'));
+      } else {
+        toast.success(t('فایل با موفقیت به پروژه اضافه شد'));
+      }
 
-          setIsUploadModalOpen(false);
-          setUploadFile(null);
-          setUploadDescription('');
-          setUploadPreviewUrl(null);
-        } catch (err) {
-          console.error('Failed to store uploaded file:', err);
-          toast.error(t('خطا در ذخیره فایل'));
-        } finally {
-          setIsUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
+      setIsUploadModalOpen(false);
+      setUploadFile(null);
+      setUploadDescription('');
+      setUploadPreviewUrl(null);
+    } catch (err: any) {
       console.error('Upload error:', err);
+      toast.error(err?.response?.data?.error || t('خطا در ذخیره فایل'));
+    } finally {
       setIsUploading(false);
-      toast.error(t('خطا در ذخیره فایل'));
     }
   };
 
@@ -340,16 +291,18 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
     if (!fileToDelete || !activeProjectId) return;
     try {
       setIsDeleting(true);
-      const updated = await deleteProjectFileFromStorage(activeProjectId, fileToDelete.id);
-      setDirectFiles(updated);
+      if (fileToDelete.isDirectProjectFile) {
+        await deleteProjectFile(activeProjectId, fileToDelete.id);
+        await queryClient.invalidateQueries({ queryKey: ['project-files', activeProjectId] });
+      }
       if (previewFile?.id === fileToDelete.id) {
         setPreviewFile(null);
       }
       toast.success(t('فایل با موفقیت حذف شد'));
       setFileToDelete(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Delete error:', err);
-      toast.error(t('خطا در حذف فایل'));
+      toast.error(err?.response?.data?.error || t('خطا در حذف فایل'));
     } finally {
       setIsDeleting(false);
     }
@@ -507,17 +460,19 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                       >
                         <Download size={16} />
                       </a>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFileToDelete(file);
-                        }}
-                        title={t('حذف فایل')}
-                        className="p-2 rounded-xl bg-white/90 text-neutral hover:bg-error hover:text-white transition-colors cursor-pointer shadow-sm"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {file.isDirectProjectFile && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFileToDelete(file);
+                          }}
+                          title={t('حذف فایل')}
+                          className="p-2 rounded-xl bg-white/90 text-neutral hover:bg-error hover:text-white transition-colors cursor-pointer shadow-sm"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -603,15 +558,17 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                   <Download size={14} />
                   <span>{t('دانلود')}</span>
                 </a>
-                <button
-                  type="button"
-                  onClick={() => setFileToDelete(previewFile)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-error/10 hover:bg-error/20 text-error text-xs font-bold transition-colors cursor-pointer"
-                  title={t('حذف فایل')}
-                >
-                  <Trash2 size={14} />
-                  <span>{t('حذف فایل')}</span>
-                </button>
+                {previewFile.isDirectProjectFile && (
+                  <button
+                    type="button"
+                    onClick={() => setFileToDelete(previewFile)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-error/10 hover:bg-error/20 text-error text-xs font-bold transition-colors cursor-pointer"
+                    title={t('حذف فایل')}
+                  >
+                    <Trash2 size={14} />
+                    <span>{t('حذف فایل')}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setPreviewFile(null)}
@@ -896,7 +853,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                       {uploadFile.name}
                     </p>
                     <p className="text-[10px] text-heledone-ink-muted mt-0.5">
-                      {(uploadFile.size / (1024 * 1024)).toFixed(2)} MB
+                      {`${(uploadFile.size / (1024 * 1024)).toFixed(2)} MB`}
                     </p>
                   </div>
                   <label className="px-2.5 py-1 rounded-lg bg-base-200 hover:bg-base-300 text-[11px] font-bold text-base-content cursor-pointer transition-colors">

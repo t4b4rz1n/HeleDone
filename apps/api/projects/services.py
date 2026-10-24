@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Count, Q, QuerySet, Sum
 from django.utils import timezone
 
-from .models import Milestone, Project, ProjectActivity, ProjectMember
+from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
 
 logger = logging.getLogger(__name__)
 
@@ -689,3 +689,163 @@ class ProjectActivityService:
         return ProjectActivity.objects.filter(project_id=project_id).select_related(
             "actor", "project"
         )
+
+
+# ---------------------------------------------------------------------------
+# ProjectFileService
+# ---------------------------------------------------------------------------
+
+
+class ProjectFileService:
+    """Handles all ProjectFile mutations and queries."""
+
+    @staticmethod
+    def get_base_queryset(project_id: str) -> QuerySet[ProjectFile]:
+        return ProjectFile.objects.filter(project_id=project_id, is_deleted=False).select_related(
+            "uploaded_by", "project"
+        )
+
+    @classmethod
+    @transaction.atomic
+    def create(
+        cls, *, project: Project, actor, file_obj, description: str = "", name: str = ""
+    ) -> ProjectFile:
+        original_name = name.strip() or getattr(file_obj, "name", "file")
+        ext = original_name.split(".")[-1].lower() if "." in original_name else ""
+
+        file_type = "other"
+        if ext in ["jpg", "jpeg", "png", "gif", "webp", "svg"]:
+            file_type = "image"
+        elif ext == "pdf":
+            file_type = "pdf"
+        elif ext in ["doc", "docx", "txt", "md", "xls", "xlsx", "csv"]:
+            file_type = "document"
+        elif ext in ["zip", "rar", "7z", "tar", "gz"]:
+            file_type = "archive"
+
+        size_bytes = getattr(file_obj, "size", 0)
+        if size_bytes >= 1024 * 1024:
+            file_size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+        else:
+            file_size_str = f"{size_bytes / 1024:.1f} KB"
+
+        project_file = ProjectFile.objects.create(
+            project=project,
+            uploaded_by=actor,
+            file=file_obj,
+            name=original_name,
+            description=description.strip(),
+            file_size=file_size_str,
+            file_type=file_type,
+        )
+
+        _ActivityLogger.log(
+            project=project,
+            actor=actor,
+            event_type=ProjectActivity.EventType.FILE_UPLOADED,
+            entity_type=ProjectActivity.EntityType.FILE,
+            entity_id=project_file.pk,
+            metadata={"filename": original_name, "size": file_size_str},
+        )
+
+        cls._dispatch_mentions(
+            project=project,
+            project_file=project_file,
+            actor=actor,
+            message=description,
+        )
+
+        logger.info(
+            "ProjectFile %s uploaded to project %s (by %s)",
+            project_file.pk,
+            project.pk,
+            actor,
+        )
+        return project_file
+
+    @classmethod
+    @transaction.atomic
+    def update_description(
+        cls, *, project_file: ProjectFile, actor, description: str
+    ) -> ProjectFile:
+        project_file.description = description.strip()
+        project_file.save(update_fields=["description", "updated_at"])
+
+        cls._dispatch_mentions(
+            project=project_file.project,
+            project_file=project_file,
+            actor=actor,
+            message=description,
+        )
+        return project_file
+
+    @classmethod
+    @transaction.atomic
+    def delete(cls, *, project_file: ProjectFile, actor) -> None:
+        project = project_file.project
+        _ActivityLogger.log(
+            project=project,
+            actor=actor,
+            event_type=ProjectActivity.EventType.FILE_DELETED,
+            entity_type=ProjectActivity.EntityType.FILE,
+            entity_id=project_file.pk,
+            metadata={"filename": project_file.name},
+        )
+        project_file.delete()  # soft delete
+        logger.info(
+            "ProjectFile %s soft-deleted from project %s (by %s)",
+            project_file.pk,
+            project.pk,
+            actor,
+        )
+
+    @staticmethod
+    def _dispatch_mentions(
+        *, project: Project, project_file: ProjectFile, actor, message: str
+    ) -> None:
+        if not message or "@" not in message:
+            return
+
+        import re
+        from django.contrib.auth import get_user_model
+        from django.db.models.functions import Lower
+        from automations.events import EventDispatcher
+
+        usernames = re.findall(r"@([\w.-]+)", message)
+        if not usernames:
+            return
+
+        lower_usernames = [u.lower() for u in usernames]
+        User = get_user_model()
+        mentioned_users = list(
+            User.objects.annotate(lower_uname=Lower("username"))
+            .filter(lower_uname__in=lower_usernames, is_active=True)
+        )
+        if not mentioned_users:
+            return
+
+        try:
+            EventDispatcher.dispatch(
+                event_type="user_mentioned",
+                payload={
+                    "author": actor.get_full_name() or actor.username,
+                    "author_id": str(actor.id),
+                    "author_name": actor.get_full_name() or actor.username,
+                    "mentioned_user_ids": [str(u.id) for u in mentioned_users],
+                    "recipient_ids": [str(u.id) for u in mentioned_users],
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "file_id": str(project_file.id),
+                    "file_name": str(project_file.name),
+                    "context_name": str(project_file.name),
+                    "context_type": "file",
+                    "message": message,
+                    "link": f"/tasks?project={project.id}&view=files&file={project_file.id}",
+                },
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to dispatch mention notification on file %s: %s",
+                project_file.id,
+                exc,
+            )

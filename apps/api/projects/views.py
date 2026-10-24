@@ -37,10 +37,11 @@ from .filters import (
     ProjectFilter,
     ProjectMemberFilter,
 )
-from .models import Milestone, Project, ProjectActivity, ProjectMember
+from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
 from .permissions import (
     CanCreateProject,
     CanManageMilestone,
+    CanManageProjectFile,
     CanManageProjectMember,
     CanViewProjectActivity,
     IsProjectOwnerOrOrgAdmin,
@@ -49,6 +50,8 @@ from .serializers import (
     MilestoneSerializer,
     ProjectActivitySerializer,
     ProjectDetailSerializer,
+    ProjectFileSerializer,
+    ProjectFileUploadSerializer,
     ProjectListSerializer,
     ProjectMemberReadSerializer,
     ProjectMemberWriteSerializer,
@@ -58,6 +61,7 @@ from .serializers import (
 from .services import (
     MilestoneService,
     ProjectActivityService,
+    ProjectFileService,
     ProjectMemberService,
     ProjectService,
 )
@@ -258,6 +262,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # If usernames are not explicitly supplied, extract from message
         if not usernames and message:
             import re
+
             usernames = re.findall(r"@([\w.-]+)", message)
 
         if not usernames:
@@ -269,12 +274,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
         lower_usernames = [u.lower() for u in usernames]
         from django.contrib.auth import get_user_model
         from django.db.models.functions import Lower
+
         from automations.events import EventDispatcher
 
         User = get_user_model()
         mentioned_users = list(
-            User.objects.annotate(lower_uname=Lower("username"))
-            .filter(lower_uname__in=lower_usernames, is_active=True)
+            User.objects.annotate(lower_uname=Lower("username")).filter(
+                lower_uname__in=lower_usernames, is_active=True
+            )
         )
 
         if not mentioned_users:
@@ -543,3 +550,87 @@ class ProjectActivityViewSet(viewsets.ReadOnlyModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return ProjectActivity.objects.none()
         return ProjectActivityService.get_base_queryset(project_id=self.kwargs["project_pk"])
+
+
+# ---------------------------------------------------------------------------
+# ProjectFile ViewSet (nested under /projects/<project_pk>/files/)
+# ---------------------------------------------------------------------------
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary=_("List project files"),
+        description=_("Return all files uploaded to this project."),
+        tags=["projects"],
+    ),
+    retrieve=extend_schema(
+        summary=_("Retrieve a project file"),
+        tags=["projects"],
+    ),
+    create=extend_schema(
+        summary=_("Upload a project file"),
+        description=_("Upload a file with optional description and @mentions to the project."),
+        tags=["projects"],
+    ),
+    destroy=extend_schema(
+        summary=_("Delete a project file"),
+        tags=["projects"],
+    ),
+)
+class ProjectFileViewSet(viewsets.ModelViewSet):
+    """CRUD viewset for files associated directly with a project."""
+
+    serializer_class = ProjectFileSerializer
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["created_at", "name", "file_size"]
+    ordering = ["-created_at"]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), CanManageProjectFile()]
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ProjectFile.objects.none()
+        return ProjectFileService.get_base_queryset(project_id=self.kwargs["project_pk"])
+
+    def create(self, request, *args, **kwargs):
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"], is_deleted=False)
+        serializer = ProjectFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        file_obj = serializer.validated_data["file"]
+        description = serializer.validated_data.get("description", "")
+        name = serializer.validated_data.get("name", "")
+
+        project_file = ProjectFileService.create(
+            project=project,
+            actor=request.user,
+            file_obj=file_obj,
+            description=description,
+            name=name,
+        )
+        return Response(
+            ProjectFileSerializer(project_file, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        project_file = self.get_object()
+        description = request.data.get("description")
+        if description is not None:
+            project_file = ProjectFileService.update_description(
+                project_file=project_file,
+                actor=request.user,
+                description=description,
+            )
+        return Response(
+            ProjectFileSerializer(project_file, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        project_file = self.get_object()
+        ProjectFileService.delete(project_file=project_file, actor=request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)

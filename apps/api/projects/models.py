@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -329,6 +330,8 @@ class ProjectActivity(BaseModel):
         TASK_DELETED = "task_deleted", _("Task deleted")
         TASK_COMMENT_ADDED = "task_comment_added", _("Task comment added")
         TASK_CHECKLIST_UPDATED = "task_checklist_updated", _("Task checklist updated")
+        FILE_UPLOADED = "file_uploaded", _("File uploaded")
+        FILE_DELETED = "file_deleted", _("File deleted")
 
     class EntityType(models.TextChoices):
         PROJECT = "project", _("Project")
@@ -336,6 +339,7 @@ class ProjectActivity(BaseModel):
         MILESTONE = "milestone", _("Milestone")
         BOARD = "board", _("Board")
         TASK = "task", _("Task")
+        FILE = "file", _("File")
 
     project = models.ForeignKey(
         Project,
@@ -370,3 +374,56 @@ class ProjectActivity(BaseModel):
 
     def __str__(self):
         return f"{self.project.name} — {self.get_event_type_display()}"
+
+
+def validate_project_file_size(value):
+    filesize = value.size
+    if filesize > 25 * 1024 * 1024:  # 25 MB
+        raise ValidationError(_("The maximum file size that can be uploaded is 25MB."))
+
+
+class ProjectFile(BaseModel):
+    """General file attachment uploaded to a project."""
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="uploaded_files",
+        verbose_name=_("Project"),
+        db_index=True,
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="uploaded_project_files",
+        verbose_name=_("Uploaded by"),
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    file = models.FileField(
+        _("File"),
+        upload_to="project_files/%Y/%m/",
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg",
+                    "zip", "rar", "7z", "tar", "gz",
+                    "doc", "docx", "xls", "xlsx", "txt", "md", "csv"
+                ]
+            ),
+            validate_project_file_size,
+        ],
+    )
+    name = models.CharField(_("Original Name"), max_length=255)
+    description = models.TextField(_("Description & Mentions"), blank=True)
+    file_size = models.CharField(_("File Size"), max_length=50, blank=True)
+    file_type = models.CharField(_("File Type"), max_length=50, blank=True)
+
+    class Meta:
+        verbose_name = _("Project File")
+        verbose_name_plural = _("Project Files")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} ({self.project.name})"

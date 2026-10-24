@@ -396,7 +396,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                       type="button"
                       onClick={() => setIsMembersMenuOpen(!isMembersMenuOpen)}
                       className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-dashed border-base-content/20 flex items-center justify-center text-base-content transition-colors"
-                      title={t("Add member")}
+                      title={t("Add Member")}
                     >
                       <span className="text-base leading-none mb-0.5">+</span>
                     </button>

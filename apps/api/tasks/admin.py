@@ -107,8 +107,8 @@ class TaskAdmin(admin.ModelAdmin):
 
     def get_assignees(self, obj):
         return ", ".join(u.username for u in obj.assignees.all())
-    get_assignees.short_description = "Assignees"
 
+    get_assignees.short_description = "Assignees"
 
     def get_queryset(self, request):
         return self.model.all_objects.all()

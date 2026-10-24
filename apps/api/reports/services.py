@@ -174,7 +174,6 @@ class EmployeeDashboardService:
                 project__is_deleted=False,
                 is_finished=False,
             )
-
             .filter(Q(due_date__gte=now) | Q(due_date__isnull=True))
             .select_related("status", "project")
             .annotate(
@@ -213,7 +212,6 @@ class EmployeeDashboardService:
                 project__is_deleted=False,
                 is_finished=False,
             )
-
             .select_related("status", "project")
             .annotate(
                 status_name=F("status__name"),
@@ -245,7 +243,6 @@ class EmployeeDashboardService:
                 is_blocked=True,
                 is_finished=False,
             )
-
             .select_related("status", "project")
             .annotate(
                 status_name=F("status__name"),
@@ -546,7 +543,6 @@ class ManagerDashboardService:
             .order_by("status_code")
         )
 
-
     @staticmethod
     def _get_overdue_tasks(member_ids, now, admin_org_ids=None):
         q_filter = Q(assignees__id__in=member_ids)
@@ -573,7 +569,6 @@ class ManagerDashboardService:
                 .order_by("-count")
             ),
         }
-
 
     @staticmethod
     def _get_work_hours(member_ids, week_start_date, week_end_date):
@@ -862,26 +857,29 @@ class ManagerDashboardService:
             User.objects.filter(id__in=member_ids, is_deleted=False)
             .annotate(
                 total_tasks=Count(
-                    "tasks",
-                    filter=Q(tasks__is_deleted=False, tasks__project__is_deleted=False),
+                    "assigned_tasks",
+                    filter=Q(
+                        assigned_tasks__is_deleted=False,
+                        assigned_tasks__project__is_deleted=False,
+                    ),
                     distinct=True,
                 ),
                 done_tasks=Count(
-                    "tasks",
+                    "assigned_tasks",
                     filter=Q(
-                        tasks__is_deleted=False,
-                        tasks__project__is_deleted=False,
-                        tasks__is_finished=True,
+                        assigned_tasks__is_deleted=False,
+                        assigned_tasks__project__is_deleted=False,
+                        assigned_tasks__is_finished=True,
                     ),
                     distinct=True,
                 ),
                 overdue_tasks=Count(
-                    "tasks",
+                    "assigned_tasks",
                     filter=Q(
-                        tasks__is_deleted=False,
-                        tasks__project__is_deleted=False,
-                        tasks__due_date__lt=now,
-                        tasks__is_finished=False,
+                        assigned_tasks__is_deleted=False,
+                        assigned_tasks__project__is_deleted=False,
+                        assigned_tasks__due_date__lt=now,
+                        assigned_tasks__is_finished=False,
                     ),
                     distinct=True,
                 ),
@@ -1332,7 +1330,7 @@ class CumulativeFlowService:
                 .timestamp()
             )
 
-            counts: dict[str, int] = {code: 0 for code in status_codes}
+            counts: dict[str, int] = dict.fromkeys(status_codes, 0)
             for _tid, (times, codes) in task_history.items():
                 # Fast binary search for the last transition at or before day_end
                 idx = bisect.bisect_right(times, day_end_ts)
@@ -1584,7 +1582,6 @@ class CycleLeadTimeService:
             task_qs = task_qs.filter(status__board_id=board_id)
         if assignee_id:
             task_qs = task_qs.filter(assignees__id=assignee_id)
-
 
         task_ids = list(task_qs.values_list("id", flat=True))
         if not task_ids:

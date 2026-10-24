@@ -20,7 +20,7 @@ from rest_framework import serializers
 from accounts.models import User
 from organizations.models import Organization, OrganizationMembership, Team
 
-from .models import Milestone, Project, ProjectActivity, ProjectMember
+from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
 
 # ---------------------------------------------------------------------------
 # Nested / lightweight read serializers
@@ -595,3 +595,67 @@ class ProjectActivitySerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = fields
+
+
+# ---------------------------------------------------------------------------
+# ProjectFile serializers
+# ---------------------------------------------------------------------------
+
+
+class ProjectFileSerializer(serializers.ModelSerializer):
+    """Read and update serializer for project files."""
+
+    uploaded_by = UserMinimalSerializer(read_only=True)
+    file_url = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ProjectFile
+        fields = (
+            "id",
+            "project",
+            "uploaded_by",
+            "file",
+            "file_url",
+            "name",
+            "description",
+            "file_size",
+            "file_type",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "project",
+            "uploaded_by",
+            "file",
+            "file_url",
+            "file_size",
+            "file_type",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_file_url(self, obj) -> str | None:
+        if not obj.file:
+            return None
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
+
+
+class ProjectFileUploadSerializer(serializers.ModelSerializer):
+    """Upload serializer for creating project files with metadata & description."""
+
+    file = serializers.FileField(required=True)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    name = serializers.CharField(required=False, allow_blank=True, default="")
+
+    class Meta:
+        model = ProjectFile
+        fields = (
+            "id",
+            "file",
+            "name",
+            "description",
+        )

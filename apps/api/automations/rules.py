@@ -532,22 +532,22 @@ def _fmt_task_deadline_approaching(p):
 
 def _fmt_user_mentioned(p):
     author_label = p.get("author") or p.get("author_name") or _("someone")
-    file_name = p.get("file_name") or (p.get("context_name") if p.get("context_type") == "file" else None)
+    file_name = p.get("file_name") or (
+        p.get("context_name") if p.get("context_type") == "file" else None
+    )
     if file_name:
         return (
             _("You were mentioned"),
             _(
-                " <b>You were mentioned!</b>\n\n"
-                "{author} mentioned you on file <b>{file}</b>."
+                " <b>You were mentioned!</b>\n\n{author} mentioned you on file <b>{file}</b>."
             ).format(author=author_label, file=file_name),
         )
     task_label = p.get("task_title") or p.get("context_name") or "—"
     return (
         _("You were mentioned"),
-        _(
-            " <b>You were mentioned!</b>\n\n"
-            "{author} mentioned you in <b>{task}</b>."
-        ).format(author=author_label, task=task_label),
+        _(" <b>You were mentioned!</b>\n\n{author} mentioned you in <b>{task}</b>.").format(
+            author=author_label, task=task_label
+        ),
     )
 
 

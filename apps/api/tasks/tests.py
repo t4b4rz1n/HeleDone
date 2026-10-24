@@ -893,12 +893,8 @@ class MultiAssigneeTaskTestCase(APITestCase):
             email="bob@example.com",
             password="Password123!",
         )
-        OrganizationMembership.objects.create(
-            user=cls.user1, organization=cls.org, role="employee"
-        )
-        OrganizationMembership.objects.create(
-            user=cls.user2, organization=cls.org, role="employee"
-        )
+        OrganizationMembership.objects.create(user=cls.user1, organization=cls.org, role="employee")
+        OrganizationMembership.objects.create(user=cls.user2, organization=cls.org, role="employee")
 
         cls.project = Project.objects.create(
             name="Multi Project",
@@ -1013,4 +1009,3 @@ class MultiAssigneeTaskTestCase(APITestCase):
         self.assertIsNotNone(timer_alice)
         self.assertEqual(timer_alice.user, self.user1)
         TimeLogService.stop_timer(self.user1, timer_alice.id)
-

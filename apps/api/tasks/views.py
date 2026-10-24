@@ -262,7 +262,6 @@ class TaskViewSet(viewsets.ModelViewSet):
             Task.objects.select_related("project", "status", "reporter")
             .prefetch_related("assignees")
             .annotate(
-
                 annotated_subtasks_count=Coalesce(
                     Subquery(subtasks_sq, output_field=IntegerField()), 0
                 ),
@@ -552,7 +551,6 @@ class TaskChecklistItemViewSet(viewsets.ModelViewSet):
                 | Q(task__assignees=user)
                 | Q(task__reporter=user)
             ).distinct()
-
 
         task_id = self.request.query_params.get("task")
         if task_id:

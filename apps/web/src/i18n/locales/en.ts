@@ -14,6 +14,7 @@ const messages = {
   "آیا از حذف این فایل مطمئن هستید؟": "Are you sure you want to delete this file?",
   "این عملیات غیرقابل بازگشت است.": "This action cannot be undone.",
   "فایل با موفقیت حذف شد": "File deleted successfully",
+  "خطا در حذف فایل": "Failed to delete file",
   "فایل با موفقیت آپلود شد و اعلان منشن ارسال گردید": "File uploaded successfully and mention notification sent",
   "آپلود و ارسال منشن": "Upload & notify",
   "آپلود فایل": "Upload file",

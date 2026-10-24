@@ -222,8 +222,6 @@ class TaskListSerializer(serializers.ModelSerializer):
             return None
         return UserMinimalSerializer(first, context=self.context).data
 
-
-
     def get_spent_seconds(self, obj):
         if hasattr(obj, "annotated_spent_seconds"):
             return obj.annotated_spent_seconds
@@ -353,7 +351,6 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
                         }
                     )
 
-
         # Prevent circular parent assignment
         if self.instance and parent_task and parent_task.id == self.instance.id:
             raise serializers.ValidationError(
@@ -396,7 +393,6 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
             )
 
         return attrs
-
 
 
 class AsyncStandupSerializer(serializers.ModelSerializer):

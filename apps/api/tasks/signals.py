@@ -41,7 +41,6 @@ def cache_previous_task_state(sender, instance, **kwargs):
             pass
 
 
-
 @receiver(post_save, sender=Task)
 def record_status_transition(sender, instance, created, **kwargs):
     """
@@ -160,7 +159,9 @@ def handle_task_automations(sender, instance, created, **kwargs):
                     try:
                         first_assignee = instance.assignees.first()
                         if first_assignee:
-                            first_assignee_name = first_assignee.get_full_name() or first_assignee.username
+                            first_assignee_name = (
+                                first_assignee.get_full_name() or first_assignee.username
+                            )
                     except Exception:
                         pass
                     EventDispatcher.dispatch(
@@ -214,9 +215,7 @@ def handle_task_automations(sender, instance, created, **kwargs):
                     .values_list("id", flat=True)
                 )
                 actor = getattr(instance, "_actor", None) or instance.reporter
-                actor_name = (
-                    (actor.get_full_name() or actor.username) if actor else "A Colleague"
-                )
+                actor_name = (actor.get_full_name() or actor.username) if actor else "A Colleague"
 
                 for uid in users_to_notify:
                     EventDispatcher.dispatch(
@@ -225,8 +224,12 @@ def handle_task_automations(sender, instance, created, **kwargs):
                             "target_user_id": str(uid),
                             "project_id": str(instance.project_id) if instance.project_id else None,
                             "mentioned_user_ids": [str(uid)],
-                            "assignee_id": str(instance.assignee_id) if instance.assignee_id else None,
-                            "reporter_id": str(instance.reporter_id) if instance.reporter_id else None,
+                            "assignee_id": str(instance.assignee_id)
+                            if instance.assignee_id
+                            else None,
+                            "reporter_id": str(instance.reporter_id)
+                            if instance.reporter_id
+                            else None,
                             "task_title": instance.title,
                             "task_id": str(instance.id),
                             "board_id": str(instance.status.board_id)
@@ -245,7 +248,6 @@ def handle_task_automations(sender, instance, created, **kwargs):
             f"handle_task_automations signal failed for Task {instance.pk}: {exc}",
             exc_info=True,
         )
-
 
 
 @receiver(pre_save, sender=TaskComment)
@@ -304,8 +306,7 @@ def handle_task_comments(sender, instance, created, **kwargs):
                         "task_title": task.title,
                         "task_id": str(task.id),
                         "board_id": str(task.status.board_id)
-                        if getattr(task, "status", None)
-                        and getattr(task.status, "board_id", None)
+                        if getattr(task, "status", None) and getattr(task.status, "board_id", None)
                         else None,
                         "author": author_name,
                         "comment_text": f"{author_name} mentioned you: {content[:50]}...",
@@ -313,7 +314,6 @@ def handle_task_comments(sender, instance, created, **kwargs):
                 )
 
         if created:
-
             # General comment notification (task_commented)
             target_ids = list(task.assignees.values_list("id", flat=True))
             if task.reporter_id:

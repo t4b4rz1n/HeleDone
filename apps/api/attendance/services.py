@@ -180,7 +180,6 @@ class TimeLogService:
             or getattr(user, "is_superuser", False)
             or getattr(user, "is_staff", False)
         ):
-
             can_start = True
         elif task.project:
             if task.project.owner_id == user.id or (
@@ -465,7 +464,6 @@ class TimeLogService:
     def create_manual_log(user, task, start_time, end_time, description=""):
         # Anti-fraud check: only assignees or superuser can log time manually for a task
         if not task.assignees.filter(id=user.id).exists() and not user.is_superuser:
-
             # We can also check if user has project permissions, but superuser/assignee is safe for now
             from projects.models import ProjectMember
 

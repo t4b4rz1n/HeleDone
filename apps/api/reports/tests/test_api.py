@@ -4,11 +4,11 @@ except ImportError:
     from unittest import mock
 
     pytest = mock.MagicMock()
-    pytest.mark.django_db = (
-        lambda *args, **kwargs: (lambda f: f) if not args or not callable(args[0]) else args[0]
+    pytest.mark.django_db = lambda *args, **kwargs: (
+        (lambda f: f) if not args or not callable(args[0]) else args[0]
     )
-    pytest.fixture = (
-        lambda *args, **kwargs: (lambda f: f) if not args or not callable(args[0]) else args[0]
+    pytest.fixture = lambda *args, **kwargs: (
+        (lambda f: f) if not args or not callable(args[0]) else args[0]
     )
 
 from django.urls import reverse
