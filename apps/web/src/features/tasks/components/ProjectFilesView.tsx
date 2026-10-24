@@ -25,6 +25,7 @@ import type { Task } from '../types';
 import {
   getProjectFilesFromStorage,
   appendProjectFileToStorage,
+  updateProjectFileDescription,
   deleteProjectFileFromStorage,
 } from '../utils/fileStorage';
 import { MentionTextarea } from '../../../components/MentionTextarea';
@@ -159,6 +160,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
               task,
               uploadedAt: comment.created_at || new Date().toISOString(),
               size: '1.2 MB',
+              description: comment.content || undefined,
             });
           }
         });
@@ -216,6 +218,22 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
         file_name: mentionTargetFile.name,
         message: mentionMessage,
       });
+
+      // Persist the mention message as the file's description in local storage
+      const updated = await updateProjectFileDescription(
+        activeProjectId,
+        mentionTargetFile.id,
+        mentionMessage
+      );
+      setDirectFiles(updated);
+
+      // Keep previewFile in sync if this file is currently open in lightbox
+      if (previewFile && previewFile.id === mentionTargetFile.id) {
+        setPreviewFile({
+          ...previewFile,
+          description: mentionMessage.trim() || undefined,
+        });
+      }
 
       toast.success(t('نوتیفیکیشن منشن با موفقیت ارسال شد'));
       queryClient.invalidateQueries({ queryKey: ['notification-unread'] });
@@ -473,7 +491,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setMentionTargetFile(file);
-                          setMentionMessage('');
+                          setMentionMessage(file.description || '');
                         }}
                         title={t('منشن همکاران روی این فایل')}
                         className="p-2 rounded-xl bg-white/90 text-neutral hover:bg-white hover:text-primary transition-colors cursor-pointer shadow-sm"
@@ -568,7 +586,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                   type="button"
                   onClick={() => {
                     setMentionTargetFile(previewFile);
-                    setMentionMessage('');
+                    setMentionMessage(previewFile.description || '');
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-colors cursor-pointer"
                   title={t('منشن همکاران روی این فایل')}
@@ -610,13 +628,13 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                 <img
                   src={previewFile.url}
                   alt={previewFile.name}
-                  className="max-h-[65dvh] max-w-full object-contain rounded-xl"
+                  className="max-h-[60dvh] max-w-full object-contain rounded-xl"
                 />
               ) : previewFile.fileType === 'pdf' ? (
                 <iframe
                   src={previewFile.url}
                   title={previewFile.name}
-                  className="w-full h-[65dvh] rounded-xl border border-base-300"
+                  className="w-full h-[60dvh] rounded-xl border border-base-300"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -632,6 +650,42 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                   </a>
                 </div>
               )}
+            </div>
+
+            {/* Modal Description & Mentions Footer */}
+            <div className="px-5 py-3 border-t border-base-300 bg-base-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                  <AtSign size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold text-heledone-ink-muted block uppercase tracking-wider">
+                    {t('توضیحات و منشن‌ها:')}
+                  </span>
+                  {previewFile.description ? (
+                    <div className="text-xs text-base-content leading-relaxed mt-0.5">
+                      <MentionText content={previewFile.description} />
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-heledone-ink-muted mt-0.5 block">
+                      {t('هنوز توضیحات یا منشنی برای این فایل ثبت نشده است.')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMentionTargetFile(previewFile);
+                  setMentionMessage(previewFile.description || '');
+                }}
+                className="shrink-0 px-3 py-1.5 rounded-xl bg-base-200 hover:bg-primary/10 hover:text-primary text-xs font-bold text-base-content transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <AtSign size={13} />
+                <span>
+                  {previewFile.description ? t('ویرایش یا ارسال مجدد') : t('افزودن توضیحات و منشن')}
+                </span>
+              </button>
             </div>
           </div>
         </div>

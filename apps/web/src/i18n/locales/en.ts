@@ -1,5 +1,9 @@
 // Source messages are stable translation keys. Keep both catalogs in sync.
 const messages = {
+  "توضیحات و منشن‌ها:": "Description & Mentions:",
+  "هنوز توضیحات یا منشنی برای این فایل ثبت نشده است.": "No description or mentions added to this file yet.",
+  "ویرایش یا ارسال مجدد": "Edit or resend",
+  "افزودن توضیحات و منشن": "Add note & mention",
   "فایل خود را انتخاب کنید و در صورت تمایل توضیحات و منشن اضافه نمایید.": "Select your file and optionally add a description and mentions.",
   "توضیحات و منشن همکاران (اختیاری):": "Description & Mentions (Optional):",
   "توضیحات اختیاری بنویسید… (از @ برای منشن کردن همکاران استفاده کنید)": "Write an optional description... (use @ to mention team members)",
