@@ -59,6 +59,7 @@ import {
   toggleChecklistItem,
   updateTask,
 } from "../api/tasksApi";
+import { MentionTextarea, MentionText } from "../../../components/MentionTextarea";
 import "./task-sheet.css";
 
 interface TaskSheetProps {
@@ -1620,17 +1621,18 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                   }}
                   className="rounded-2xl border border-base-content/10 bg-base-200/30 p-4 space-y-3 transition focus-within:border-primary/40 focus-within:bg-base-100 shadow-2xs"
                 >
-                  <textarea
-                    aria-label={t("Write a comment...")}
+                  <MentionTextarea
+                    ariaLabel={t("Write a comment...")}
                     value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
+                    onChange={setCommentText}
+                    members={projectMembers}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault();
                         if (commentText.trim() || selectedFile) commentMutation.mutate();
                       }
                     }}
-                    placeholder={t("Write a comment...")}
+                    placeholder={t("دیدگاهی بنویسید… (از @ برای منشن کردن اعضای پروژه استفاده کنید)")}
                     className="min-h-20 w-full resize-none bg-transparent text-xs leading-relaxed text-base-content outline-none placeholder:text-heledone-ink-muted"
                   />
 
@@ -1734,9 +1736,10 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           </span>
                         </div>
 
-                        <p className="text-xs leading-relaxed text-base-content/80">
-                          {comment.content}
-                        </p>
+                        <MentionText
+                          content={comment.content}
+                          className="text-xs leading-relaxed text-base-content/80 whitespace-pre-wrap"
+                        />
 
                         {comment.attached_file_url && (
                           <div className="mt-2 pt-2 border-t border-base-content/8">

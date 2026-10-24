@@ -15,6 +15,7 @@ import { ManualTimeLogForm } from '../../attendance/components/ManualTimeLogForm
 import { Timer1 } from 'iconsax-reactjs';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { MentionTextarea } from '../../../components/MentionTextarea';
 
 
 interface TaskDetailModalProps {
@@ -541,11 +542,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                   }
                 }}
               >
-                <textarea
+                <MentionTextarea
                   value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
+                  onChange={setCommentText}
+                  members={users}
                   className={`w-full bg-transparent text-[14px] text-base-content outline-none resize-none px-4 py-3 transition-all duration-200 custom-scrollbar ${isCommentInputFocused || commentText.trim() || selectedFile ? 'min-h-[80px]' : 'min-h-[44px] m-0 overflow-hidden'}`}
-                  placeholder={t("Write a comment... (Markdown supported)")}
+                  placeholder={t("دیدگاهی بنویسید… (از @ برای منشن کردن اعضای پروژه استفاده کنید)")}
                 />
 
                 {selectedFile && (
@@ -627,9 +629,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
                             {editingCommentId === item.id ? (
                               <div className="bg-base-100 rounded-lg border border-base-content/10 p-0 focus-within:border-base-content/30 transition-all mb-2">
-                                <textarea
+                                <MentionTextarea
                                   value={editingCommentText}
-                                  onChange={(e) => setEditingCommentText(e.target.value)}
+                                  onChange={setEditingCommentText}
+                                  members={users}
                                   className="w-full bg-transparent text-[14px] text-base-content outline-none resize-none p-3 pb-1"
                                   rows={2}
                                 />
@@ -641,7 +644,33 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                             ) : (
                               <>
                                 <div className="backdrop-blur-md bg-white/[0.03] p-4 rounded-xl text-[14px] text-base-content shadow-sm border border-base-content/5 prose  prose-p:leading-relaxed prose-pre:bg-base-100 prose-pre:border prose-pre:border-base-content/10 prose-pre:rounded-lg prose-a:text-primary max-w-none">
-                                  <ReactMarkdown>
+                                  <ReactMarkdown
+                                    components={{
+                                      p: ({ children }) => (
+                                        <p className="leading-relaxed">
+                                          {React.Children.map(children, (child) => {
+                                            if (typeof child === 'string') {
+                                              const parts = child.split(/(@[a-zA-Z0-9_\u0600-\u06FF.-]+)/g);
+                                              return parts.map((part, pIdx) => {
+                                                if (part.startsWith('@') && part.length > 1) {
+                                                  return (
+                                                    <span
+                                                      key={pIdx}
+                                                      className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 text-xs font-bold text-primary transition hover:bg-primary/25 cursor-default font-mono"
+                                                    >
+                                                      {part}
+                                                    </span>
+                                                  );
+                                                }
+                                                return part;
+                                              });
+                                            }
+                                            return child;
+                                          })}
+                                        </p>
+                                      ),
+                                    }}
+                                  >
                                     {typeof item.content === 'string' ? item.content : t("No content")}
                                   </ReactMarkdown>
 
