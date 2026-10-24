@@ -1326,7 +1326,7 @@ class CumulativeFlowService:
                 .timestamp()
             )
 
-            counts: dict[str, int] = {code: 0 for code in status_codes}
+            counts: dict[str, int] = dict.fromkeys(status_codes, 0)
             for _tid, (times, codes) in task_history.items():
                 # Fast binary search for the last transition at or before day_end
                 idx = bisect.bisect_right(times, day_end_ts)

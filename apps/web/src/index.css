@@ -273,12 +273,14 @@ select,
   transition: border-color var(--heledone-duration-fast), box-shadow var(--heledone-duration-fast);
 }
 
-:where(h1, h2, h3, h4, h5, h6, p, label, legend, th, td) {
-  text-align: start;
-}
+@layer base {
+  :where(h1, h2, h3, h4, h5, h6, p, label, legend, th, td) {
+    text-align: start;
+  }
 
-:where(h1, h2, h3, h4, h5, h6) {
-  align-self: stretch;
+  :where(h1, h2, h3, h4, h5, h6) {
+    align-self: stretch;
+  }
 }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]),

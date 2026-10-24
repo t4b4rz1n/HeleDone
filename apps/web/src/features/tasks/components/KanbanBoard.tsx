@@ -86,6 +86,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('low');
+  const columnScrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const sameId = (left: string | number | undefined, right: string | number | undefined) => left?.toString() === right?.toString();
 
   const { data: boards } = useQuery({
@@ -1017,6 +1018,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                                         onClick={() => {
                                           setColumnMenuAnchor(null);
                                           setAddingTaskToStatusId(status.id);
+                                          setNewTaskTitle('');
+                                          setNewTaskPriority('low');
+                                          setTimeout(() => {
+                                            const el = columnScrollRefs.current[status.id.toString()];
+                                            if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+                                          }, 50);
                                         }}
                                         className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start text-primary hover:bg-primary/10"
                                       >
@@ -1167,7 +1174,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                           </div>
                         }
                       >
-                        <div className="custom-scrollbar flex min-w-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden px-4 pb-3" style={{ maxHeight: 'calc(100dvh - 280px)' }}>
+                        <div
+                          ref={(el) => { columnScrollRefs.current[status.id.toString()] = el; }}
+                          className="custom-scrollbar flex min-w-0 flex-col gap-2.5 overflow-y-auto overflow-x-hidden px-4 pb-3"
+                          style={{
+                            maxHeight: addingTaskToStatusId === status.id ? 'calc(100dvh - 400px)' : 'calc(100dvh - 280px)',
+                          }}
+                        >
                           <SortableContext items={displayColumnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
                             {displayColumnTasks.map(task => (
                               <SortableTask
@@ -1182,103 +1195,111 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                               />
                             ))}
                           </SortableContext>
+                        </div>
 
-
-                          {addingTaskToStatusId === status.id && (
-                            <div
-                              className="mt-2 box-border w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-primary/25 bg-base-100 p-2.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-150"
-                              tabIndex={-1}
-                              onBlur={(e) => {
-                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                                  setAddingTaskToStatusId(null);
-                                  setNewTaskTitle('');
-                                  setNewTaskPriority('low');
-                                }
-                              }}
-                            >
-                              <textarea
-                                autoFocus
-                                rows={2}
-                                value={newTaskTitle}
-                                onChange={e => setNewTaskTitle(e.target.value)}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleCreateTask(status.id);
-                                  }
-                                  if (e.key === 'Escape') {
+                        {canCreateTask && (
+                          addingTaskToStatusId === status.id ? (
+                            <div className="mx-4 mb-3 shrink-0">
+                              <div
+                                className="box-border w-full min-w-0 max-w-full rounded-xl border border-primary/25 bg-base-100 p-2.5 shadow-md animate-in fade-in slide-in-from-top-2 duration-150"
+                                tabIndex={-1}
+                                onBlur={(e) => {
+                                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                                     setAddingTaskToStatusId(null);
                                     setNewTaskTitle('');
                                     setNewTaskPriority('low');
                                   }
                                 }}
+                              >
+                                <textarea
+                                  autoFocus
+                                  rows={2}
+                                  value={newTaskTitle}
+                                  onChange={e => setNewTaskTitle(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleCreateTask(status.id);
+                                    }
+                                    if (e.key === 'Escape') {
+                                      setAddingTaskToStatusId(null);
+                                      setNewTaskTitle('');
+                                      setNewTaskPriority('low');
+                                    }
+                                  }}
+                                  placeholder={t("What needs to be done?")}
+                                  className="block w-full min-w-0 resize-none bg-transparent text-[13px] font-semibold leading-snug text-base-content outline-none placeholder:text-heledone-ink-muted"
+                                />
 
-                                placeholder={t("What needs to be done?")}
-                                className="block w-full min-w-0 resize-none bg-transparent text-[13px] font-semibold leading-snug text-base-content outline-none placeholder:text-heledone-ink-muted"
-                              />
+                                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-base-content/8 pt-2">
+                                  {/* Custom Priority Dot Buttons */}
+                                  <div className="flex items-center gap-1.5">
+                                    {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
+                                      const pColors: Record<string, string> = {
+                                        low: 'bg-base-content/20 hover:bg-base-content/40 active:ring-base-content/10',
+                                        medium: 'bg-primary hover:bg-primary active:ring-primary/20',
+                                        high: 'bg-warning hover:bg-warning active:ring-warning/20',
+                                        critical: 'bg-error hover:bg-error active:ring-error/20',
+                                      };
+                                      const isSelected = newTaskPriority === p;
+                                      return (
+                                        <button
+                                          key={p}
+                                          type="button"
+                                          onMouseDown={(e) => e.preventDefault()}
+                                          onClick={() => setNewTaskPriority(p)}
+                                          className={`size-3.5 rounded-full transition-all active:ring-4 ${pColors[p]} ${isSelected ? 'ring-2 ring-primary scale-125' : 'opacity-60 hover:opacity-100'
+                                            }`}
+                                          title={t("{value0} priority", { value0: p.toUpperCase() })}
+                                        />
+                                      );
+                                    })}
+                                    <span className="text-[13px] font-bold text-heledone-ink-muted capitalize ms-1">
+                                      {newTaskPriority}
+                                    </span>
+                                  </div>
 
-                              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-base-content/8 pt-2">
-                                {/* Custom Priority Dot Buttons */}
-                                <div className="flex items-center gap-1.5">
-                                  {(['low', 'medium', 'high', 'critical'] as const).map((p) => {
-                                    const pColors: Record<string, string> = {
-                                      low: 'bg-base-content/20 hover:bg-base-content/40 active:ring-base-content/10',
-                                      medium: 'bg-primary hover:bg-primary active:ring-primary/20',
-                                      high: 'bg-warning hover:bg-warning active:ring-warning/20',
-                                      critical: 'bg-error hover:bg-error active:ring-error/20',
-                                    };
-                                    const isSelected = newTaskPriority === p;
-                                    return (
-                                      <button
-                                        key={p}
-                                        type="button"
-                                        onClick={() => setNewTaskPriority(p)}
-                                        className={`size-3.5 rounded-full transition-all active:ring-4 ${pColors[p]} ${isSelected ? 'ring-2 ring-primary scale-125' : 'opacity-60 hover:opacity-100'
-                                          }`}
-                                        title={t("{value0} priority", { value0: p.toUpperCase() })}
-                                      />
-                                    );
-                                  })}
-                                  <span className="text-[13px] font-bold text-heledone-ink-muted capitalize ms-1">
-                                    {newTaskPriority}
-                                  </span>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => { setAddingTaskToStatusId(null); setNewTaskTitle(''); setNewTaskPriority('low'); }}
-                                    className="rounded-lg px-2 py-1 text-xs font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
-                                  >
-                                    {t("انصراف")}</button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCreateTask(status.id)}
-                                    disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
-                                    className="rounded-lg bg-primary px-2.5 py-1 text-xs font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
-                                  >
-                                    {createTaskMutation.isPending ? '...' : t("افزودن")}
-                                  </button>
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => { setAddingTaskToStatusId(null); setNewTaskTitle(''); setNewTaskPriority('low'); }}
+                                      className="rounded-lg px-2 py-1 text-xs font-semibold text-heledone-ink-muted hover:bg-base-200 transition"
+                                    >
+                                      {t("انصراف")}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => handleCreateTask(status.id)}
+                                      disabled={!newTaskTitle.trim() || createTaskMutation.isPending}
+                                      className="rounded-lg bg-primary px-2.5 py-1 text-xs font-bold text-primary-content shadow-xs transition hover:bg-primary/95 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                      {createTaskMutation.isPending ? '...' : t("افزودن")}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          )}
-                        </div>
-
-                        {canCreateTask && addingTaskToStatusId !== status.id && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAddingTaskToStatusId(status.id);
-                              setNewTaskTitle('');
-                              setNewTaskPriority('low');
-                            }}
-                            className="mx-4 mb-3 flex shrink-0 w-[calc(100%-2rem)] items-center justify-center gap-1 rounded-xl border border-dashed border-base-300 py-2 text-xs font-bold text-heledone-ink-muted transition hover:border-primary/50 hover:text-primary hover:bg-primary/5"
-                          >
-                            <span className="text-sm leading-none">+</span>
-                            <span>{t("افزودن تسک")}</span>
-                          </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAddingTaskToStatusId(status.id);
+                                setNewTaskTitle('');
+                                setNewTaskPriority('low');
+                                setTimeout(() => {
+                                  const el = columnScrollRefs.current[status.id.toString()];
+                                  if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+                                }, 50);
+                              }}
+                              className="mx-4 mb-3 flex shrink-0 w-[calc(100%-2rem)] items-center justify-center gap-1 rounded-xl border border-dashed border-base-300 py-2 text-xs font-bold text-heledone-ink-muted transition hover:border-primary/50 hover:text-primary hover:bg-primary/5"
+                            >
+                              <span className="text-sm leading-none">+</span>
+                              <span>{t("افزودن تسک")}</span>
+                            </button>
+                          )
                         )}
                       </DroppableColumn>
                     );
