@@ -286,4 +286,3 @@ export const deleteProjectFile = async (
 ): Promise<void> => {
   await ApiService.delete(`projects/${projectId}/files/${fileId}/`);
 };
-

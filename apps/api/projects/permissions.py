@@ -270,6 +270,10 @@ class CanManageProjectFile(_ProjectFromKwargsMixin):
             return True
         # For deletion or modification, uploader, project owner, or org admin is allowed
         project = obj.project
-        if obj.uploaded_by_id == user.id or _is_project_owner(user, project) or _is_org_admin(user, project.organization):
+        if (
+            obj.uploaded_by_id == user.id
+            or _is_project_owner(user, project)
+            or _is_org_admin(user, project.organization)
+        ):
             return True
         return False

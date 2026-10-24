@@ -184,5 +184,3 @@ export async function deleteProjectFileFromStorage(
   await saveProjectFilesToStorage(projectId, updatedFiles);
   return updatedFiles;
 }
-
-

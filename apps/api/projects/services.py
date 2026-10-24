@@ -807,8 +807,10 @@ class ProjectFileService:
             return
 
         import re
+
         from django.contrib.auth import get_user_model
         from django.db.models.functions import Lower
+
         from automations.events import EventDispatcher
 
         usernames = re.findall(r"@([\w.-]+)", message)
@@ -818,8 +820,9 @@ class ProjectFileService:
         lower_usernames = [u.lower() for u in usernames]
         User = get_user_model()
         mentioned_users = list(
-            User.objects.annotate(lower_uname=Lower("username"))
-            .filter(lower_uname__in=lower_usernames, is_active=True)
+            User.objects.annotate(lower_uname=Lower("username")).filter(
+                lower_uname__in=lower_usernames, is_active=True
+            )
         )
         if not mentioned_users:
             return

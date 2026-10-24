@@ -407,9 +407,25 @@ class ProjectFile(BaseModel):
         validators=[
             FileExtensionValidator(
                 allowed_extensions=[
-                    "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg",
-                    "zip", "rar", "7z", "tar", "gz",
-                    "doc", "docx", "xls", "xlsx", "txt", "md", "csv"
+                    "pdf",
+                    "png",
+                    "jpg",
+                    "jpeg",
+                    "gif",
+                    "webp",
+                    "svg",
+                    "zip",
+                    "rar",
+                    "7z",
+                    "tar",
+                    "gz",
+                    "doc",
+                    "docx",
+                    "xls",
+                    "xlsx",
+                    "txt",
+                    "md",
+                    "csv",
                 ]
             ),
             validate_project_file_size,
