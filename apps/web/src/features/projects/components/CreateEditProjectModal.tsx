@@ -206,12 +206,12 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.15 }}
-            className="w-full max-w-lg overflow-hidden rounded-3xl border border-base-content/10 bg-base-100 shadow-2xl"
+            className="w-full max-w-lg overflow-hidden rounded-3xl border border-base-content/10 bg-base-100 shadow-2xl max-h-[calc(100dvh-2rem)] flex flex-col"
             onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Header with live gradient preview */}
         <div
-          className="relative flex items-center justify-between px-6 py-5 text-base-content bg-base-200 border-b border-heledone-border"
+          className="relative flex items-center justify-between px-6 py-5 text-base-content bg-base-200 border-b border-heledone-border shrink-0"
           style={{ borderInlineStart: `4px solid ${formData.color}` }}
         >
           <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
           {!project && (
             <div>
               <label className="block font-bold text-heledone-ink-muted mb-1 uppercase tracking-wider text-[13px]">
@@ -463,7 +463,7 @@ export const CreateEditProjectModal: React.FC<CreateEditProjectModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-base-content/8">
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-base-content/8 shrink-0 mt-auto">
             <button
               type="button"
               onClick={onClose}

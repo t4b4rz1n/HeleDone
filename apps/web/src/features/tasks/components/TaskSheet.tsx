@@ -15,7 +15,6 @@ import {
   Sparkles,
   ChevronDown,
   Search,
-  UserX,
   Check,
   Bold,
   Italic,
@@ -40,17 +39,21 @@ import {
   Flag,
   TickCircle,
   Trash,
+  Edit2,
 } from "iconsax-reactjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { TimeLog } from "../../attendance/types";
 import type { Task } from "../types";
 import { useTaskStore } from "../store/useTaskStore";
+import { useAuthStore } from "../../auth/store/authStore";
 import { getProjectMembers, getProjectMilestones } from "../../projects/api/projectsApi";
 import { createManualLog } from "../../attendance/api/attendanceApi";
 import {
   addChecklistItem,
   addComment,
+  updateComment,
+  deleteComment,
   deleteChecklistItem,
   getTaskActivities,
   getTaskChecklists,
@@ -230,8 +233,13 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     enabled: Boolean(taskId),
   });
 
+  const currentUser = useAuthStore((state) => state.user);
+  const [editingCommentId, setEditingCommentId] = useState<string | number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+
   const storeProjectId = useTaskStore((state) => state.activeProjectId);
-  const effectiveProjectId = task?.project || storeProjectId;
+  const rawProjectId = typeof task?.project === "object" ? (task?.project as any)?.id : task?.project;
+  const effectiveProjectId = rawProjectId || storeProjectId;
 
   const { data: projectMembers = [] } = useQuery({
     queryKey: ["projects", "detail", String(effectiveProjectId), "members"],
@@ -239,10 +247,52 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     enabled: Boolean(effectiveProjectId),
   });
 
+  const allAvailableMembers = useMemo(() => {
+    const list: any[] = [];
+    if (Array.isArray(projectMembers)) {
+      list.push(...projectMembers);
+    }
+    if (task?.assignees_detail && Array.isArray(task.assignees_detail)) {
+      list.push(...task.assignees_detail);
+    }
+    if (task?.assignee_detail) {
+      list.push(task.assignee_detail);
+    }
+    if (task?.reporter_detail) {
+      list.push(task.reporter_detail);
+    }
+    return list;
+  }, [projectMembers, task]);
+
   const { data: projectMilestones = [] } = useQuery({
     queryKey: ["projects", "detail", String(effectiveProjectId), "milestones"],
     queryFn: () => getProjectMilestones(effectiveProjectId!),
     enabled: Boolean(effectiveProjectId),
+  });
+
+  const updateCommentMutation = useMutation({
+    mutationFn: ({ id, content }: { id: string | number; content: string }) =>
+      updateComment(id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["taskComments", taskId] });
+      setEditingCommentId(null);
+      setEditingCommentText("");
+      toast.success(t("دیدگاه با موفقیت ویرایش شد"));
+    },
+    onError: () => {
+      toast.error(t("خطا در ویرایش دیدگاه"));
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (id: string | number) => deleteComment(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["taskComments", taskId] });
+      toast.success(t("دیدگاه با موفقیت حذف شد"));
+    },
+    onError: () => {
+      toast.error(t("خطا در حذف دیدگاه"));
+    },
   });
 
   const manualTimeMutation = useMutation({
@@ -285,6 +335,88 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     setPriority(task.priority || "low");
     setDueDate(task.due_date ? toLocalDatetimeInput(task.due_date) : "");
   }, [task]);
+
+  // Multi-assignee resolution & state
+  const memberUsers = useMemo(() => {
+    return (projectMembers || [])
+      .map((m: any) => m.user)
+      .filter((u: any) => Boolean(u && u.id));
+  }, [projectMembers]);
+
+  const taskAssignees = useMemo(() => {
+    if (!task) return [];
+    if (task.assignees_detail && task.assignees_detail.length > 0) {
+      return task.assignees_detail;
+    }
+    if (task.assignees && task.assignees.length > 0) {
+      const mapped = task.assignees
+        .map((id: any) => memberUsers.find((u: any) => String(u.id) === String(id)))
+        .filter(Boolean);
+      if (mapped.length > 0) return mapped;
+    }
+    if (task.assignee_detail) return [task.assignee_detail];
+    if (task.assignee) {
+      const found = memberUsers.find((u: any) => String(u.id) === String(task.assignee));
+      if (found) return [found];
+    }
+    return [];
+  }, [task, memberUsers]);
+
+  const [localAssignees, setLocalAssignees] = useState<any[]>(taskAssignees);
+
+  useEffect(() => {
+    setLocalAssignees(taskAssignees);
+  }, [taskAssignees]);
+
+  const filteredMembers = useMemo(() => {
+    return (projectMembers || []).filter((m: any) => {
+      if (!m.user) return false;
+      if (!assigneeSearch.trim()) return true;
+      const q = assigneeSearch.toLowerCase();
+      const u = m.user;
+      const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""} ${u.email || ""}`.toLowerCase();
+      return name.includes(q);
+    });
+  }, [projectMembers, assigneeSearch]);
+
+  const handleToggleAssignee = (u: any) => {
+    const isSelected = localAssignees.some((a) => String(a.id) === String(u.id));
+    const newAssignees = isSelected
+      ? localAssignees.filter((a) => String(a.id) !== String(u.id))
+      : [...localAssignees, u];
+    const newIds = newAssignees.map((a) => a.id);
+    setLocalAssignees(newAssignees);
+    save({
+      assignees: newIds,
+      assignees_detail: newAssignees,
+      assignee: newIds[0] || null,
+      assignee_detail: newAssignees[0] || null,
+    } as any);
+  };
+
+  const handleClearAllAssignees = () => {
+    setLocalAssignees([]);
+    save({
+      assignees: [],
+      assignees_detail: [],
+      assignee: null,
+      assignee_detail: null,
+    } as any);
+  };
+
+  const handleSelectAllAssignees = () => {
+    const currentMap = new Map<string, any>(localAssignees.map((a) => [String(a.id), a]));
+    memberUsers.forEach((u: any) => currentMap.set(String(u.id), u));
+    const newAssignees = Array.from(currentMap.values());
+    const newIds = newAssignees.map((a) => a.id);
+    setLocalAssignees(newAssignees);
+    save({
+      assignees: newIds,
+      assignees_detail: newAssignees,
+      assignee: newIds[0] || null,
+      assignee_detail: newAssignees[0] || null,
+    } as any);
+  };
 
   useEffect(() => {
     setActiveTab("overview");
@@ -371,6 +503,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     queryClient.invalidateQueries({ queryKey: ["taskChecklists", taskId] });
     queryClient.invalidateQueries({ queryKey: ["taskComments", taskId] });
     queryClient.invalidateQueries({ queryKey: ["taskActivities", taskId] });
+    queryClient.invalidateQueries({ queryKey: ["notification-unread"] });
+    queryClient.invalidateQueries({ queryKey: ["notification-history"] });
   };
 
   const updateMutation = useMutation({
@@ -531,7 +665,6 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   const checklistProgress = checklists.length
     ? Math.round((checklistDone / checklists.length) * 100)
     : 0;
-  const assignee = task.assignee_detail;
   const isBusy = updateMutation.isPending || blockerMutation.isPending;
 
   return createPortal(
@@ -755,9 +888,16 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
               </div>
             </div>
 
-            {/* Assignee Card with Search & Heledone Avatar (Custom Dropdown) */}
+            {/* Assignee Card with Multi-Assignee & Search (Custom Dropdown) */}
             <div className="task-sheet-property" ref={assigneeRef}>
-              <label>{t("مسئول تسک")}</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-heledone-ink-muted">{t("مسئولین تسک")}</label>
+                {localAssignees.length > 0 && (
+                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {formatUiNumber(localAssignees.length)} {t("نفر")}
+                  </span>
+                )}
+              </div>
               <div className="task-sheet-dropdown">
                 <button
                   type="button"
@@ -765,28 +905,82 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                   className={`task-sheet-dropdown-trigger ${isAssigneeOpen ? "is-open" : ""}`}
                   aria-expanded={isAssigneeOpen}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {assignee ? (
-                      <img
-                        src={assignee.avatar || getHeledoneAvatar(assignee.id, assignee.username)}
-                        alt=""
-                        className="task-sheet-assignee-avatar"
-                      />
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {localAssignees.length === 0 ? (
+                      <>
+                        <span className="grid size-6 place-items-center rounded-full bg-base-200 text-heledone-ink-muted shrink-0">
+                          <Profile2User size={13} />
+                        </span>
+                        <span className="text-heledone-ink-muted font-medium">{t("بدون مسئول — کلیک برای افزودن")}</span>
+                      </>
                     ) : (
-                      <span className="grid size-6 place-items-center rounded-full bg-base-200 text-heledone-ink-muted">
-                        <Profile2User size={13} />
-                      </span>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {/* Avatar stack */}
+                        <div className="flex -space-x-2 rtl:space-x-reverse shrink-0">
+                          {localAssignees.slice(0, 4).map((assigneeItem: any) => (
+                            <img
+                              key={assigneeItem.id}
+                              src={assigneeItem.avatar || assigneeItem.avatar_url || getHeledoneAvatar(assigneeItem.id, assigneeItem.username)}
+                              alt=""
+                              title={`${assigneeItem.first_name || ""} ${assigneeItem.last_name || ""}`.trim() || assigneeItem.username}
+                              className="size-6.5 rounded-full object-cover ring-2 ring-base-100 shadow-2xs"
+                            />
+                          ))}
+                          {localAssignees.length > 4 && (
+                            <span className="grid size-6.5 place-items-center rounded-full bg-primary/15 text-[11px] font-extrabold text-primary ring-2 ring-base-100 shadow-2xs">
+                              +{localAssignees.length - 4}
+                            </span>
+                          )}
+                        </div>
+                        {/* Names summary */}
+                        <span className="truncate text-xs font-bold text-base-content">
+                          {localAssignees.length === 1
+                            ? (localAssignees[0].first_name || localAssignees[0].last_name
+                                ? `${localAssignees[0].first_name || ""} ${localAssignees[0].last_name || ""}`.trim()
+                                : localAssignees[0].username)
+                            : localAssignees.slice(0, 2).map((a: any) => a.first_name || a.username).join("، ") +
+                              (localAssignees.length > 2 ? ` +${formatUiNumber(localAssignees.length - 2)} ${t("نفر دیگر")}` : "")}
+                        </span>
+                      </div>
                     )}
-                    <span className="truncate">
-                      {assignee
-                        ? assignee.first_name || assignee.last_name
-                          ? `${assignee.first_name || ""} ${assignee.last_name || ""}`.trim()
-                          : assignee.username
-                        : t("بدون مسئول")}
-                    </span>
                   </div>
                   <ChevronDown size={14} className="task-sheet-dropdown-chevron" />
                 </button>
+
+                {/* Assigned chips preview when multiple (quick remove) */}
+                {localAssignees.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2 px-0.5">
+                    {localAssignees.map((u: any) => {
+                      const name = u.first_name || u.last_name
+                        ? `${u.first_name || ""} ${u.last_name || ""}`.trim()
+                        : u.username;
+                      return (
+                        <span
+                          key={u.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-base-content/8 bg-base-200/60 pe-2 ps-1 py-0.5 text-[11px] font-bold text-base-content shadow-2xs group"
+                        >
+                          <img
+                            src={u.avatar || u.avatar_url || getHeledoneAvatar(u.id, u.username)}
+                            alt=""
+                            className="size-4.5 rounded-full object-cover"
+                          />
+                          <span className="truncate max-w-[110px]">{name}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleAssignee(u);
+                            }}
+                            className="size-3.5 rounded-full hover:bg-error/20 hover:text-error grid place-items-center transition-colors text-heledone-ink-muted"
+                            title={t("حذف از تسک")}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <AnimatePresence>
                   {isAssigneeOpen && (
@@ -795,7 +989,9 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       className="task-sheet-dropdown-panel"
+                      style={{ maxHeight: "360px" }}
                     >
+                      {/* Search box */}
                       <div className="task-sheet-dropdown-search">
                         <Search size={13} />
                         <input
@@ -803,83 +999,122 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           type="text"
                           value={assigneeSearch}
                           onChange={(e) => setAssigneeSearch(e.target.value)}
-                          placeholder={t("Search members...")}
+                          placeholder={t("جستجوی نام، نام کاربری یا ایمیل...")}
                         />
+                        {assigneeSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setAssigneeSearch("")}
+                            className="text-xs text-heledone-ink-muted hover:text-base-content"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
 
-                      {/* Unassigned button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          save({ assignee: null, assignee_detail: null } as any);
-                          setIsAssigneeOpen(false);
-                          setAssigneeSearch("");
-                        }}
-                        className={`task-sheet-dropdown-item ${!assignee ? "is-active" : ""}`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="grid size-6 place-items-center rounded-full bg-base-200 text-heledone-ink-muted">
-                            <UserX size={13} />
-                          </span>
-                          <span className="truncate">{t("بدون مسئول")}</span>
-                        </div>
-                        {!assignee && <Check size={14} className="text-primary shrink-0" />}
-                      </button>
-
-                      {projectMembers
-                        .filter((m) => {
-                          if (!m.user) return false;
-                          if (!assigneeSearch.trim()) return true;
-                          const q = assigneeSearch.toLowerCase();
-                          const name = `${m.user.first_name || ""} ${m.user.last_name || ""} ${m.user.username || ""
-                            }`.toLowerCase();
-                          return name.includes(q);
-                        })
-                        .map((m) => {
-                          const u = m.user!;
-                          const isCurrent = String(assignee?.id) === String(u.id);
-                          const displayName =
-                            u.first_name || u.last_name
-                              ? `${u.first_name || ""} ${u.last_name || ""}`.trim()
-                              : u.username;
-                          return (
+                      {/* Header actions: counts, select all, clear all */}
+                      <div className="flex items-center justify-between px-2 py-1.5 border-b border-base-content/6 text-[11px] font-bold text-heledone-ink-muted mb-1">
+                        <span>
+                          {t("اعضای پروژه")} ({formatUiNumber(filteredMembers.length)})
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {localAssignees.length > 0 && (
                             <button
-                              key={m.id}
                               type="button"
-                              onClick={() => {
-                                save({
-                                  assignee: String(u.id),
-                                  assignee_detail: u,
-                                } as any);
-                                setIsAssigneeOpen(false);
-                                setAssigneeSearch("");
-                              }}
-                              className={`task-sheet-dropdown-item ${isCurrent ? "is-active" : ""}`}
+                              onClick={handleClearAllAssignees}
+                              className="text-error hover:underline text-[11px]"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <img
-                                  src={u.avatar || getHeledoneAvatar(u.id, u.username)}
-                                  alt=""
-                                  className="task-sheet-assignee-avatar"
-                                />
-                                <div className="flex flex-col text-start min-w-0">
-                                  <span className="font-bold text-xs truncate">{displayName}</span>
-                                  {u.username && (
-                                    <span className="text-[10px] text-heledone-ink-muted truncate">
-                                      @{u.username}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {isCurrent && <Check size={14} className="text-primary shrink-0" />}
+                              {t("حذف همه")}
                             </button>
-                          );
-                        })}
+                          )}
+                          {filteredMembers.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleSelectAllAssignees}
+                              className="text-primary hover:underline text-[11px]"
+                            >
+                              {t("انتخاب همه")}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Member list */}
+                      <div className="space-y-0.5 overflow-y-auto max-h-[220px] custom-scrollbar">
+                        {filteredMembers.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-heledone-ink-muted">
+                            {t("عضوی با این مشخصات یافت نشد.")}
+                          </div>
+                        ) : (
+                          filteredMembers.map((m: any) => {
+                            const u = m.user;
+                            if (!u) return null;
+                            const isAssigned = localAssignees.some((a) => String(a.id) === String(u.id));
+                            const displayName =
+                              u.first_name || u.last_name
+                                ? `${u.first_name || ""} ${u.last_name || ""}`.trim()
+                                : u.username;
+
+                            return (
+                              <button
+                                key={m.id || u.id}
+                                type="button"
+                                onClick={() => handleToggleAssignee(u)}
+                                className={`task-sheet-dropdown-item flex items-center justify-between w-full px-2.5 py-2 rounded-xl transition-all ${
+                                  isAssigned
+                                    ? "bg-primary/10 text-primary font-extrabold"
+                                    : "hover:bg-base-200 text-base-content"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <img
+                                    src={u.avatar || u.avatar_url || getHeledoneAvatar(u.id, u.username)}
+                                    alt=""
+                                    className="size-6.5 rounded-full object-cover shrink-0 ring-1 ring-base-content/10"
+                                  />
+                                  <div className="flex flex-col text-start min-w-0">
+                                    <span className="text-xs truncate font-bold leading-tight">{displayName}</span>
+                                    {u.username && (
+                                      <span className="text-[10px] text-heledone-ink-muted truncate">
+                                        @{u.username}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div
+                                  className={`size-4.5 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                                    isAssigned
+                                      ? "bg-primary text-primary-content shadow-2xs"
+                                      : "border border-base-content/20 bg-base-100"
+                                  }`}
+                                >
+                                  {isAssigned && <Check size={12} strokeWidth={3} />}
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Footer done button */}
+                      <div className="pt-2 mt-1 border-t border-base-content/6 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAssigneeOpen(false);
+                            setAssigneeSearch("");
+                          }}
+                          className="px-3 py-1 rounded-lg bg-primary text-primary-content text-xs font-bold shadow-xs hover:bg-primary/90 transition"
+                        >
+                          {t("تایید و بستن")}
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </div>
+
 
             {/* Milestone Selector (Custom Dropdown) */}
             <div className="task-sheet-property" ref={milestoneRef}>
@@ -1408,12 +1643,14 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                         </button>
                       </div>
 
-                      <textarea
+                      <MentionTextarea
                         ref={descTextareaRef}
-                        aria-label={t("توضیح تسک")}
+                        ariaLabel={t("توضیح تسک")}
                         autoFocus
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={setDescription}
+                        members={allAvailableMembers}
+                        position="bottom"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                             e.preventDefault();
@@ -1421,8 +1658,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                             setIsEditingDescription(false);
                           }
                         }}
-                        placeholder={t("افزودن توضیح و مستندات...")}
-                        className="task-sheet-editor-textarea"
+                        placeholder={t("افزودن توضیح و مستندات… (از @ برای منشن کردن استفاده کنید)")}
+                        className="task-sheet-editor-textarea min-h-28"
                       />
 
                       <div className="task-sheet-editor-footer">
@@ -1471,7 +1708,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                       className="cursor-pointer rounded-2xl border border-base-content/8 bg-base-200/20 p-4 text-xs leading-relaxed text-base-content hover:border-primary/40 transition"
                       title={t("ویرایش")}
                     >
-                      <p className="whitespace-pre-wrap">{description}</p>
+                      <MentionText content={description} className="whitespace-pre-wrap" />
                     </div>
                   ) : (
                     <button
@@ -1626,7 +1863,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                     ariaLabel={t("Write a comment...")}
                     value={commentText}
                     onChange={setCommentText}
-                    members={projectMembers}
+                    members={allAvailableMembers}
+                    position="bottom"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault();
@@ -1714,6 +1952,12 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                     const authorAvatar =
                       comment.author_detail?.avatar ||
                       getHeledoneAvatar(comment.author_detail?.id, comment.author_detail?.username);
+                    const isAuthor =
+                      currentUser &&
+                      (String(comment.author) === String(currentUser.id) ||
+                        String(comment.author_detail?.id) === String(currentUser.id));
+                    const isEditing = editingCommentId === comment.id;
+
                     return (
                       <article
                         key={comment.id}
@@ -1732,15 +1976,94 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                                 t("User")}
                             </span>
                           </div>
-                          <span className="text-[11px] text-heledone-ink-muted font-medium">
-                            {formatRelativeDate(comment.created_at)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-heledone-ink-muted font-medium">
+                              {formatRelativeDate(comment.created_at)}
+                            </span>
+                            {isAuthor && !isEditing && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingCommentId(comment.id);
+                                    setEditingCommentText(comment.content);
+                                  }}
+                                  className="size-6 grid place-items-center rounded-md text-heledone-ink-muted hover:text-primary hover:bg-base-200 transition"
+                                  title={t("ویرایش دیدگاه")}
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(t("آیا از حذف این دیدگاه مطمئن هستید؟"))) {
+                                      deleteCommentMutation.mutate(comment.id);
+                                    }
+                                  }}
+                                  className="size-6 grid place-items-center rounded-md text-heledone-ink-muted hover:text-error hover:bg-error/10 transition"
+                                  title={t("حذف دیدگاه")}
+                                >
+                                  <Trash size={13} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        <MentionText
-                          content={comment.content}
-                          className="text-xs leading-relaxed text-base-content/80 whitespace-pre-wrap"
-                        />
+                        {isEditing ? (
+                          <div className="space-y-2 pt-1">
+                            <MentionTextarea
+                              value={editingCommentText}
+                              onChange={setEditingCommentText}
+                              members={allAvailableMembers}
+                              position="bottom"
+                              className="min-h-16 w-full resize-none rounded-xl border border-base-content/10 bg-base-200/40 p-2.5 text-xs text-base-content outline-none focus:border-primary/50"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                                  e.preventDefault();
+                                  if (editingCommentText.trim()) {
+                                    updateCommentMutation.mutate({
+                                      id: comment.id,
+                                      content: editingCommentText,
+                                    });
+                                  }
+                                }
+                              }}
+                            />
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditingCommentText("");
+                                }}
+                                className="px-2.5 py-1 text-xs text-heledone-ink-muted hover:text-base-content"
+                              >
+                                {t("انصراف")}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={
+                                  updateCommentMutation.isPending || !editingCommentText.trim()
+                                }
+                                onClick={() =>
+                                  updateCommentMutation.mutate({
+                                    id: comment.id,
+                                    content: editingCommentText,
+                                  })
+                                }
+                                className="rounded-xl bg-primary px-3 py-1 text-xs font-bold text-primary-content hover:bg-primary/90 disabled:opacity-40"
+                              >
+                                {updateCommentMutation.isPending ? t("Saving...") : t("ذخیره")}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <MentionText
+                            content={comment.content}
+                            className="text-xs leading-relaxed text-base-content/80 whitespace-pre-wrap"
+                          />
+                        )}
 
                         {comment.attached_file_url && (
                           <div className="mt-2 pt-2 border-t border-base-content/8">

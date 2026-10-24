@@ -24,7 +24,7 @@ _IN_APP_MESSAGE_FIELDS = {
     "task_needs_review": ("task_title", "assignee"),
     "task_completed": ("task_title",),
     "task_deadline_approaching": ("task_title",),
-    "user_mentioned": ("author", "task_title"),
+    "user_mentioned": ("author", "author_name", "task_title", "context_name", "file_name"),
     "task_commented": ("author", "task_title"),
     "standup_submitted": ("user_name",),
     "leave_requested": ("user_name", "leave_type"),
@@ -48,6 +48,16 @@ def _get_event_link(event_type: str, payload: dict) -> str:
     task_id = payload.get("task_id")
     board_id = payload.get("board_id")
     organization_id = payload.get("organization_id")
+    ticket_id = payload.get("ticket_id")
+    file_id = payload.get("file_id")
+
+    if file_id and project_id:
+        return f"/tasks?project={project_id}&view=files&file={file_id}"
+    elif file_id:
+        return f"/tasks?view=files&file={file_id}"
+
+    if ticket_id:
+        return f"/tickets/{ticket_id}"
 
     if event_type == "standup_submitted":
         return "/standups"
@@ -270,6 +280,7 @@ def _determine_target_users(recipients: list[str], payload: dict) -> set[str]:
             add_many(payload.get("target_user_ids"))
         elif recipient == Recipient.MENTIONED_USERS:
             add_many(payload.get("mentioned_user_ids"))
+            add_many(payload.get("recipient_ids"))
             add(payload.get("target_user_id"))
         elif recipient == Recipient.ASSIGNEE:
             add(payload.get("assignee_id"))
@@ -350,6 +361,14 @@ def _is_recipient_authorized(
     # If the user is the target of a project removal notification, they are authorized to receive it
     if event_type == "project_member_removed" and str(user.id) == str(
         payload.get("target_user_id")
+    ):
+        return True
+
+    # If the user was explicitly mentioned, they are authorized to receive their mention notification
+    if event_type == "user_mentioned" and (
+        str(user.id) == str(payload.get("target_user_id"))
+        or str(user.id) in [str(u) for u in payload.get("mentioned_user_ids", [])]
+        or str(user.id) in [str(u) for u in payload.get("recipient_ids", [])]
     ):
         return True
 
@@ -512,12 +531,23 @@ def _fmt_task_deadline_approaching(p):
 
 
 def _fmt_user_mentioned(p):
+    author_label = p.get("author") or p.get("author_name") or _("someone")
+    file_name = p.get("file_name") or (p.get("context_name") if p.get("context_type") == "file" else None)
+    if file_name:
+        return (
+            _("You were mentioned"),
+            _(
+                " <b>You were mentioned!</b>\n\n"
+                "{author} mentioned you on file <b>{file}</b>."
+            ).format(author=author_label, file=file_name),
+        )
+    task_label = p.get("task_title") or p.get("context_name") or "—"
     return (
-        _("Mentioned in comment"),
+        _("You were mentioned"),
         _(
             " <b>You were mentioned!</b>\n\n"
-            "{author} mentioned you in the comments of task <b>{task}</b>."
-        ).format(author=p.get("author", _("someone")), task=p.get("task_title", "—")),
+            "{author} mentioned you in <b>{task}</b>."
+        ).format(author=author_label, task=task_label),
     )
 
 

@@ -89,12 +89,12 @@ export const TeamsGrid = ({
           className="coastal-item heledone-surface group flex flex-col justify-between rounded-lg border border-base-content/10 bg-base-100/90 transition-all duration-200 hover:border-primary/30 hover:shadow-heledone-raised"
         >
           <div className="p-5 sm:p-6">
-            <div className="flex justify-between items-start gap-4">
-              <h3 className="font-bold text-lg text-base-content group-hover:text-primary transition-colors duration-200 line-clamp-1">
+            <div className="flex justify-between items-start gap-4 min-w-0">
+              <h3 className="font-bold text-lg text-base-content group-hover:text-primary transition-colors duration-200 line-clamp-1 min-w-0 flex-1">
                 {team.name}
               </h3>
               <div
-                className={`badge badge-sm rounded-lg py-2.5 px-2 ${
+                className={`badge badge-sm rounded-lg py-2.5 px-2 shrink-0 ${
                   team.is_active
                     ? "badge-success bg-success/10 text-success border-none"
                     : "badge-ghost bg-base-200 text-heledone-ink-muted border-none"
@@ -111,8 +111,8 @@ export const TeamsGrid = ({
             <div className="divider my-4 opacity-50"></div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-base-content/80">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 text-sm text-base-content/80 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   {team.leader_details ? (
                     <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                       {team.leader_details.username?.[0]?.toUpperCase() || team.leader_details.first_name?.[0]?.toUpperCase() || team.leader_details.email?.[0]?.toUpperCase() || "?"}
@@ -123,8 +123,8 @@ export const TeamsGrid = ({
                       <Profile2User size={14} />
                     </div>
                   )}
-                  <span className="font-medium text-heledone-ink-muted">{t("Leader:")}</span>
-                  <span className="truncate">
+                  <span className="font-medium text-heledone-ink-muted shrink-0">{t("Leader:")}</span>
+                  <span className="min-w-0 flex-1 truncate">
                     {team.leader_details
                       ? team.leader_details.username || `${team.leader_details.first_name || ""} ${team.leader_details.last_name || ""}`.trim() || team.leader_details.email || t("Unknown User")
                       : t("Not assigned")}
@@ -139,33 +139,39 @@ export const TeamsGrid = ({
             <div className="text-xs text-heledone-ink-muted">
               {formatDisplayDate(team.created_at ?? "", "yyyy-MM-dd")}
             </div>
-            {canManage && (
+            {(canManage || onManageMembers) && (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onManageMembers?.(team)}
-                  className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-primary hover:bg-primary/10 motion-interactive"
-                  title={t("Manage Members")}
-                >
-                  <User size={14} />
-                  <span className="hidden sm:inline">{t("اعضا")}</span>
-                </button>
-                <button
-                  onClick={() => onEdit(team)}
-                  className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-primary hover:bg-primary/10 motion-interactive"
-                  title={t("Edit Team")}
-                >
-                  <Edit2 size={14} />
-                  <span className="hidden sm:inline">{t("ویرایش")}</span>
-                </button>
-                <button
-                  onClick={() => onDelete(team)}
-                  className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-error hover:bg-error/10 motion-interactive"
-                  title={t("Delete Team")}
-                >
-                  <Trash size={14} />
-                  <span className="hidden sm:inline">{t("حذف")}</span>
-                </button>
+                {onManageMembers && (
+                  <button
+                    type="button"
+                    onClick={() => onManageMembers(team)}
+                    className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-primary hover:bg-primary/10 motion-interactive"
+                    title={t("Manage Members")}
+                  >
+                    <User size={14} />
+                    <span className="hidden sm:inline">{t("اعضا")}</span>
+                  </button>
+                )}
+                {canManage && (
+                  <>
+                    <button
+                      onClick={() => onEdit(team)}
+                      className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-primary hover:bg-primary/10 motion-interactive"
+                      title={t("Edit Team")}
+                    >
+                      <Edit2 size={14} />
+                      <span className="hidden sm:inline">{t("ویرایش")}</span>
+                    </button>
+                    <button
+                      onClick={() => onDelete(team)}
+                      className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-error hover:bg-error/10 motion-interactive"
+                      title={t("Delete Team")}
+                    >
+                      <Trash size={14} />
+                      <span className="hidden sm:inline">{t("حذف")}</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

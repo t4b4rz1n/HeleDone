@@ -36,6 +36,7 @@ def cache_previous_task_state(sender, instance, **kwargs):
             instance.__original_status_code = old.status.code if old.status else None
             instance.__original_status_name = old.status.name if old.status else ""
             instance.__original_is_finished = old.is_finished
+            instance.__original_description = old.description or ""
         except Task.DoesNotExist:
             pass
 
@@ -193,6 +194,49 @@ def handle_task_automations(sender, instance, created, **kwargs):
                         else None,
                     },
                 )
+
+            # 10. Mentions in task description
+            new_desc = instance.description or ""
+            current_mentions = set(re.findall(r"@([\w.-]+)", new_desc))
+            if not created:
+                old_desc = getattr(instance, "__original_description", "") or ""
+                old_mentions = set(re.findall(r"@([\w.-]+)", old_desc))
+                newly_mentioned = current_mentions - old_mentions
+            else:
+                newly_mentioned = current_mentions
+
+            if newly_mentioned:
+                from django.db.models.functions import Lower
+
+                users_to_notify = list(
+                    User.objects.annotate(uname_lower=Lower("username"))
+                    .filter(uname_lower__in=[u.lower() for u in newly_mentioned], is_active=True)
+                    .values_list("id", flat=True)
+                )
+                actor = getattr(instance, "_actor", None) or instance.reporter
+                actor_name = (
+                    (actor.get_full_name() or actor.username) if actor else "A Colleague"
+                )
+
+                for uid in users_to_notify:
+                    EventDispatcher.dispatch(
+                        event_type="user_mentioned",
+                        payload={
+                            "target_user_id": str(uid),
+                            "project_id": str(instance.project_id) if instance.project_id else None,
+                            "mentioned_user_ids": [str(uid)],
+                            "assignee_id": str(instance.assignee_id) if instance.assignee_id else None,
+                            "reporter_id": str(instance.reporter_id) if instance.reporter_id else None,
+                            "task_title": instance.title,
+                            "task_id": str(instance.id),
+                            "board_id": str(instance.status.board_id)
+                            if getattr(instance, "status", None)
+                            and getattr(instance.status, "board_id", None)
+                            else None,
+                            "author": actor_name,
+                            "comment_text": f"{actor_name} mentioned you in the description of {instance.title}",
+                        },
+                    )
     except Exception as exc:
         import logging
 
@@ -204,6 +248,16 @@ def handle_task_automations(sender, instance, created, **kwargs):
 
 
 
+@receiver(pre_save, sender=TaskComment)
+def cache_previous_comment_content(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old = TaskComment.objects.get(pk=instance.pk)
+            instance.__original_content = old.content
+        except TaskComment.DoesNotExist:
+            pass
+
+
 @receiver(post_save, sender=TaskComment)
 def handle_task_comments(sender, instance, created, **kwargs):
     """
@@ -211,47 +265,54 @@ def handle_task_comments(sender, instance, created, **kwargs):
     12. task_commented
     """
     try:
-        if created:
-            task = instance.task
-            author_name = (
-                instance.author.get_full_name() or instance.author.username
-                if instance.author
-                else "A User"
-            )
-            content = instance.content
+        task = instance.task
+        author_name = (
+            instance.author.get_full_name() or instance.author.username
+            if instance.author
+            else "A User"
+        )
+        content = instance.content
 
-            # Parse mentions (@username)
-            mentioned_usernames = re.findall(r"@([\w.-]+)", content)
-            mentioned_users = []
-            if mentioned_usernames:
-                mentioned_users = list(
-                    User.objects.filter(username__in=mentioned_usernames).values_list(
-                        "id", flat=True
-                    )
+        # Parse mentions (@username)
+        mentioned_usernames = set(re.findall(r"@([\w.-]+)", content))
+
+        if not created:
+            old_content = getattr(instance, "__original_content", "") or ""
+            old_mentions = set(re.findall(r"@([\w.-]+)", old_content))
+            # Only notify newly added mentions
+            mentioned_usernames = mentioned_usernames - old_mentions
+
+        mentioned_users = []
+        if mentioned_usernames:
+            from django.db.models.functions import Lower
+
+            mentioned_users = list(
+                User.objects.annotate(uname_lower=Lower("username"))
+                .filter(uname_lower__in=[u.lower() for u in mentioned_usernames], is_active=True)
+                .values_list("id", flat=True)
+            )
+
+            for uid in mentioned_users:
+                EventDispatcher.dispatch(
+                    event_type="user_mentioned",
+                    payload={
+                        "target_user_id": str(uid),
+                        "project_id": str(task.project_id),
+                        "mentioned_user_ids": [str(uid)],
+                        "assignee_id": str(task.assignee_id) if task.assignee_id else None,
+                        "reporter_id": str(task.reporter_id) if task.reporter_id else None,
+                        "task_title": task.title,
+                        "task_id": str(task.id),
+                        "board_id": str(task.status.board_id)
+                        if getattr(task, "status", None)
+                        and getattr(task.status, "board_id", None)
+                        else None,
+                        "author": author_name,
+                        "comment_text": f"{author_name} mentioned you: {content[:50]}...",
+                    },
                 )
 
-                for uid in mentioned_users:
-                    # Don't notify the author if they mention themselves
-                    if instance.author and str(uid) == str(instance.author.id):
-                        continue
-                    EventDispatcher.dispatch(
-                        event_type="user_mentioned",
-                        payload={
-                            "target_user_id": str(uid),
-                            "project_id": str(task.project_id),
-                            "mentioned_user_ids": [str(uid)],
-                            "assignee_id": str(task.assignee_id) if task.assignee_id else None,
-                            "reporter_id": str(task.reporter_id) if task.reporter_id else None,
-                            "task_title": task.title,
-                            "task_id": str(task.id),
-                            "board_id": str(task.status.board_id)
-                            if getattr(task, "status", None)
-                            and getattr(task.status, "board_id", None)
-                            else None,
-                            "author": author_name,
-                            "comment_text": f"{author_name} mentioned you: {content[:50]}...",
-                        },
-                    )
+        if created:
 
             # General comment notification (task_commented)
             target_ids = list(task.assignees.values_list("id", flat=True))

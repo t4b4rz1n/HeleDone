@@ -271,7 +271,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row min-h-[450px] max-h-[75vh]">
+          <div className="flex flex-col md:flex-row min-h-[450px] max-h-[calc(100dvh-2rem)]">
             {/* Left Column (Main Info) */}
             <div className="flex-[1.4] p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
 
@@ -594,6 +594,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                   value={commentText}
                   onChange={setCommentText}
                   members={users}
+                  position="bottom"
                   className={`w-full bg-transparent text-[14px] text-base-content outline-none resize-none px-4 py-3 transition-all duration-200 custom-scrollbar ${isCommentInputFocused || commentText.trim() || selectedFile ? 'min-h-[80px]' : 'min-h-[44px] m-0 overflow-hidden'}`}
                   placeholder={t("دیدگاهی بنویسید… (از @ برای منشن کردن اعضای پروژه استفاده کنید)")}
                 />
@@ -681,6 +682,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                                   value={editingCommentText}
                                   onChange={setEditingCommentText}
                                   members={users}
+                                  position="bottom"
                                   className="w-full bg-transparent text-[14px] text-base-content outline-none resize-none p-3 pb-1"
                                   rows={2}
                                 />

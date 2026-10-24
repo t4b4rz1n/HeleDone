@@ -235,6 +235,82 @@ class ProjectViewSet(viewsets.ModelViewSet):
         updated = ProjectService.complete(project=project, actor=request.user)
         return Response(ProjectDetailSerializer(updated).data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary=_("Mention users on a project file"),
+        tags=["projects"],
+    )
+    @action(detail=True, methods=["post"], url_path="mention-file")
+    def mention_file(self, request, pk=None):
+        """
+        Dispatches in-app, telegram, and email notifications to users mentioned on a project file.
+        Payload:
+          - file_id: str (ID of the file)
+          - file_name: str (Name of the file)
+          - message: str (Text note containing @username mentions)
+          - usernames: list[str] (Optional explicit list of usernames)
+        """
+        project = self.get_object()
+        file_id = request.data.get("file_id")
+        file_name = request.data.get("file_name", "file")
+        message = request.data.get("message", "")
+        usernames = request.data.get("usernames", [])
+
+        # If usernames are not explicitly supplied, extract from message
+        if not usernames and message:
+            import re
+            usernames = re.findall(r"@([\w.-]+)", message)
+
+        if not usernames:
+            return Response(
+                {"error": "No users mentioned in message or payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        lower_usernames = [u.lower() for u in usernames]
+        from django.contrib.auth import get_user_model
+        from django.db.models.functions import Lower
+        from automations.events import EventDispatcher
+
+        User = get_user_model()
+        mentioned_users = list(
+            User.objects.annotate(lower_uname=Lower("username"))
+            .filter(lower_uname__in=lower_usernames, is_active=True)
+        )
+
+        if not mentioned_users:
+            return Response(
+                {"error": "No matching active users found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        EventDispatcher.dispatch(
+            event_type="user_mentioned",
+            payload={
+                "author": request.user.get_full_name() or request.user.username,
+                "author_id": str(request.user.id),
+                "author_name": request.user.get_full_name() or request.user.username,
+                "mentioned_user_ids": [str(u.id) for u in mentioned_users],
+                "recipient_ids": [str(u.id) for u in mentioned_users],
+                "project_id": str(project.id),
+                "project_name": project.name,
+                "file_id": str(file_id) if file_id else "",
+                "file_name": str(file_name),
+                "context_name": str(file_name),
+                "context_type": "file",
+                "message": message,
+                "link": f"/tasks?project={project.id}&view=files&file={file_id}",
+            },
+        )
+
+        return Response(
+            {
+                "status": "success",
+                "message": f"Successfully notified {len(mentioned_users)} user(s) on file '{file_name}'.",
+                "mentioned_count": len(mentioned_users),
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 # ---------------------------------------------------------------------------
 # ProjectMember ViewSet (nested: /projects/<project_pk>/members/)

@@ -12,12 +12,7 @@ export const organizationsRoutes: RouteObject[] = [
     path: "organizations",
     element: (
       <PermissionGuard
-        permissions={[
-          "org.view",
-          "org.manage_settings",
-          "org.manage_members",
-          "org.manage_roles",
-        ]}
+        permissions={["org.manage_settings"]}
         fallback={<Navigate to="/dashboard" replace />}
       >
         <OrganizationsPage />
@@ -28,12 +23,7 @@ export const organizationsRoutes: RouteObject[] = [
     path: "organizations/:orgId",
     element: (
       <PermissionGuard
-        permissions={[
-          "org.view",
-          "org.manage_settings",
-          "org.manage_members",
-          "org.manage_roles",
-        ]}
+        permissions={["org.manage_settings"]}
         fallback={<Navigate to="/dashboard" replace />}
       >
         <OrganizationDetailPage />
@@ -44,7 +34,7 @@ export const organizationsRoutes: RouteObject[] = [
     path: "organizations/:orgId/roles",
     element: (
       <PermissionGuard
-        permissions={["org.manage_roles", "role.view"]}
+        permissions={["org.manage_roles", "org.manage_settings"]}
         fallback={<Navigate to="/dashboard" replace />}
       >
         <OrgRolesPage />

@@ -35,6 +35,10 @@ Apply these rules when extending the repository. They are derived from the PRD a
 - Clean up `setInterval`, `setTimeout`, event listeners, subscriptions and WebSocket connections in `useEffect`.
 - Lazy-load page routes when adding a substantial screen.
 - Avoid `any` for new public API surfaces. Preserve UUIDs as `string | number` only where legacy compatibility requires it, with string preferred.
+- **Unified Chat & Mention Standards**: All comment boxes, task descriptions, ticket discussions, and any future chat interfaces must use `<MentionTextarea>` (`apps/web/src/components/MentionTextarea.tsx`).
+  - Dropdown positioning must calculate exact caret pixel coordinates (`computeMentionPopupPosition`) so the suggestions box always appears directly beneath the typed `@` symbol, dynamically flipping above if space below is limited.
+  - Floating suggestions must be rendered via `createPortal(..., document.body)` with `position: fixed` to completely prevent clipping from ancestor `overflow: hidden`, `overflow: scroll`, modal bounds, or drawer containers.
+  - All mention inputs must extract mentioned usernames upon saving/sending and trigger in-app notifications to mentioned users via backend signals.
 
 ## Testing and delivery
 

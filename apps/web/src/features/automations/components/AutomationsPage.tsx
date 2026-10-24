@@ -180,7 +180,7 @@ export const AutomationsPage = () => {
       )}
 
       <dialog ref={modalRef} className="modal modal-bottom sm:modal-middle">
-        <div className="modal-box max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl p-0">
+        <div className="modal-box max-h-[calc(100dvh-2rem)] max-w-2xl overflow-y-auto rounded-2xl p-0">
           <form onSubmit={handleSubmit(submit)}>
             <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-base-content/10 bg-base-100 px-6 py-5">
               <div className="rounded-xl bg-primary/10 p-2 text-primary"><Setting2 size={21} /></div>

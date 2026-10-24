@@ -190,7 +190,7 @@ export const CommandMenu = ({
               </button>
             </div>
 
-            <div id="command-menu-results" role="listbox" className="max-h-[min(26rem,55vh)] overflow-y-auto p-2">
+            <div id="command-menu-results" role="listbox" className="max-h-[min(26rem,55dvh)] overflow-y-auto p-2">
               {filteredCommands.length === 0 ? (
                 <div className="px-4 py-12 text-center text-sm text-heledone-ink-muted">
                   {t("No matching page found.")}</div>

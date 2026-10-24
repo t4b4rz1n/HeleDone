@@ -156,7 +156,7 @@ export default function UsersListPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="heledone-page-content min-h-[calc(100vh-121px)] flex flex-col"
+        className="heledone-page-content min-h-[calc(100dvh-121px)] flex flex-col"
       >
         {/* Header */}
         <motion.div

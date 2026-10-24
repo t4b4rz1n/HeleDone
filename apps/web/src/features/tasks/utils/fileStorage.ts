@@ -5,6 +5,7 @@ export interface StoredFileRecord {
   fileType: 'image' | 'pdf' | 'document' | 'archive' | 'other';
   uploadedAt: string;
   size?: string;
+  description?: string;
 }
 
 const DB_NAME = 'madaar_file_storage';
@@ -145,3 +146,17 @@ export async function appendProjectFileToStorage(
   await saveProjectFilesToStorage(projectId, updatedFiles);
   return updatedFiles;
 }
+
+/**
+ * Removes a file from storage by ID.
+ */
+export async function deleteProjectFileFromStorage(
+  projectId: string | null,
+  fileId: string
+): Promise<StoredFileRecord[]> {
+  const currentFiles = await getProjectFilesFromStorage(projectId);
+  const updatedFiles = currentFiles.filter((f) => f.id !== fileId);
+  await saveProjectFilesToStorage(projectId, updatedFiles);
+  return updatedFiles;
+}
+

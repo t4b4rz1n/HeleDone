@@ -3,6 +3,7 @@ export interface MentionUser {
   username: string;
   displayName: string;
   avatar?: string | null;
+  email?: string | null;
 }
 
 /**
@@ -32,7 +33,8 @@ export const normalizeProjectMembers = (members: any[]): MentionUser[] => {
         id: u.id,
         username: rawUsername,
         displayName,
-        avatar: u.avatar || null,
+        avatar: u.avatar || u.avatar_url || null,
+        email: u.email || null,
       });
     }
   }

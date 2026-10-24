@@ -59,8 +59,8 @@ export const TicketsTable = ({
 
   return (
     <div className="bg-base-100 rounded-2xl border border-base-content/10 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[650px]">
           <thead className="bg-linear-to-r from-primary/10 to-primary/5 border-b border-base-content/10">
             <tr>
               <th className="px-6 py-4 text-start text-sm font-bold text-base-content whitespace-nowrap">
@@ -102,7 +102,7 @@ export const TicketsTable = ({
                 {/* Ticket Type */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-xs text-base-content/70 bg-base-200/50 border border-base-content/10 px-2.5 py-1 rounded-lg">
-                    {getTicketTypeName(ticket.ticket_type) || "—"}
+                    {t(getTicketTypeName(ticket.ticket_type)) || "—"}
                   </span>
                 </td>
 

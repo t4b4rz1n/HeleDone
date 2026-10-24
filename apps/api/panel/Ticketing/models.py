@@ -19,7 +19,9 @@ class TicketType(BaseModel):
         ordering = ["name"]
 
     def __str__(self):
-        return self.name
+        from panel.Ticketing.constants import get_translated_category_name
+
+        return get_translated_category_name(self.name)
 
 
 class Ticket(BaseModel):
@@ -124,6 +126,39 @@ class Message(BaseModel):
                 ticket.status = Ticket.Status.OPEN
             ticket.updated_at = timezone.now()
             ticket.save()
+
+            # Parse mentions (@username) in ticket messages
+            import re
+            mentioned_usernames = set(re.findall(r"@([\w.-]+)", self.text or ""))
+            if mentioned_usernames:
+                try:
+                    from django.contrib.auth import get_user_model
+                    from django.db.models.functions import Lower
+                    from automations.events import EventDispatcher
+
+                    User = get_user_model()
+                    uids = list(
+                        User.objects.annotate(uname_lower=Lower("username"))
+                        .filter(uname_lower__in=[u.lower() for u in mentioned_usernames], is_active=True)
+                        .values_list("id", flat=True)
+                    )
+                    author_name = sender.get_full_name() or sender.username
+                    for uid in uids:
+                        EventDispatcher.dispatch(
+                            event_type="user_mentioned",
+                            payload={
+                                "target_user_id": str(uid),
+                                "project_id": None,
+                                "ticket_id": str(ticket.id),
+                                "mentioned_user_ids": [str(uid)],
+                                "task_title": f"Ticket #{str(ticket.id)[:8]}: {ticket.title}",
+                                "author": author_name,
+                                "comment_text": f"{author_name} mentioned you in ticket #{str(ticket.id)[:8]}",
+                            },
+                        )
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).warning("Failed to dispatch ticket mention notification: %s", exc)
 
 
 class Attachment(BaseModel):

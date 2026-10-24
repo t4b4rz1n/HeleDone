@@ -33,6 +33,7 @@ Use this skill as the product and architecture contract for the Madaar repositor
 - Keep server state in React Query and local UI state in Zustand or component state. Follow the feature-driven frontend layout.
 - Preserve dark/light theme support, RTL/LTR readiness, mobile-first layout, keyboard accessibility, and cleanup for timers/listeners/subscriptions.
 - For polished interaction design, invoke the local `$apple-design` skill alongside this skill; apply its fluid-motion rules without sacrificing Madaar's RTL, accessibility, performance, or product constraints.
+- For all `@mention`, tagging, comment or discussion features, invoke the `$unified-mention-system` skill to enforce the 4-layer architecture (UI, Backend, Automation, i18n).
 - Use UTC/ISO timestamps at the API boundary and translated backend messages. Do not hardcode new user-facing text when the surrounding module has i18n support.
 
 ## Existing module map

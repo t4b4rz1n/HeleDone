@@ -17,6 +17,7 @@ import {
 } from "../hooks/useTeams";
 import { useUsers } from "../../users/hooks/useUsers";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
+import { usePermissions } from "../../auth/hooks/usePermissions";
 import type { Team, TeamMember } from "../types";
 import type { User } from "../../users/types";
 
@@ -35,6 +36,8 @@ interface TeamMembersModalProps {
 
 export const TeamMembersModal = ({ team, isOpen, onClose }: TeamMembersModalProps) => {
   const t = useTranslation();
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canManageMembers = hasAnyPermission(["org.manage_members", "org.manage_settings"]) || isStaff;
   const { data: members, isLoading, isError } = useTeamMembers(team?.id);
   const addMember = useAddTeamMember();
   const removeMember = useRemoveTeamMember();
@@ -106,7 +109,7 @@ export const TeamMembersModal = ({ team, isOpen, onClose }: TeamMembersModalProp
         >
           <motion.div
             variants={modalVariants}
-            className="heledone-surface relative m-0 flex max-h-[min(90vh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-base-content/10 bg-base-100/95 shadow-heledone-floating backdrop-blur-xl sm:m-4"
+            className="heledone-surface relative m-0 flex max-h-[min(90dvh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-base-content/10 bg-base-100/95 shadow-heledone-floating backdrop-blur-xl sm:m-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -165,8 +168,11 @@ export const TeamMembersModal = ({ team, isOpen, onClose }: TeamMembersModalProp
                     <People size={26} />
                   </div>
                   <p className="text-base font-semibold text-base-content/70">{t("No members found")}</p>
-                  <p className="text-sm text-heledone-ink-muted mt-1">
-                    {t("Add team members using the form below.")}</p>
+                  {canManageMembers && (
+                    <p className="text-sm text-heledone-ink-muted mt-1">
+                      {t("Add team members using the form below.")}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -206,22 +212,24 @@ export const TeamMembersModal = ({ team, isOpen, onClose }: TeamMembersModalProp
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setRemovingMember(member)}
-                        className="btn btn-ghost btn-sm min-h-9 shrink-0 gap-1.5 rounded-xl px-2.5 text-heledone-ink-muted transition-colors hover:border-error/15 hover:bg-error/10 hover:text-error sm:px-3"
-                        title={t("Remove member")}
-                      >
-                        <UserMinus size={16} />
-                        <span className="hidden sm:inline">{t("Remove")}</span>
-                      </button>
+                      {canManageMembers && (
+                        <button
+                          type="button"
+                          onClick={() => setRemovingMember(member)}
+                          className="btn btn-ghost btn-sm min-h-9 shrink-0 gap-1.5 rounded-xl px-2.5 text-heledone-ink-muted transition-colors hover:border-error/15 hover:bg-error/10 hover:text-error sm:px-3"
+                          title={t("Remove member")}
+                        >
+                          <UserMinus size={16} />
+                          <span className="hidden sm:inline">{t("Remove")}</span>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Add Member Section */}
-              {!isLoading && !isError && (
+              {canManageMembers && !isLoading && !isError && (
                 <div className="mt-6 border-t border-base-content/10 pt-5 sm:pt-6">
                   <h4 className="font-semibold text-sm text-base-content mb-4 flex items-center gap-2">
                     <Add size={16} className="text-primary" />

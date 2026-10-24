@@ -34,7 +34,7 @@ const RejectModal: React.FC<RejectModalProps> = ({ requestId, onConfirm, onClose
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"  />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-2xl border border-base-content/10 bg-base-100 shadow-2xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-base-content/10 bg-base-100 shadow-2xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-base-content/10 p-5">
           <div className="flex items-center gap-3">
@@ -55,7 +55,7 @@ const RejectModal: React.FC<RejectModalProps> = ({ requestId, onConfirm, onClose
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto">
           <label className="mb-1.5 block text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
             {t("Rejection Reason")} <span className="text-heledone-ink-muted normal-case font-normal tracking-normal">{t("(optional)")}</span>
           </label>
@@ -110,7 +110,7 @@ const CancelModal: React.FC<CancelModalProps> = ({ requestId, onConfirm, onClose
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"  />
 
       {/* Modal */}
-      <div className="relative w-full max-w-sm rounded-2xl border border-base-content/10 bg-base-100 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-2xl border border-base-content/10 bg-base-100 shadow-2xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-base-content/10 p-5">
           <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ const CancelModal: React.FC<CancelModalProps> = ({ requestId, onConfirm, onClose
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto">
           <p className="text-sm text-heledone-ink-muted">
             {t("Are you sure you want to cancel this time off request?")}</p>
         </div>
@@ -242,7 +242,7 @@ export const TimeOffRequestList: React.FC<{ isManager?: boolean }> = ({ isManage
           </div>
         </div>
 
-        <div className="p-0 overflow-x-auto">
+        <div className="p-0 overflow-x-auto w-full">
           {isLoading ? (
             <div className="p-5 animate-pulse space-y-4">
               {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-base-200/70" />)}
@@ -253,7 +253,7 @@ export const TimeOffRequestList: React.FC<{ isManager?: boolean }> = ({ isManage
               <p>{t("No requests found.")}</p>
             </div>
           ) : (
-            <table className="w-full text-start text-sm text-base-content/70">
+            <table className="w-full min-w-[600px] text-start text-sm text-base-content/70">
               <thead className="border-b border-base-content/10 bg-base-200 text-xs uppercase text-heledone-ink-muted">
                 <tr>
                   <th className="px-6 py-4 font-semibold">{t("User")}</th>

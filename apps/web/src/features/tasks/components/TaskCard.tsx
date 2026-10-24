@@ -12,6 +12,7 @@ import {
   More,
   Play,
   Profile2User,
+  SearchNormal1,
   Stop,
   TaskSquare,
   TickCircle,
@@ -86,6 +87,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMembersMenu, setShowMembersMenu] = useState(false);
   const [isAssigneePopoverOpen, setIsAssigneePopoverOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const assigneeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -189,6 +191,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     setIsMenuOpen(false);
     setShowMembersMenu(false);
     setIsAssigneePopoverOpen(false);
+    setAssigneeSearch("");
   };
 
   const initials = task.assignee_detail
@@ -445,109 +448,167 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <>
             <div className="fixed inset-0 z-40" onClick={closeMenu} />
             <div
-              className="fixed z-50 w-48 max-h-60 overflow-y-auto rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-[13px] font-semibold text-base-content shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+              className="fixed z-50 w-64 max-h-80 overflow-hidden flex flex-col rounded-2xl border border-base-content/10 bg-base-100 p-2 text-[13px] font-semibold text-base-content shadow-2xl animate-in fade-in zoom-in-95 duration-100"
               style={{
-                top: assigneeTriggerRef.current.getBoundingClientRect().bottom + 250 > window.innerHeight
+                top: assigneeTriggerRef.current.getBoundingClientRect().bottom + 290 > window.innerHeight
                   ? assigneeTriggerRef.current.getBoundingClientRect().top - 4
                   : assigneeTriggerRef.current.getBoundingClientRect().bottom + 4,
-                transform: assigneeTriggerRef.current.getBoundingClientRect().bottom + 250 > window.innerHeight
+                transform: assigneeTriggerRef.current.getBoundingClientRect().bottom + 290 > window.innerHeight
                   ? 'translateY(-100%)'
                   : 'none',
                 left: assigneeTriggerRef.current.getBoundingClientRect().left,
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-2 py-1 text-[13px] font-bold text-heledone-ink-muted uppercase tracking-wider">
-                {t("Assign to")}</div>
+              <div className="flex items-center justify-between px-2 py-1 border-b border-base-content/6 mb-1.5">
+                <span className="text-xs font-bold text-heledone-ink-muted uppercase tracking-wider">
+                  {t("مسئولین تسک")}
+                </span>
+                {cardAssignees.length > 0 && (
+                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {formatUiNumber(cardAssignees.length)} {t("نفر")}
+                  </span>
+                )}
+              </div>
 
-              {/* Unassigned Option */}
-              {(() => {
-                const currentAssigneeIds: (string | number)[] = cardAssignees.map((a: any) => a.id);
-
-                return (
-                  <>
+              {/* Search Box */}
+              <div className="relative mb-2 px-1">
+                <div className="flex items-center gap-1.5 rounded-xl border border-base-content/10 bg-base-200/50 px-2.5 py-1.5 text-xs">
+                  <SearchNormal1 size={13} className="text-heledone-ink-muted shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={assigneeSearch}
+                    onChange={(e) => setAssigneeSearch(e.target.value)}
+                    placeholder={t("جستجو...")}
+                    className="w-full bg-transparent outline-none placeholder:text-heledone-ink-muted text-xs font-medium"
+                  />
+                  {assigneeSearch && (
                     <button
                       type="button"
-                      className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
-                        currentAssigneeIds.length === 0 ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const patch = {
-                          assignees: [],
-                          assignees_detail: [],
-                          assignee: null,
-                          assignee_detail: null,
-                        };
-                        setLocalAssignees([]);
-                        onPatch?.(task.id, patch);
-                        updateMutation.mutate(patch as any);
-                        closeMenu();
-                      }}
+                      onClick={() => setAssigneeSearch("")}
+                      className="text-xs text-heledone-ink-muted hover:text-base-content"
                     >
-                      <Profile2User size={14} className="text-heledone-ink-muted" />
-                      <span>{t("بدون مسئول")}</span>
+                      ✕
                     </button>
+                  )}
+                </div>
+              </div>
 
-                    {/* Users List */}
-                    {users.map((user: any) => {
-                      const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
-                      return (
-                        <button
-                          type="button"
-                          key={user.id}
-                          className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
-                            isSelected
-                              ? "bg-primary/10 text-primary font-bold"
-                              : "hover:bg-base-200"
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const newAssignees = isSelected
-                              ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
-                              : [...cardAssignees, user];
-                            const newIds = newAssignees.map((a: any) => a.id);
-                            const patch = {
-                              assignees: newIds,
-                              assignees_detail: newAssignees,
-                              assignee: newIds[0] || null,
-                              assignee_detail: newAssignees[0] || null,
-                            };
-                            setLocalAssignees(newAssignees);
-                            onPatch?.(task.id, patch);
-                            updateMutation.mutate(patch as any);
-                          }}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shrink-0">
-                              {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                            </span>
-                            <span className="truncate flex items-center gap-1">
-                              <span>
-                                {user.first_name || user.last_name
-                                  ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                                  : user.full_name || user.username || user.email || t("Unknown Member")}
+              {/* Quick Actions & List */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 pe-0.5">
+                {(() => {
+                  const currentAssigneeIds: (string | number)[] = cardAssignees.map((a: any) => a.id);
+                  const filteredUsers = users.filter((u: any) => {
+                    if (!assigneeSearch.trim()) return true;
+                    const q = assigneeSearch.toLowerCase();
+                    const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""} ${u.email || ""}`.toLowerCase();
+                    return name.includes(q);
+                  });
+
+                  return (
+                    <>
+                      {/* Unassigned / Clear All Option */}
+                      <button
+                        type="button"
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
+                          currentAssigneeIds.length === 0 ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const patch = {
+                            assignees: [],
+                            assignees_detail: [],
+                            assignee: null,
+                            assignee_detail: null,
+                          };
+                          setLocalAssignees([]);
+                          onPatch?.(task.id, patch);
+                          updateMutation.mutate(patch as any);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Profile2User size={14} className="text-heledone-ink-muted" />
+                          <span>{t("بدون مسئول (حذف همه)")}</span>
+                        </div>
+                        {currentAssigneeIds.length === 0 && <span className="text-primary text-xs">✓</span>}
+                      </button>
+
+                      {/* Filtered Users List */}
+                      {filteredUsers.map((user: any) => {
+                        const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                        return (
+                          <button
+                            type="button"
+                            key={user.id}
+                            className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
+                              isSelected
+                                ? "bg-primary/10 text-primary font-bold"
+                                : "hover:bg-base-200"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newAssignees = isSelected
+                                ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                                : [...cardAssignees, user];
+                              const newIds = newAssignees.map((a: any) => a.id);
+                              const patch = {
+                                assignees: newIds,
+                                assignees_detail: newAssignees,
+                                assignee: newIds[0] || null,
+                                assignee_detail: newAssignees[0] || null,
+                              };
+                              setLocalAssignees(newAssignees);
+                              onPatch?.(task.id, patch);
+                              updateMutation.mutate(patch as any);
+                            }}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="grid size-5.5 place-items-center rounded-full bg-primary/10 text-[12px] font-bold text-primary shrink-0 ring-1 ring-base-content/5">
+                                {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
                               </span>
-                              {user.username && (
-                                <span className="text-[13px] text-heledone-ink-muted font-normal">
-                                  (@{user.username})
+                              <span className="truncate flex items-center gap-1">
+                                <span className="text-xs">
+                                  {user.first_name || user.last_name
+                                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+                                    : user.full_name || user.username || user.email || t("Unknown Member")}
                                 </span>
-                              )}
+                                {user.username && (
+                                  <span className="text-[11px] text-heledone-ink-muted font-normal truncate">
+                                    (@{user.username})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <span className={`size-4 rounded flex items-center justify-center text-xs shrink-0 transition ${
+                              isSelected ? "bg-primary text-primary-content" : "border border-base-content/20"
+                            }`}>
+                              {isSelected ? "✓" : ""}
                             </span>
-                          </div>
-                          {isSelected && <span className="text-primary text-xs shrink-0">✓</span>}
-                        </button>
-                      );
-                    })}
-                  </>
-                );
-              })()}
+                          </button>
+                        );
+                      })}
 
+                      {filteredUsers.length === 0 && (
+                        <div className="px-2 py-4 text-center text-xs text-heledone-ink-muted">
+                          {t("No members found")}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
 
-              {users.length === 0 && (
-                <div className="px-2 py-2 text-[13px] text-heledone-ink-muted">
-                  {t("No members found")}</div>
-              )}
+              {/* Done button */}
+              <div className="pt-2 mt-1 border-t border-base-content/6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={closeMenu}
+                  className="px-3 py-1 rounded-lg bg-primary text-primary-content text-xs font-bold shadow-xs hover:bg-primary/90 transition"
+                >
+                  {t("بستن")}
+                </button>
+              </div>
             </div>
           </>,
           document.body

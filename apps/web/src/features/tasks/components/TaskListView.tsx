@@ -17,7 +17,9 @@ import {
 import { toast } from 'sonner';
 import { useTranslation, formatNumber as formatUiNumber } from '../../../i18n/locale';
 import { updateTask, deleteTask, createTask } from '../api/tasksApi';
+import { usePermissions } from '../../auth/hooks/usePermissions';
 import type { Task, TaskStatus, User as TaskUser } from '../types';
+import { getHeledoneAvatar } from '../../../utils/avatarUtils';
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -44,6 +46,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 }) => {
   const t = useTranslation();
   const queryClient = useQueryClient();
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canDeleteTasks = hasAnyPermission(["task.manage_all", "project.manage"]) || isStaff;
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string | number>>(new Set());
@@ -228,16 +232,20 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
         {selectedTaskIds.size > 0 && (
           <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary animate-in fade-in">
             <span>{t('{count} تسک انتخاب‌شده', { count: formatUiNumber(selectedTaskIds.size) })}</span>
-            <div className="h-3 w-px bg-primary/20 mx-1" />
-            <button
-              type="button"
-              onClick={() => batchDeleteMutation.mutate(Array.from(selectedTaskIds))}
-              className="flex items-center gap-1 text-error hover:underline"
-              disabled={batchDeleteMutation.isPending}
-            >
-              <Trash2 size={13} />
-              <span>{t('حذف')}</span>
-            </button>
+            {canDeleteTasks && (
+              <>
+                <div className="h-3 w-px bg-primary/20 mx-1" />
+                <button
+                  type="button"
+                  onClick={() => batchDeleteMutation.mutate(Array.from(selectedTaskIds))}
+                  className="flex items-center gap-1 text-error hover:underline"
+                  disabled={batchDeleteMutation.isPending}
+                >
+                  <Trash2 size={13} />
+                  <span>{t('حذف')}</span>
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setSelectedTaskIds(new Set())}
@@ -287,8 +295,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
 
               {/* Table Body */}
               {!isCollapsed && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-start border-collapse text-xs">
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full min-w-[700px] text-start border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-base-300/60 bg-base-100/50 text-heledone-ink-muted font-bold text-[11px]">
                         <th className="py-2.5 px-3 w-10 text-center">
@@ -384,25 +392,61 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                               )}
                             </td>
 
-                            {/* Assignee Dropdown */}
-                            <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
-                              <select
-                                value={task.assignee || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value ? Number(e.target.value) : undefined;
-                                  updateTaskMutation.mutate({ taskId: task.id, payload: { assignee: val } });
-                                }}
-                                className="w-full bg-transparent hover:bg-base-200 border border-transparent hover:border-base-300 rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer focus:bg-base-100 focus:outline-none"
-                              >
-                                <option value="">{t('بدون مسئول')}</option>
-                                {members.map((m) => (
-                                  <option key={m.id} value={m.id}>
-                                    {m.first_name || m.last_name
-                                      ? `${m.first_name || ''} ${m.last_name || ''}`.trim()
-                                      : m.username}
-                                  </option>
-                                ))}
-                              </select>
+                            {/* Assignee Cell with Multi-Assignee Avatars */}
+                            <td
+                              className="py-2.5 px-3"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectTask(task);
+                              }}
+                            >
+                              {(() => {
+                                const assignees: any[] = (task.assignees_detail && task.assignees_detail.length > 0)
+                                  ? task.assignees_detail
+                                  : (task.assignees && task.assignees.length > 0)
+                                  ? task.assignees.map((id) => members.find((m) => String(m.id) === String(id))).filter(Boolean)
+                                  : task.assignee_detail
+                                  ? [task.assignee_detail]
+                                  : task.assignee
+                                  ? members.filter((m) => String(m.id) === String(task.assignee))
+                                  : [];
+
+                                if (assignees.length === 0) {
+                                  return (
+                                    <span className="inline-flex items-center gap-1.5 text-heledone-ink-muted hover:text-primary transition-colors text-xs font-medium cursor-pointer">
+                                      <span className="size-5 rounded-full border border-dashed border-base-content/20 grid place-items-center text-[10px]">+</span>
+                                      <span>{t('بدون مسئول')}</span>
+                                    </span>
+                                  );
+                                }
+
+                                return (
+                                  <div className="flex items-center gap-2 cursor-pointer group/asgn" title={assignees.map((a: any) => a.first_name || a.username).join(', ')}>
+                                    <div className="flex -space-x-1.5 rtl:space-x-reverse shrink-0">
+                                      {assignees.slice(0, 3).map((u: any) => (
+                                        <img
+                                          key={u.id}
+                                          src={u.avatar || u.avatar_url || getHeledoneAvatar(u.id, u.username)}
+                                          alt=""
+                                          className="size-5.5 rounded-full object-cover ring-1 ring-base-100 shadow-2xs"
+                                        />
+                                      ))}
+                                      {assignees.length > 3 && (
+                                        <span className="grid size-5.5 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary ring-1 ring-base-100">
+                                          +{assignees.length - 3}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-xs font-semibold text-base-content truncate max-w-[100px] group-hover/asgn:text-primary transition-colors">
+                                      {assignees.length === 1
+                                        ? (assignees[0].first_name || assignees[0].last_name
+                                            ? `${assignees[0].first_name || ''} ${assignees[0].last_name || ''}`.trim()
+                                            : assignees[0].username)
+                                        : `${formatUiNumber(assignees.length)} ${t('نفر')}`}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </td>
 
                             {/* Priority Dropdown */}

@@ -75,11 +75,11 @@ export const CreateMilestoneModal: React.FC<CreateMilestoneModalProps> = ({
 
     >
       <div
-        className="heledone-surface w-full max-w-lg rounded-[28px] border border-base-content/10 bg-base-100 p-6 shadow-2xl animate-in fade-in zoom-in duration-200 sm:p-7"
+        className="heledone-surface w-full max-w-lg rounded-[28px] border border-base-content/10 bg-base-100 p-6 shadow-2xl animate-in fade-in zoom-in duration-200 sm:p-7 max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-base-content/10 pb-4">
+        <div className="flex items-center justify-between border-b border-base-content/10 pb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
               <Flag size={20} />
@@ -101,7 +101,7 @@ export const CreateMilestoneModal: React.FC<CreateMilestoneModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4 overflow-y-auto flex-1 pe-1">
           <div>
             <label className="mb-2 block text-xs font-medium text-base-content">
               {t("Milestone Title")} <span className="text-error">*</span>
@@ -156,7 +156,7 @@ export const CreateMilestoneModal: React.FC<CreateMilestoneModalProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-base-content/10 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-base-content/10 pt-4 sm:flex-row sm:justify-end shrink-0 mt-auto">
             <button
               type="button"
               onClick={onClose}

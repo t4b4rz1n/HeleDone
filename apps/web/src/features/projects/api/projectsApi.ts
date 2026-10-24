@@ -209,3 +209,21 @@ export const getProjectActivities = async (
   const response = await ApiService.get(`projects/${projectId}/activities/`);
   return extractList<ProjectActivity>(response);
 };
+
+export interface MentionFileData {
+  file_id: string;
+  file_name: string;
+  message: string;
+  usernames?: string[];
+}
+
+export const mentionFile = async (
+  projectId: string | number,
+  data: MentionFileData
+): Promise<{ status: string; message: string; mentioned_count: number }> => {
+  const response = await ApiService.post<{ status: string; message: string; mentioned_count: number }>(
+    `projects/${projectId}/mention-file/`,
+    data
+  );
+  return unwrap<{ status: string; message: string; mentioned_count: number }>(response);
+};
