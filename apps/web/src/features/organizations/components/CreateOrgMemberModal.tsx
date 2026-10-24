@@ -289,7 +289,7 @@ export const CreateOrgMemberModal = ({
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-4 text-xs max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 text-xs max-h-[70dvh] overflow-y-auto">
               {activeTab === "add_existing" ? (
                 <>
                   {/* User search dropdown */}

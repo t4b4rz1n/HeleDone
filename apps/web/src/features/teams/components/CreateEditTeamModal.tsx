@@ -100,7 +100,7 @@ export const CreateEditTeamModal = ({
         >
           <motion.div
             variants={modalVariants}
-            className="heledone-surface relative m-0 flex max-h-[min(90vh,44rem)] w-full max-w-lg flex-col overflow-hidden rounded-[24px] border border-base-content/10 bg-base-100/95 shadow-heledone-floating backdrop-blur-xl sm:m-4"
+            className="heledone-surface relative m-0 flex max-h-[min(90dvh,44rem)] w-full max-w-lg flex-col overflow-hidden rounded-[24px] border border-base-content/10 bg-base-100/95 shadow-heledone-floating backdrop-blur-xl sm:m-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex-shrink-0 border-b border-base-content/10 bg-base-200/20 p-5 sm:p-6">

@@ -259,7 +259,8 @@ class TaskViewSet(viewsets.ModelViewSet):
         )
 
         qs = (
-            Task.objects.select_related("project", "status", "assignee", "reporter")
+            Task.objects.select_related("project", "status", "reporter")
+            .prefetch_related("assignees")
             .annotate(
                 annotated_subtasks_count=Coalesce(
                     Subquery(subtasks_sq, output_field=IntegerField()), 0
@@ -305,7 +306,8 @@ class TaskViewSet(viewsets.ModelViewSet):
             qs = qs.filter(status__board_id=board_id)
         assignee_id = self.request.query_params.get("assignee")
         if assignee_id:
-            qs = qs.filter(assignee_id=assignee_id)
+            qs = qs.filter(assignees__id=assignee_id)
+
         status_id = self.request.query_params.get("status")
         if status_id:
             qs = qs.filter(status_id=status_id)
@@ -372,6 +374,27 @@ class TaskViewSet(viewsets.ModelViewSet):
             TaskDetailSerializer(task, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        task = TaskService.update_task(
+            task=instance,
+            actor=request.user,
+            **serializer.validated_data,
+        )
+        refreshed = (
+            Task.objects.select_related("project", "status", "reporter")
+            .prefetch_related("assignees")
+            .get(id=task.id)
+        )
+        return Response(TaskDetailSerializer(refreshed, context={"request": request}).data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
         task = TaskService.update_task(
@@ -525,9 +548,9 @@ class TaskChecklistItemViewSet(viewsets.ModelViewSet):
 
             qs = qs.filter(
                 Q(task__project__organization_id__in=org_ids)
-                | Q(task__assignee=user)
+                | Q(task__assignees=user)
                 | Q(task__reporter=user)
-            )
+            ).distinct()
 
         task_id = self.request.query_params.get("task")
         if task_id:

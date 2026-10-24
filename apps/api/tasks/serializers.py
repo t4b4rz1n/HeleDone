@@ -161,7 +161,9 @@ class TaskCommentSerializer(serializers.ModelSerializer):
 
 class TaskListSerializer(serializers.ModelSerializer):
     status_detail = TaskStatusSerializer(source="status", read_only=True, allow_null=True)
-    assignee_detail = UserMinimalSerializer(source="assignee", read_only=True)
+    assignees_detail = UserMinimalSerializer(source="assignees", many=True, read_only=True)
+    assignee = serializers.SerializerMethodField(read_only=True)
+    assignee_detail = serializers.SerializerMethodField(read_only=True)
     reporter_detail = UserMinimalSerializer(source="reporter", read_only=True)
     subtasks_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
@@ -188,6 +190,8 @@ class TaskListSerializer(serializers.ModelSerializer):
             "priority",
             "assignee",
             "assignee_detail",
+            "assignees",
+            "assignees_detail",
             "reporter",
             "reporter_detail",
             "due_date",
@@ -207,6 +211,16 @@ class TaskListSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "reporter", "created_at", "updated_at")
+
+    def get_assignee(self, obj):
+        first = obj.assignees.first()
+        return first.id if first else None
+
+    def get_assignee_detail(self, obj):
+        first = obj.assignees.first()
+        if not first:
+            return None
+        return UserMinimalSerializer(first, context=self.context).data
 
     def get_spent_seconds(self, obj):
         if hasattr(obj, "annotated_spent_seconds"):
@@ -265,6 +279,14 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
     status = serializers.PrimaryKeyRelatedField(
         queryset=TaskStatus.objects.all(), required=False, allow_null=True
     )
+    assignees = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, required=False
+    )
+    assignees_detail = UserMinimalSerializer(source="assignees", many=True, read_only=True)
+    assignee = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True, write_only=True
+    )
+    assignee_detail = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Task
@@ -277,6 +299,9 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
             "status",
             "priority",
             "assignee",
+            "assignee_detail",
+            "assignees",
+            "assignees_detail",
             "due_date",
             "estimated_hours",
             "parent_task",
@@ -284,7 +309,11 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
             "is_finished",
             "is_blocked",
         )
-        read_only_fields = ("id",)
+        read_only_fields = ("id", "assignee_detail", "assignees_detail")
+
+    def get_assignee_detail(self, obj):
+        first = obj.assignees.first()
+        return UserMinimalSerializer(first, context=self.context).data if first else None
 
     def validate_estimated_hours(self, value):
         if value is not None and value < 0:
@@ -295,22 +324,32 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
         parent_task = attrs.get("parent_task")
         project = attrs.get("project") or (self.instance.project if self.instance else None)
         task_status = attrs.get("status")
-        assignee = attrs.get("assignee", getattr(self.instance, "assignee", None))
 
-        if project and assignee:
+        # Map single 'assignee' to 'assignees' if provided
+        if "assignee" in attrs:
+            single_assignee = attrs.pop("assignee")
+            if "assignees" not in attrs:
+                attrs["assignees"] = [single_assignee] if single_assignee else []
+
+        assignees = attrs.get("assignees")
+        if assignees is None and self.instance:
+            assignees = list(self.instance.assignees.all())
+
+        if project and assignees:
             from projects.models import ProjectMember
 
-            is_member = ProjectMember.objects.filter(
-                project=project, user=assignee, is_active=True
-            ).exists()
-            if not is_member and project.owner != assignee:
-                raise serializers.ValidationError(
-                    {
-                        "assignee": _(
-                            "The assignee must be an active member or owner of the project."
-                        )
-                    }
-                )
+            for assignee in assignees:
+                is_member = ProjectMember.objects.filter(
+                    project=project, user=assignee, is_active=True
+                ).exists()
+                if not is_member and project.owner != assignee:
+                    raise serializers.ValidationError(
+                        {
+                            "assignees": _(
+                                "All assignees must be active members or owner of the project."
+                            )
+                        }
+                    )
 
         # Prevent circular parent assignment
         if self.instance and parent_task and parent_task.id == self.instance.id:

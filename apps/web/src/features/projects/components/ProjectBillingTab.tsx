@@ -162,8 +162,8 @@ export const ProjectBillingTab = ({ projectId }: ProjectBillingTabProps) => {
             <p className="text-sm">{t("No members in this project yet.")}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-start text-sm">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[600px] text-start text-sm">
               <thead className="border-b border-base-content/10 text-xs font-semibold text-heledone-ink-muted">
                 <tr>
                   <th className="pb-3 ps-2">{t("Member")}</th>
@@ -188,13 +188,13 @@ export const ProjectBillingTab = ({ projectId }: ProjectBillingTabProps) => {
                     className="hover:bg-base-200/30 transition-colors"
                   >
                     <td className="py-3 ps-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                           {getInitial(m)}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-bold text-base-content leading-tight text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="font-bold text-base-content leading-tight text-sm truncate">
                               {getUserName(m)}
                             </p>
                             {m.salary_override && (
@@ -202,7 +202,7 @@ export const ProjectBillingTab = ({ projectId }: ProjectBillingTabProps) => {
                                 {t("Override")}</span>
                             )}
                           </div>
-                          <p className="text-[13px] text-heledone-ink-muted">
+                          <p className="text-[13px] text-heledone-ink-muted truncate">
                             @{m.username}
                           </p>
                         </div>

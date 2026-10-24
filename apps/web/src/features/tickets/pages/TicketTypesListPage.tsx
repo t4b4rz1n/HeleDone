@@ -152,7 +152,7 @@ export default function TicketTypesListPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="heledone-page-content min-h-[calc(100vh-121px)] flex flex-col"
+        className="heledone-page-content min-h-[calc(100dvh-121px)] flex flex-col"
       >
         {/* Header */}
         <motion.div
@@ -223,7 +223,8 @@ export default function TicketTypesListPage() {
             <CoastalEmptyState motif="waves" title={t("No categories defined")} description={t("Add the first category to get started.")} />
           ) : (
             <div className="bg-base-100 rounded-2xl border border-base-content/10 overflow-hidden">
-              <table className="w-full">
+              <div className="w-full overflow-x-auto">
+                <table className="w-full min-w-[600px]">
                 <thead className="bg-linear-to-r from-primary/10 to-primary/5 border-b border-base-content/10">
                   <tr>
                     <th className="px-6 py-4 text-start text-sm font-bold text-base-content">
@@ -245,7 +246,7 @@ export default function TicketTypesListPage() {
                       className="hover:bg-base-200 transition-colors"
                     >
                       <td className="px-6 py-4 text-sm font-bold text-base-content">
-                        {item.name}
+                        {t(item.name)}
                       </td>
                       <td className="px-6 py-4 text-xs text-heledone-ink-muted">
                         {formatDate(item.created_at)}
@@ -271,7 +272,8 @@ export default function TicketTypesListPage() {
                     </motion.tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           )}
         </motion.div>
@@ -297,7 +299,7 @@ export default function TicketTypesListPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-base-100 rounded-2xl shadow-xl flex flex-col"
+              className="w-full max-w-md bg-base-100 rounded-2xl shadow-xl flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden"
             >
               <div className="p-6 border-b border-base-content/10 flex justify-between items-center">
                 <h3 className="font-bold text-xl text-base-content">
@@ -311,7 +313,7 @@ export default function TicketTypesListPage() {
                 </button>
               </div>
 
-              <div className="p-6">
+              <div className="p-6 overflow-y-auto">
                 <div className="form-control w-full">
                   <div className="label mb-1.5">
                     <span className="label-text font-semibold">{t("Category Name")}</span>

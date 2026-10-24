@@ -108,7 +108,7 @@ export const NotificationCenter = () => {
               <NotificationIcon size={20} className="text-primary" />
             </div>
 
-            <div className="max-h-[min(24rem,55vh)] overflow-y-auto p-2">
+            <div className="max-h-[min(24rem,55dvh)] overflow-y-auto p-2">
               {isLoading ? (
                 <div className="space-y-2 p-2" aria-label={t("Loading notifications")}>
                   {[1, 2, 3].map((item) => (

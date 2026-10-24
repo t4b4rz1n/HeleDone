@@ -154,8 +154,8 @@ export const AdminFinanceDashboard = () => {
           <CoastalEmptyState motif="boat" title={debouncedSearch ? t("No members match your search.") : t("No financial records found.")} />
         ) : (
           <div className="space-y-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-start text-sm">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[600px] text-start text-sm">
                 <thead className="border-b border-base-content/10 text-xs font-semibold text-heledone-ink-muted">
                   <tr>
                     <th className="pb-3 ps-2">{t("Member")}</th>
@@ -172,15 +172,15 @@ export const AdminFinanceDashboard = () => {
                       className="hover:bg-base-200/30 transition-colors"
                     >
                       <td className="py-3 ps-2">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                             {getInitial(r)}
                           </div>
-                          <div>
-                            <p className="font-bold text-base-content leading-tight">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-base-content leading-tight truncate">
                               {getUserDisplayName(r)}
                             </p>
-                            <p className="text-[13px] text-heledone-ink-muted">
+                            <p className="text-[13px] text-heledone-ink-muted truncate">
                               @{r.username}
                             </p>
                           </div>

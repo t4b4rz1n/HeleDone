@@ -168,11 +168,11 @@ export default function OrganizationDetailPage() {
 
       {/* Organization header */}
       <div className="heledone-page-heading">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4 flex-1">
           <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
             <People size={28} />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl font-bold tracking-tight">
               {organization.name}
             </h1>
@@ -370,8 +370,8 @@ export default function OrganizationDetailPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="heledone-surface rounded-2xl border border-base-content/10 bg-base-200/25 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-base-100 hover:shadow-heledone-raised"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{team.name}</p>
                         <p className="mt-1 line-clamp-2 text-xs text-heledone-ink-muted">
                           {team.description || t("No description provided")}
@@ -382,8 +382,8 @@ export default function OrganizationDetailPage() {
                         {team.is_active ? t("فعال") : t("Inactive")}
                       </span>
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-xs text-heledone-ink-muted">
-                      <span>
+                    <div className="mt-4 flex items-center justify-between text-xs text-heledone-ink-muted min-w-0">
+                      <span className="truncate min-w-0 flex-1 me-2">
                         {t("Leader:")} {leader ? `${leader.first_name} ${leader.last_name}`.trim() : t("بدون مسئول")}
                       </span>
                       {memberCount !== undefined && <span>{formatUiNumber(memberCount)}  {t("members")}</span>}
@@ -431,8 +431,8 @@ export default function OrganizationDetailPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className="heledone-surface rounded-xl border border-base-content/10 bg-base-100 p-4 transition hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="truncate text-sm font-semibold">{project.name}</p>
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <p className="truncate text-sm font-semibold min-w-0 flex-1">{project.name}</p>
                     <span className="badge badge-sm shrink-0 capitalize">{project.status_display || project.status}</span>
                   </div>
                   <p className="mt-2 line-clamp-2 text-xs text-heledone-ink-muted">

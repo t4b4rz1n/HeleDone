@@ -6,16 +6,15 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "../i18n/locale";
 import { getHeledoneAvatar } from "../utils/avatarUtils";
-
-export interface MentionUser {
-  id: string | number;
-  username: string;
-  displayName: string;
-  avatar?: string | null;
-}
+import { normalizeProjectMembers, type MentionUser } from "../utils/mentionUtils";
+import {
+  computeMentionPopupPosition,
+  type CaretPopupCoords,
+} from "../utils/caretPosition";
 
 export interface MentionTextareaProps {
   value: string;
@@ -34,75 +33,8 @@ export interface MentionTextareaProps {
   position?: "top" | "bottom" | "auto";
   wrapperClassName?: string;
   textareaRef?: React.Ref<HTMLTextAreaElement>;
+  onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
 }
-
-/**
- * Normalizes various project member formats into clean MentionUser objects.
- * Guarantees only unique, valid members of the specified project are returned.
- */
-export const normalizeProjectMembers = (members: any[]): MentionUser[] => {
-  if (!Array.isArray(members)) return [];
-  const map = new Map<string, MentionUser>();
-
-  for (const item of members) {
-    if (!item) continue;
-    const u = item.user || item;
-    if (!u || !u.username) continue;
-
-    const rawUsername = String(u.username).trim();
-    if (!rawUsername) continue;
-
-    const key = rawUsername.toLowerCase();
-    if (!map.has(key)) {
-      const displayName =
-        u.full_name?.trim() ||
-        [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-        rawUsername;
-
-      map.set(key, {
-        id: u.id,
-        username: rawUsername,
-        displayName,
-        avatar: u.avatar || null,
-      });
-    }
-  }
-
-  return Array.from(map.values());
-};
-
-/**
- * Text component that renders @mentions with stylish, highlighted badges.
- */
-export const MentionText: React.FC<{
-  content: string;
-  className?: string;
-}> = ({ content, className }) => {
-  if (!content) return null;
-
-  // Split by @username tokens
-  const parts = content.split(/(@[a-zA-Z0-9_\u0600-\u06FF.-]+)/g);
-
-  return (
-    <p className={className}>
-      {parts.map((part, index) => {
-        if (part.startsWith("@") && part.length > 1) {
-          const username = part.slice(1);
-          return (
-            <span
-              key={index}
-              className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary transition hover:bg-primary/20 cursor-default select-text"
-              title={`@${username}`}
-            >
-              @{username}
-            </span>
-          );
-        }
-        return part;
-      })}
-    </p>
-  );
-};
 
 export const MentionTextarea = React.forwardRef<
   HTMLTextAreaElement,
@@ -123,7 +55,8 @@ export const MentionTextarea = React.forwardRef<
       onKeyDown,
       onFocus,
       onBlur,
-      position = "auto",
+      onPaste,
+      position: _position,
       wrapperClassName = "",
     },
     forwardedRef
@@ -140,15 +73,22 @@ export const MentionTextarea = React.forwardRef<
     const [mentionQuery, setMentionQuery] = useState("");
     const [mentionTriggerIndex, setMentionTriggerIndex] = useState(-1);
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [dropdownPlacement, setDropdownPlacement] = useState<"top" | "bottom">(
-      position === "bottom" ? "bottom" : "top"
-    );
+    const [popupCoords, setPopupCoords] = useState<CaretPopupCoords>({
+      left: 0,
+      placement: "bottom",
+      maxHeight: 240,
+      isOutOfBounds: false,
+    });
+    const lastMentionTriggerIndexRef = useRef<number>(-1);
+    const rafIdRef = useRef<number | null>(null);
 
     // Normalize project members
     const normalizedMembers = useMemo(
       () => normalizeProjectMembers(members),
       [members]
     );
+
+    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     // Filter project members matching query
     const filteredMembers = useMemo(() => {
@@ -158,7 +98,8 @@ export const MentionTextarea = React.forwardRef<
       return normalizedMembers.filter(
         (m) =>
           m.username.toLowerCase().includes(q) ||
-          m.displayName.toLowerCase().includes(q)
+          m.displayName.toLowerCase().includes(q) ||
+          (m.email && m.email.toLowerCase().includes(q))
       );
     }, [isMentionOpen, mentionQuery, normalizedMembers]);
 
@@ -167,53 +108,111 @@ export const MentionTextarea = React.forwardRef<
       setSelectedIndex(0);
     }, [mentionQuery, filteredMembers.length]);
 
-    // Check trigger on selection or text change
-    const checkMentionTrigger = useCallback(() => {
-      const textarea = internalTextareaRef.current;
-      if (!textarea) return;
-
-      const cursor = textarea.selectionStart;
-      const textBefore = value.slice(0, cursor);
-
-      // Check if preceded by space or start of line, followed by @ and optional query characters
-      const match = textBefore.match(/(?:^|\s)@([a-zA-Z0-9_\u0600-\u06FF.-]*)$/);
-
-      if (match) {
-        const query = match[1];
-        // Calculate the exact index of the '@' symbol
-        const atIndex = match.index! + (match[0].startsWith(" ") || match[0].startsWith("\n") ? 1 : 0);
-
-        setMentionTriggerIndex(atIndex);
-        setMentionQuery(query);
-        setIsMentionOpen(true);
-
-        // Auto position top vs bottom based on viewport space
-        if (position === "auto" && containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          if (rect.top < 260) {
-            setDropdownPlacement("bottom");
-          } else {
-            setDropdownPlacement("top");
-          }
-        }
-      } else {
-        setIsMentionOpen(false);
-        setMentionTriggerIndex(-1);
-        setMentionQuery("");
+    // Scroll active item into view
+    useEffect(() => {
+      if (isMentionOpen && itemRefs.current[selectedIndex]) {
+        itemRefs.current[selectedIndex]?.scrollIntoView({
+          block: "nearest",
+        });
       }
-    }, [value, position]);
+    }, [selectedIndex, isMentionOpen]);
+
+    // Update popup position anchored under caret
+    const updatePosition = useCallback(() => {
+      const textarea = internalTextareaRef.current;
+      if (!textarea || mentionTriggerIndex < 0) return;
+      const coords = computeMentionPopupPosition(textarea, mentionTriggerIndex);
+      if (coords.isOutOfBounds) {
+        setIsMentionOpen(false);
+      } else {
+        setPopupCoords(coords);
+      }
+    }, [mentionTriggerIndex]);
+
+    // Listen to scroll and resize when mention popup is open with rAF throttling (60fps)
+    useEffect(() => {
+      if (!isMentionOpen || mentionTriggerIndex < 0) return;
+
+      updatePosition();
+
+      const handleScrollOrResize = () => {
+        if (rafIdRef.current !== null) return;
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          updatePosition();
+        });
+      };
+
+      window.addEventListener("scroll", handleScrollOrResize, true);
+      window.addEventListener("resize", handleScrollOrResize);
+
+      return () => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        window.removeEventListener("scroll", handleScrollOrResize, true);
+        window.removeEventListener("resize", handleScrollOrResize);
+      };
+    }, [isMentionOpen, mentionTriggerIndex, updatePosition]);
+
+    // Check trigger on selection or text change
+    const checkMentionTrigger = useCallback(
+      (overrideText?: string, overrideCursor?: number) => {
+        const textarea = internalTextareaRef.current;
+        if (!textarea) return;
+
+        const currentText =
+          typeof overrideText === "string" ? overrideText : (textarea.value ?? value);
+        const cursor =
+          typeof overrideCursor === "number"
+            ? overrideCursor
+            : (textarea.selectionStart ?? currentText.length);
+        const textBefore = currentText.slice(0, cursor);
+
+        // Check if preceded by space or start of line, followed by @ and optional query characters
+        const match = textBefore.match(/(?:^|\s)@([a-zA-Z0-9_\u0600-\u06FF.-]*)$/);
+
+        if (match) {
+          const query = match[1];
+          // Calculate the exact index of the '@' symbol
+          const leadingWhitespace = match[0].match(/^\s/);
+          const atIndex = match.index! + (leadingWhitespace ? 1 : 0);
+
+          setMentionTriggerIndex(atIndex);
+          setMentionQuery(query);
+          setIsMentionOpen(true);
+
+          // Performance optimization: Only recalculate layout if '@' position moved!
+          // Typing characters in the query string (@ali) does not move '@' and does not need recalculation.
+          if (atIndex !== lastMentionTriggerIndexRef.current) {
+            lastMentionTriggerIndexRef.current = atIndex;
+            const coords = computeMentionPopupPosition(textarea, atIndex);
+            setPopupCoords(coords);
+          }
+        } else {
+          lastMentionTriggerIndexRef.current = -1;
+          setIsMentionOpen(false);
+          setMentionTriggerIndex(-1);
+          setMentionQuery("");
+        }
+      },
+      [value]
+    );
 
     const handleSelectUser = useCallback(
       (user: MentionUser) => {
         const textarea = internalTextareaRef.current;
         if (!textarea) return;
 
-        const cursor = textarea.selectionStart;
-        const before = value.slice(0, mentionTriggerIndex);
-        const after = value.slice(cursor);
+        const currentText = textarea.value ?? value;
+        const cursor = textarea.selectionStart ?? currentText.length;
+        const before = currentText.slice(0, mentionTriggerIndex);
+        const after = currentText.slice(cursor);
         const mentionString = `@${user.username} `;
         const nextValue = before + mentionString + after;
 
+        lastMentionTriggerIndexRef.current = -1;
         onChange(nextValue);
         setIsMentionOpen(false);
         setMentionTriggerIndex(-1);
@@ -246,7 +245,6 @@ export const MentionTextarea = React.forwardRef<
           return;
         }
         if (e.key === "Enter" || e.key === "Tab") {
-          // If mention dropdown is active, select the member
           e.preventDefault();
           const selected = filteredMembers[selectedIndex];
           if (selected) {
@@ -256,6 +254,7 @@ export const MentionTextarea = React.forwardRef<
         }
         if (e.key === "Escape") {
           e.preventDefault();
+          lastMentionTriggerIndexRef.current = -1;
           setIsMentionOpen(false);
           return;
         }
@@ -267,12 +266,14 @@ export const MentionTextarea = React.forwardRef<
     // Close on click outside
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Node;
         if (
           dropdownRef.current &&
-          !dropdownRef.current.contains(e.target as Node) &&
+          !dropdownRef.current.contains(target) &&
           internalTextareaRef.current &&
-          !internalTextareaRef.current.contains(e.target as Node)
+          !internalTextareaRef.current.contains(target)
         ) {
+          lastMentionTriggerIndexRef.current = -1;
           setIsMentionOpen(false);
         }
       };
@@ -297,10 +298,12 @@ export const MentionTextarea = React.forwardRef<
           placeholder={placeholder}
           className={className}
           onChange={(e) => {
-            onChange(e.target.value);
-            checkMentionTrigger();
+            const val = e.target.value;
+            const cur = e.target.selectionStart;
+            onChange(val);
+            checkMentionTrigger(val, cur);
           }}
-          onClick={checkMentionTrigger}
+          onClick={() => checkMentionTrigger()}
           onKeyUp={(e) => {
             if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Backspace"].includes(e.key)) {
               checkMentionTrigger();
@@ -314,95 +317,118 @@ export const MentionTextarea = React.forwardRef<
           onBlur={(e) => {
             onBlur?.(e);
           }}
+          onPaste={onPaste}
         />
 
-        {/* Mention Suggestions Floating Dropdown */}
-        <AnimatePresence>
-          {isMentionOpen && (
-            <motion.div
-              ref={dropdownRef}
-              initial={{ opacity: 0, scale: 0.95, y: dropdownPlacement === "top" ? 6 : -6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: dropdownPlacement === "top" ? 6 : -6 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className={`absolute z-50 w-72 max-w-[calc(100vw-3rem)] rounded-2xl border border-base-content/10 bg-base-100 shadow-2xl overflow-hidden backdrop-blur-xl ${
-                dropdownPlacement === "top"
-                  ? "bottom-full mb-2 start-0"
-                  : "top-full mt-2 start-0"
-              }`}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-base-content/10 bg-base-200/50 px-3.5 py-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-base-content">
-                  <span className="grid size-4 place-items-center rounded bg-primary/15 text-primary text-[11px] font-mono">
-                    @
-                  </span>
-                  <span>{t("اعضای پروژه")}</span>
-                </div>
-                <span className="text-[10px] font-semibold text-heledone-ink-muted">
-                  {filteredMembers.length} {t("عضو")}
-                </span>
-              </div>
-
-              {/* Members List */}
-              <div className="custom-scrollbar max-h-52 overflow-y-auto p-1.5 space-y-0.5">
-                {filteredMembers.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-xs text-heledone-ink-muted">
-                    {t("عضوی در این پروژه با این نام یافت نشد")}
+        {/* Mention Suggestions Floating Dropdown rendered via Portal to prevent any container clipping */}
+        {isMentionOpen &&
+          !popupCoords.isOutOfBounds &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <AnimatePresence>
+              <motion.div
+                ref={dropdownRef}
+                initial={{
+                  opacity: 0,
+                  scale: 0.96,
+                  y: popupCoords.placement === "top" ? 6 : -6,
+                }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.96,
+                  y: popupCoords.placement === "top" ? 6 : -6,
+                }}
+                transition={{ duration: 0.12, ease: "easeOut" }}
+                style={{
+                  position: "fixed",
+                  top: popupCoords.top !== undefined ? `${popupCoords.top}px` : undefined,
+                  bottom: popupCoords.bottom !== undefined ? `${popupCoords.bottom}px` : undefined,
+                  left: `${popupCoords.left}px`,
+                  width: "300px",
+                  maxWidth: "calc(100vw - 2rem)",
+                  zIndex: 99999,
+                }}
+                className="rounded-2xl border border-base-content/12 bg-base-100 shadow-2xl overflow-hidden backdrop-blur-2xl ring-1 ring-base-content/10"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-base-content/10 bg-base-200/50 px-3.5 py-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-base-content">
+                    <span className="grid size-4 place-items-center rounded bg-primary/15 text-primary text-[11px] font-mono">
+                      @
+                    </span>
+                    <span>{t("اعضای پروژه")}</span>
                   </div>
-                ) : (
-                  filteredMembers.map((member, idx) => {
-                    const isSelected = idx === selectedIndex;
-                    const avatarSrc =
-                      member.avatar || getHeledoneAvatar(member.id, member.username);
+                  <span className="text-[10px] font-semibold text-heledone-ink-muted">
+                    {filteredMembers.length} {t("عضو")}
+                  </span>
+                </div>
 
-                    return (
-                      <button
-                        key={member.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          // Prevent blur so handleSelectUser executes properly
-                          e.preventDefault();
-                          handleSelectUser(member);
-                        }}
-                        onMouseEnter={() => setSelectedIndex(idx)}
-                        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-start transition-all ${
-                          isSelected
-                            ? "bg-primary/10 text-primary"
-                            : "text-base-content hover:bg-base-200/60"
-                        }`}
-                      >
-                        <img
-                          src={avatarSrc}
-                          alt={member.username}
-                          className="size-7 shrink-0 rounded-full object-cover ring-1 ring-base-content/10"
-                        />
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span className="truncate text-xs font-bold leading-tight">
-                            {member.displayName}
-                          </span>
-                          <span
-                            className={`truncate text-[11px] font-mono leading-none mt-0.5 ${
-                              isSelected ? "text-primary" : "text-heledone-ink-muted"
-                            }`}
-                          >
-                            @{member.username}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+                {/* Members List */}
+                <div
+                  style={{ maxHeight: `${popupCoords.maxHeight - 65}px` }}
+                  className="custom-scrollbar overflow-y-auto p-1.5 space-y-0.5"
+                >
+                  {filteredMembers.length === 0 ? (
+                    <div className="px-3 py-4 text-center text-xs text-heledone-ink-muted">
+                      {t("عضوی در این پروژه با این نام یافت نشد")}
+                    </div>
+                  ) : (
+                    filteredMembers.map((member, idx) => {
+                      const isSelected = idx === selectedIndex;
+                      const avatarSrc =
+                        member.avatar || getHeledoneAvatar(member.id, member.username);
 
-              {/* Footer Helper */}
-              <div className="border-t border-base-content/8 bg-base-200/30 px-3 py-1.5 text-[10px] text-heledone-ink-muted flex items-center justify-between">
-                <span>{t("انتخاب با")} ↑ ↓</span>
-                <span>{t("تایید با Enter")}</span>
-              </div>
-            </motion.div>
+                      return (
+                        <button
+                          key={member.id}
+                          ref={(el) => {
+                            itemRefs.current[idx] = el;
+                          }}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSelectUser(member);
+                          }}
+                          onMouseEnter={() => setSelectedIndex(idx)}
+                          className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-start transition-all ${
+                            isSelected
+                              ? "bg-primary/10 text-primary font-bold shadow-xs"
+                              : "text-base-content hover:bg-base-200/60"
+                          }`}
+                        >
+                          <img
+                            src={avatarSrc}
+                            alt={member.username}
+                            className="size-7 shrink-0 rounded-full object-cover ring-1 ring-base-content/10"
+                          />
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="truncate text-xs font-bold leading-tight">
+                              {member.displayName}
+                            </span>
+                            <span
+                              className={`truncate text-[11px] font-mono leading-none mt-0.5 ${
+                                isSelected ? "text-primary" : "text-heledone-ink-muted"
+                              }`}
+                            >
+                              @{member.username}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer Helper */}
+                <div className="border-t border-base-content/8 bg-base-200/30 px-3 py-1.5 text-[10px] text-heledone-ink-muted flex items-center justify-between">
+                  <span>{t("انتخاب با")} ↑ ↓</span>
+                  <span>{t("تایید با Enter")}</span>
+                </div>
+              </motion.div>
+            </AnimatePresence>,
+            document.body
           )}
-        </AnimatePresence>
       </div>
     );
   }

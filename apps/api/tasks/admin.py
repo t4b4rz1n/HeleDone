@@ -85,24 +85,30 @@ class TaskAdmin(admin.ModelAdmin):
         "milestone",
         "status",
         "priority",
-        "assignee",
+        "get_assignees",
         "reporter",
         "due_date",
         "is_finished",
         "created_at",
     )
-    list_select_related = ("project", "milestone", "status", "assignee", "reporter")
-    list_filter = ("project", "status", "priority", "assignee", "is_deleted")
+    list_select_related = ("project", "milestone", "status", "reporter")
+    list_filter = ("project", "status", "priority", "is_deleted")
     search_fields = (
         "title",
         "description",
         "project__name",
-        "assignee__username",
+        "assignees__username",
         "reporter__username",
     )
     ordering = ("-created_at",)
-    raw_id_fields = ("project", "milestone", "assignee", "reporter", "parent_task")
+    raw_id_fields = ("project", "milestone", "reporter", "parent_task")
+    filter_horizontal = ("assignees",)
     readonly_fields = ("number", "key")
+
+    def get_assignees(self, obj):
+        return ", ".join(u.username for u in obj.assignees.all())
+
+    get_assignees.short_description = "Assignees"
 
     def get_queryset(self, request):
         return self.model.all_objects.all()

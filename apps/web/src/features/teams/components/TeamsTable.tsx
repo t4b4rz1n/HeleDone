@@ -34,7 +34,7 @@ export const TeamsTable = ({
               <th>{t("Leader")}</th>
               <th>{t("وضعیت")}</th>
               <th>{t("Created At")}</th>
-              {canManage && <th className="text-end">{t("Actions")}</th>}
+              {(canManage || onManageMembers) && <th className="text-end">{t("Actions")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -52,7 +52,7 @@ export const TeamsTable = ({
                 <td>
                   <div className="h-4 bg-base-content/10 rounded-sm w-24"></div>
                 </td>
-                {canManage && (
+                {(canManage || onManageMembers) && (
                   <td className="text-end">
                     <div className="h-6 bg-base-content/10 rounded-lg w-12 ms-auto"></div>
                   </td>
@@ -90,7 +90,7 @@ export const TeamsTable = ({
               <th>{t("Leader")}</th>
               <th>{t("وضعیت")}</th>
               <th>{t("Created At")}</th>
-              {canManage && <th className="text-end">{t("Actions")}</th>}
+              {(canManage || onManageMembers) && <th className="text-end">{t("Actions")}</th>}
           </tr>
         </thead>
         <tbody>
@@ -142,34 +142,40 @@ export const TeamsTable = ({
               <td className="text-xs text-heledone-ink-muted">
                 {formatDisplayDate(team.created_at ?? "", "yyyy-MM-dd")}
               </td>
-              {canManage && (
+              {(canManage || onManageMembers) && (
                 <td className="text-end">
                   <div className="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => onManageMembers?.(team)}
-                      className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:bg-primary/10 hover:text-primary"
-                      title={t("Manage Members")}
-                    >
-                      <User size={14} />
-                      <span className="hidden sm:inline">{t("اعضا")}</span>
-                    </button>
-                    <button
-                      onClick={() => onEdit(team)}
-                      className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:text-primary hover:bg-primary/10"
-                      title={t("Edit Team")}
-                    >
-                      <Edit2 size={14} />
-                      <span className="hidden sm:inline">{t("ویرایش")}</span>
-                    </button>
-                    <button
-                      onClick={() => onDelete(team)}
-                      className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:text-error hover:bg-error/10"
-                      title={t("Delete Team")}
-                    >
-                      <Trash size={14} />
-                      <span className="hidden sm:inline">{t("حذف")}</span>
-                    </button>
+                    {onManageMembers && (
+                      <button
+                        type="button"
+                        onClick={() => onManageMembers(team)}
+                        className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:bg-primary/10 hover:text-primary"
+                        title={t("Manage Members")}
+                      >
+                        <User size={14} />
+                        <span className="hidden sm:inline">{t("اعضا")}</span>
+                      </button>
+                    )}
+                    {canManage && (
+                      <>
+                        <button
+                          onClick={() => onEdit(team)}
+                          className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:text-primary hover:bg-primary/10"
+                          title={t("Edit Team")}
+                        >
+                          <Edit2 size={14} />
+                          <span className="hidden sm:inline">{t("ویرایش")}</span>
+                        </button>
+                        <button
+                          onClick={() => onDelete(team)}
+                          className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:text-error hover:bg-error/10"
+                          title={t("Delete Team")}
+                        >
+                          <Trash size={14} />
+                          <span className="hidden sm:inline">{t("حذف")}</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               )}

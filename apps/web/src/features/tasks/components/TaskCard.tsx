@@ -1,15 +1,19 @@
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { useTranslation } from "../../../i18n/locale";
+import { getWorkflowAppearance } from "../../../core/config/designTokens";
 import { formatDisplayDate } from "../../../utils/date";
 import { createPortal } from "react-dom";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar1, Flag,
   CloseCircle,
   More,
+  Play,
   Profile2User,
+  SearchNormal1,
+  Stop,
   TaskSquare,
   TickCircle,
   Trash,
@@ -20,12 +24,12 @@ import { deleteTask, getProjectMembers, updateTask } from "../api/tasksApi";
 import { useTaskStore } from "../store/useTaskStore";
 import type { Task } from "../types";
 import type { TimeLog } from "../../attendance/types";
-import { MessageSquare, CheckSquare } from "lucide-react";
 import { LiveActivityIndicator } from "./LiveActivityIndicator";
 
 interface TaskCardProps {
   task: Task;
   onClick: () => void;
+  onPatch?: (taskId: string | number, patch: Partial<Task>) => void;
   onPlayTimer?: (taskId: string | number) => void;
   onStopTimer?: (taskId: string | number) => void;
   onMarkDone?: (taskId: string | number) => void;
@@ -35,12 +39,22 @@ interface TaskCardProps {
 }
 
 
+const priorityLeftBorder: Record<Task["priority"], string> = {
+  low:      "#DCE6E2",
+  medium:   "#A7D4CD",
+  high:     "#F2BA49",
+  critical: "#EBC0AF",
+};
+
+
+
 import { useAuthStore } from "../../auth/store/authStore";
 import { usePermissions } from "../../auth/hooks/usePermissions";
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   onClick,
+  onPatch,
   onPlayTimer,
   onStopTimer,
   onMarkDone,
@@ -55,13 +69,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const currentUserId = currentUser?.id;
   const isAssignee = Boolean(
     currentUserId &&
-    (String(task.assignee) === String(currentUserId) ||
-      String(task.assignee_detail?.id) === String(currentUserId))
+      (String(task.assignee) === String(currentUserId) ||
+        String(task.assignee_detail?.id) === String(currentUserId) ||
+        task.assignees?.some(id => String(id) === String(currentUserId)) ||
+        task.assignees_detail?.some(u => String(u.id) === String(currentUserId)))
   );
   const isReporter = Boolean(
     currentUserId &&
-    (String(task.reporter) === String(currentUserId) ||
-      String((task as any).reporter_detail?.id) === String(currentUserId))
+      (String(task.reporter) === String(currentUserId) ||
+        String((task as any).reporter_detail?.id) === String(currentUserId))
   );
   const canManageAll = hasPermission("task.manage_all") || isStaff;
   const canEditTask = canManageAll || isAssignee || isReporter || hasPermission("task.create");
@@ -71,6 +87,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMembersMenu, setShowMembersMenu] = useState(false);
   const [isAssigneePopoverOpen, setIsAssigneePopoverOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const assigneeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -78,18 +95,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
 
   const isActuallyDone = Boolean(task.is_finished);
-  const timerBelongsToTask = Boolean(
-    activeTimer &&
-    String(activeTimer.task ?? (activeTimer as { task_id?: string | number }).task_id ?? "") === String(task.id)
-  );
-  const handleTimerToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    if (timerBelongsToTask) {
-      onStopTimer?.(task.id);
-      return;
-    }
-    onPlayTimer?.(task.id);
-  };
   const isOverdue = Boolean(
     task.due_date && new Date(task.due_date).getTime() < Date.now() && !isActuallyDone
   );
@@ -102,18 +107,39 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       toast.success(t("تسک حذف شد"));
     },
     onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || t("خطا در حذف تسک"))),
+      toast.error(translateError(error.response?.data?.detail || "Could not delete task.")),
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Task>) => updateTask(task.id, data),
-    onSuccess: () => {
+    onMutate: async (data: Partial<Task>) => {
+      onPatch?.(task.id, data);
+      const queryFilter = { queryKey: ["tasks"] };
+      await queryClient.cancelQueries(queryFilter);
+      queryClient.setQueriesData<any>(queryFilter, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old)) {
+          return old.map((t: any) => (String(t.id) === String(task.id) ? { ...t, ...data } : t));
+        }
+        if (old.results && Array.isArray(old.results)) {
+          return {
+            ...old,
+            results: old.results.map((t: any) => (String(t.id) === String(task.id) ? { ...t, ...data } : t)),
+          };
+        }
+        return old;
+      });
+    },
+    onSuccess: (updatedTask: Task) => {
+      if (updatedTask && updatedTask.id) {
+        onPatch?.(updatedTask.id, updatedTask);
+      }
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["taskActivities", task.id] });
     },
     onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || t("خطا در به‌روزرسانی تسک"))),
+      toast.error(translateError(error.response?.data?.detail || "Could not update task.")),
   });
 
   const storeProjectId = useTaskStore((state) => state.activeProjectId);
@@ -132,36 +158,100 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     staleTime: 30_000,
   });
 
+  const resolveCardAssignees = (t: Task, memberUsers: any[]): any[] => {
+    if (t.assignees_detail && t.assignees_detail.length > 0) {
+      return t.assignees_detail;
+    }
+    if (t.assignees && t.assignees.length > 0) {
+      const fromUsers = t.assignees
+        .map((id: any) => memberUsers.find((u: any) => String(u.id) === String(id)))
+        .filter(Boolean);
+      if (fromUsers.length > 0) return fromUsers;
+    }
+    if (t.assignee_detail) return [t.assignee_detail];
+    if (t.assignee) {
+      const u = memberUsers.find((usr: any) => String(usr.id) === String(t.assignee));
+      if (u) return [u];
+    }
+    return [];
+  };
+
+  const [localAssignees, setLocalAssignees] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    setLocalAssignees(null);
+  }, [task.id]);
+
+  const cardAssignees: any[] = useMemo(() => {
+    if (localAssignees !== null) return localAssignees;
+    return resolveCardAssignees(task, users);
+  }, [localAssignees, task, users]);
+
   const closeMenu = () => {
     setIsMenuOpen(false);
     setShowMembersMenu(false);
     setIsAssigneePopoverOpen(false);
+    setAssigneeSearch("");
   };
 
   const initials = task.assignee_detail
     ? (task.assignee_detail.first_name || task.assignee_detail.last_name
-      ? `${task.assignee_detail.first_name?.[0] || ""}${task.assignee_detail.last_name?.[0] || ""}`
-      : task.assignee_detail.username?.[0] || "?").toUpperCase()
+        ? `${task.assignee_detail.first_name?.[0] || ""}${task.assignee_detail.last_name?.[0] || ""}`
+        : task.assignee_detail.username?.[0] || "?").toUpperCase()
     : "";
-  const hasBadges = Boolean(task.milestone_detail || task.is_blocked || task.priority === 'critical' || task.priority === 'high');
-  const hasMeta = Boolean(
-    task.due_date ||
-    (task.checklist_stats && task.checklist_stats.total > 0) ||
-    task.subtasks_count > 0 ||
-    (task.comments_count && task.comments_count > 0) ||
-    (task.comments && task.comments.length > 0)
+
+
+  const timerBelongsToTask = Boolean(
+    activeTimer && activeTimer.task.toString() === task.id.toString()
   );
+  const timerIsRunning = Boolean(task.is_active_timer_running || timerBelongsToTask);
+  const [now, setNow] = useState(Date.now());
+  const [localStartedAt, setLocalStartedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!timerIsRunning) {
+      setLocalStartedAt(null);
+      return undefined;
+    }
+    setLocalStartedAt((prev) => prev || Date.now());
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [timerIsRunning]);
+
+  const elapsedSeconds = timerBelongsToTask && activeTimer
+    ? Math.max(
+        0,
+        Math.floor((now - new Date(activeTimer.start_time).getTime()) / 1000) +
+          Number(activeTimer.duration_seconds || 0)
+      )
+    : timerIsRunning && localStartedAt
+    ? Number(task.spent_seconds || 0) + Math.max(0, Math.floor((now - localStartedAt) / 1000))
+    : Number(task.spent_seconds || 0);
+
+  const formattedElapsed = [
+    Math.floor(elapsedSeconds / 3600),
+    Math.floor((elapsedSeconds % 3600) / 60),
+    elapsedSeconds % 60,
+  ]
+    .map((part) => part.toString().padStart(2, "0"))
+    .join(":");
+
 
   return (
     <>
       <article
         onClick={onClick}
-        className={`group relative cursor-pointer rounded-lg border bg-base-100 p-2.5 shadow-xs transition-all duration-150 hover:shadow-md ${isOverdue
-          ? "border-error/20 bg-error/[0.02]"
-          : task.is_blocked
-            ? "border-error/20 bg-error/[0.02]"
-            : "border-base-300/60 hover:border-base-300"
-          } ${isActuallyDone ? "opacity-70" : ""}`}
+        className={`group relative cursor-pointer rounded-2xl border bg-base-100 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+          isOverdue
+            ? "border-error/30"
+            : task.is_blocked
+            ? "border-error/30"
+            : "border-base-content/8 hover:border-base-content/20"
+        } ${isActuallyDone ? "border-success/20" : ""}`}
+        style={{
+          borderInlineStartWidth: "3px",
+          borderInlineStartColor: priorityLeftBorder[task.priority],
+        }}
         aria-label={t("Open task {value0}: {value1}", { value0: task.key, value1: task.title })}
       >
         {/* Loading overlay */}
@@ -171,61 +261,33 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         )}
 
-        {/* ─── Top Header: Task Key & Options Menu ─── */}
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="font-mono text-[10px] font-extrabold text-heledone-ink-muted/80 tracking-tight">
-              {task.key || `#${task.id}`}
-            </span>
-            {timerBelongsToTask ? (
-              <button
-                type="button"
-                onClick={handleTimerToggle}
-                className="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-bold text-success transition hover:bg-success/15"
-                aria-label={t("Stop timer")}
-              >
-                <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                {t("Timer running")}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleTimerToggle}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary transition hover:bg-primary/15"
-                aria-label={t("Start timer")}
-              >
-                <span className="size-1.5 rounded-full bg-primary" />
-                {t("Start timer")}
-              </button>
-            )}
-          </div>
+        {/* ─── Top Hover Options Menu ─── */}
+        <button
+          ref={menuTriggerRef}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMenuOpen(true);
+          }}
+          className="absolute top-2 end-2 z-10 grid size-6 place-items-center rounded-lg text-heledone-ink-muted opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 focus-visible:opacity-100 hover:bg-base-200 hover:text-base-content transition duration-150"
+          aria-label={t("Actions for {value0}", { value0: task.title })}
+        >
+          <More size={14} />
+        </button>
 
-          <button
-            ref={menuTriggerRef}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMenuOpen(true);
-            }}
-            className="grid size-5 place-items-center rounded-md text-heledone-ink-muted/60 opacity-0 group-hover:opacity-100 hover:bg-base-200 hover:text-base-content transition shrink-0"
-            aria-label={t("Actions for {value0}", { value0: task.title })}
-          >
-            <More size={13} />
-          </button>
-        </div>
-
-        {/* ─── Title & Checkbox ─── */}
-        <div className="mb-2 flex items-start gap-2">
+        {/* ─── Title & Checkbox (Inline with ) ─── */}
+        <div className="flex items-start gap-2 pe-4">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               (onToggleDone || onMarkDone)?.(task.id);
             }}
-            className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded transition ${isActuallyDone
-              ? "bg-success text-white"
-              : "border border-base-300 hover:border-base-400"
-              }`}
+            className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded transition ${
+              isActuallyDone
+                ? "bg-success text-success-content"
+                : "border border-heledone-ink-muted hover:border-success hover:bg-success/10"
+            }`}
             title={isActuallyDone ? t("بازگشت به انجام") : t("ثبت انجام‌شدن")}
           >
             {isActuallyDone && <TickCircle size={11} variant="Bold" />}
@@ -233,155 +295,148 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
           <div className="min-w-0 flex-1">
             <h3
-              className={`text-xs font-semibold leading-snug ${isActuallyDone
-                ? "text-heledone-ink-muted/60 line-through"
-                : "text-base-content"
-                }`}
+
+              className={`text-sm font-semibold leading-relaxed tracking-tight ${
+                isActuallyDone
+                  ? "text-heledone-ink-muted line-through"
+                  : "text-base-content"
+              }`}
             >
               {task.title}
             </h3>
           </div>
         </div>
 
-        {/* ─── Properties / Badges Row ─── */}
-        {hasBadges && <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          {/* Tags/Labels */}
-          {task.milestone_detail && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-primary bg-primary/8 border border-primary/15">
-              <Flag size={9} variant="Bold" />
-              <span>{task.milestone_detail.title}</span>
-            </span>
-          )}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full px-2.5 py-0.5 font-medium" style={{ color: getWorkflowAppearance(task.status_detail).ink, background: `color-mix(in srgb, ${getWorkflowAppearance(task.status_detail).color} 10%, transparent)` }}>{getWorkflowAppearance(task.status_detail).label}</span>
+          {task.is_blocked && <span className="rounded-full bg-error/10 px-2.5 py-0.5 font-semibold text-error">{t("مسدود · نیاز به رفع مانع")}</span>}
+        </div>
 
-          {/* Priority Badge - Only show high/critical */}
-          {(task.priority === 'critical' || task.priority === 'high') && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-rose-600 bg-rose-500/8 border border-rose-500/15">
-              <Flag size={9} variant="Bold" />
-              <span>
-                {task.priority === 'critical' ? t('بحرانی') : t('بالا')}
-              </span>
-            </span>
-          )}
+        {/* ─── Footer: Assignee Avatar, Metadata & Timer ─── */}
+        <div className="mt-3 flex items-center justify-between border-t border-base-content/6 pt-2">
 
-          {/* Blocked Badge */}
-          {task.is_blocked && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-error bg-error/8 border border-error/15">
-              {t("مسدود")}
-            </span>
-          )}
-        </div>}
-
-        {/* ─── Meta Info Row ─── */}
-        {hasMeta && <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* Due date */}
-          {task.due_date && (
-            <span
-              onClick={(e) => {
-                if (onDueDateClick) {
-                  e.stopPropagation();
-                  onDueDateClick();
-                }
-              }}
-              className={`inline-flex items-center gap-1 text-[11px] font-medium ${isOverdue && !isActuallyDone
-                ? 'text-error font-bold'
-                : 'text-heledone-ink-muted'
-                }`}
-              title={t("سررسید")}
-            >
-              <Calendar1 size={11} variant={isOverdue && !isActuallyDone ? "Bold" : "Linear"} />
-              <span>{formatDisplayDate(task.due_date, "MMM d")}</span>
-            </span>
-          )}
-
-          {/* Checklist stats */}
-          {task.checklist_stats && task.checklist_stats.total > 0 && (
-            <span
-              className={`inline-flex items-center gap-1 text-[11px] font-medium ${task.checklist_stats.done === task.checklist_stats.total && !isActuallyDone
-                ? 'text-success font-bold'
-                : 'text-heledone-ink-muted'
-                }`}
-              title={t("Checklist items")}
-            >
-              <CheckSquare size={11} />
-              <span>{formatUiNumber(task.checklist_stats.done)}/{formatUiNumber(task.checklist_stats.total)}</span>
-            </span>
-          )}
-
-          {/* Subtasks Count */}
-          {task.subtasks_count > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-heledone-ink-muted bg-base-200/80 border border-base-300/50" title={t("زیرتسک‌ها")}>
-              <TaskSquare size={10} />
-              <span>{formatUiNumber(task.subtasks_count)} {t("زیرتسک")}</span>
-            </span>
-          )}
-
-          {/* Comments count */}
-          {Boolean((task.comments_count && task.comments_count > 0) || (task.comments && task.comments.length > 0)) && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-heledone-ink-muted">
-              <MessageSquare size={11} />
-              <span>{formatUiNumber(task.comments_count || task.comments?.length || 0)}</span>
-            </span>
-          )}
-        </div>}
-
-        {/* ─── Footer: Assignee ─── */}
-        <div className="mt-2 flex items-center justify-between border-t border-base-200/60 pt-1.5">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Assignee Interactive Trigger */}
-            <button
-              ref={assigneeTriggerRef}
-              type="button"
-              disabled={!canEditTask}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (canEditTask) {
-                  setIsAssigneePopoverOpen(!isAssigneePopoverOpen);
-                }
-              }}
-              className={`flex items-center gap-1.5 py-0.5 transition ${canEditTask ? "hover:opacity-80 cursor-pointer" : "cursor-default"
-                }`}
-              title={
-                task.assignee_detail
-                  ? t("Assigned to {value0}", { value0: task.assignee_detail.first_name || task.assignee_detail.username })
-                  : canEditTask
-                    ? t("Assign member")
-                    : t("بدون مسئول")
-              }
-            >
-              <div className="relative shrink-0">
-                <span className="grid size-5 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-base-content">
-                  {task.assignee_detail?.avatar_url || task.assignee_detail?.avatar ? (
-                    <img
-                      src={
-                        task.assignee_detail.avatar_url ||
-                        task.assignee_detail.avatar
-                      }
-                      alt=""
-                      className="size-5 rounded-full object-cover"
-                    />
-                  ) : (
-                    initials || <Profile2User size={11} className="text-heledone-ink-muted" />
-                  )}
-                </span>
-                {task.project && (
-                  <div className="absolute -bottom-0.5 -end-0.5 z-10">
-                    <LiveActivityIndicator
-                      projectId={task.project.toString()}
-                      taskId={task.id}
-                    />
+            {(() => {
+              const tooltip = cardAssignees.length > 0
+                ? t("Assigned to {value0}", { value0: cardAssignees.map(a => a.first_name || a.username).join(", ") })
+                : canEditTask ? t("Assign member") : t("بدون مسئول");
+
+              return (
+                <button
+                  ref={assigneeTriggerRef}
+                  type="button"
+                  disabled={!canEditTask}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (canEditTask) {
+                      setIsAssigneePopoverOpen(!isAssigneePopoverOpen);
+                    }
+                  }}
+                  className={`rounded-full p-0.5 transition ${
+                    canEditTask ? "hover:ring-2 hover:ring-primary/30" : "cursor-default"
+                  }`}
+                  title={tooltip}
+                >
+                  <div className="relative shrink-0">
+                    {cardAssignees.length <= 1 ? (
+                      <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shadow-xs">
+                        {cardAssignees[0]?.avatar_url || cardAssignees[0]?.avatar ? (
+                          <img
+                            src={cardAssignees[0].avatar_url || cardAssignees[0].avatar}
+                            alt=""
+                            className="size-6 rounded-full object-cover"
+                          />
+                        ) : cardAssignees[0] ? (
+                          (cardAssignees[0].first_name?.[0] || cardAssignees[0].username?.[0] || "U").toUpperCase()
+                        ) : (
+                          initials || <Profile2User size={12} className="text-heledone-ink-muted" />
+                        )}
+                      </span>
+                    ) : (
+                      <div className="flex -space-x-1.5 rtl:space-x-reverse overflow-hidden">
+                        {cardAssignees.slice(0, 3).map((a) => (
+                          <span
+                            key={a.id}
+                            className="grid size-6 place-items-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shadow-xs ring-1 ring-base-100"
+                          >
+                            {a.avatar_url || a.avatar ? (
+                              <img src={a.avatar_url || a.avatar} alt="" className="size-6 rounded-full object-cover" />
+                            ) : (
+                              (a.first_name?.[0] || a.username?.[0] || "U").toUpperCase()
+                            )}
+                          </span>
+                        ))}
+                        {cardAssignees.length > 3 && (
+                          <span className="grid size-6 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-heledone-ink-muted ring-1 ring-base-100">
+                            +{cardAssignees.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {task.project && (
+                      <div className="absolute -bottom-1 -end-1 z-10">
+                        <LiveActivityIndicator
+                          projectId={task.project.toString()}
+                          taskId={task.id}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })()}
+
+
+            {/* ─── Task Metadata (Due Date, Checklist & Milestone) ─── */}
+            {(task.due_date || (task.checklist_stats && task.checklist_stats.total > 0) || task.milestone_detail) && (
+              <div className="flex flex-wrap items-center gap-2.5 text-[13px] font-medium text-heledone-ink-muted">
+                {task.due_date && (
+                  <div className={`flex items-center gap-1 ${isOverdue && !isActuallyDone ? 'text-error font-bold bg-error/10 px-1.5 py-0.5 rounded-md -ms-1' : ''}`} title={t("سررسید")}>
+                    <Calendar1 size={13} variant={isOverdue && !isActuallyDone ? "Bold" : "Linear"} />
+                    <span>{formatDisplayDate(task.due_date, "MMM d")}</span>
+                  </div>
+                )}
+                {task.milestone_detail && (
+                  <div className="flex items-center gap-1 max-w-[100px]" title={t("Milestone")}>
+                    <Flag size={13} className="shrink-0" />
+                    <span className="truncate">{task.milestone_detail.title}</span>
+                  </div>
+                )}
+                {task.checklist_stats && task.checklist_stats.total > 0 && (
+                  <div className={`flex items-center gap-1 ${task.checklist_stats.done === task.checklist_stats.total && !isActuallyDone ? 'text-success font-bold bg-success/10 px-1.5 py-0.5 rounded-md -ms-1' : ''}`} title={t("Checklist items")}>
+                    <TaskSquare size={13} variant={task.checklist_stats.done === task.checklist_stats.total && !isActuallyDone ? "Bold" : "Linear"} />
+                    <span>{formatUiNumber(task.checklist_stats.done)}/{formatUiNumber(task.checklist_stats.total)}</span>
                   </div>
                 )}
               </div>
-              <span className="text-[11px] font-medium text-heledone-ink-muted truncate max-w-[110px]">
-                {task.assignee_detail
-                  ? (task.assignee_detail.first_name || task.assignee_detail.username)
-                  : t("بدون مسئول")}
-              </span>
-            </button>
+            )}
           </div>
 
-          {/* Timer controls - hidden for cleaner card design */}
-          <div className="hidden">
+          {/* Timer controls (visible always if running, or on hover if not running) */}
+          <div className={`flex items-center gap-1.5 shrink-0 transition-opacity duration-150 ${timerIsRunning ? "opacity-100" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 focus-visible:opacity-100"}`}>
+            {timerIsRunning && (
+              <span className="font-mono text-[13px] font-bold tabular-nums text-success bg-success/10 px-1.5 py-0.5 rounded-md">
+                {formattedElapsed}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (timerIsRunning) onStopTimer?.(task.id);
+                else onPlayTimer?.(task.id);
+              }}
+              className={`grid size-6.5 place-items-center rounded-lg transition ${
+                timerIsRunning
+                  ? "bg-error/10 text-error hover:bg-error/20"
+                  : "bg-base-200/80 text-heledone-ink-muted hover:bg-primary/10 hover:text-primary"
+              }`}
+              title={timerIsRunning ? t("توقف زمان‌سنج") : t("شروع زمان‌سنج")}
+            >
+              {timerIsRunning ? <Stop size={13} /> : <Play size={13} />}
+            </button>
           </div>
         </div>
       </article>
@@ -393,74 +448,167 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <>
             <div className="fixed inset-0 z-40" onClick={closeMenu} />
             <div
-              className="fixed z-50 w-48 max-h-60 overflow-y-auto rounded-2xl border border-base-content/10 bg-base-100 p-1.5 text-[13px] font-semibold text-base-content shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+              className="fixed z-50 w-64 max-h-80 overflow-hidden flex flex-col rounded-2xl border border-base-content/10 bg-base-100 p-2 text-[13px] font-semibold text-base-content shadow-2xl animate-in fade-in zoom-in-95 duration-100"
               style={{
-                top: assigneeTriggerRef.current.getBoundingClientRect().bottom + 250 > window.innerHeight
+                top: assigneeTriggerRef.current.getBoundingClientRect().bottom + 290 > window.innerHeight
                   ? assigneeTriggerRef.current.getBoundingClientRect().top - 4
                   : assigneeTriggerRef.current.getBoundingClientRect().bottom + 4,
-                transform: assigneeTriggerRef.current.getBoundingClientRect().bottom + 250 > window.innerHeight
+                transform: assigneeTriggerRef.current.getBoundingClientRect().bottom + 290 > window.innerHeight
                   ? 'translateY(-100%)'
                   : 'none',
                 left: assigneeTriggerRef.current.getBoundingClientRect().left,
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-2 py-1 text-[13px] font-bold text-heledone-ink-muted uppercase tracking-wider">
-                {t("Assign to")}</div>
+              <div className="flex items-center justify-between px-2 py-1 border-b border-base-content/6 mb-1.5">
+                <span className="text-xs font-bold text-heledone-ink-muted uppercase tracking-wider">
+                  {t("مسئولین تسک")}
+                </span>
+                {cardAssignees.length > 0 && (
+                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {formatUiNumber(cardAssignees.length)} {t("نفر")}
+                  </span>
+                )}
+              </div>
 
-              {/* Unassigned Option */}
-              <button
-                type="button"
-                className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${!task.assignee ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
-                  }`}
-                onClick={() => {
-                  updateMutation.mutate({ assignee: undefined });
-                  closeMenu();
-                }}
-              >
-                <Profile2User size={14} className="text-heledone-ink-muted" />
-                <span>{t("بدون مسئول")}</span>
-              </button>
+              {/* Search Box */}
+              <div className="relative mb-2 px-1">
+                <div className="flex items-center gap-1.5 rounded-xl border border-base-content/10 bg-base-200/50 px-2.5 py-1.5 text-xs">
+                  <SearchNormal1 size={13} className="text-heledone-ink-muted shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={assigneeSearch}
+                    onChange={(e) => setAssigneeSearch(e.target.value)}
+                    placeholder={t("جستجو...")}
+                    className="w-full bg-transparent outline-none placeholder:text-heledone-ink-muted text-xs font-medium"
+                  />
+                  {assigneeSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setAssigneeSearch("")}
+                      className="text-xs text-heledone-ink-muted hover:text-base-content"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
 
-              {/* Users List */}
-              {users.map((user: any) => {
-                const isSelected = String(task.assignee) === String(user.id);
-                return (
-                  <button
-                    type="button"
-                    key={user.id}
-                    className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${isSelected
-                      ? "bg-primary/10 text-primary font-bold"
-                      : "hover:bg-base-200"
-                      }`}
-                    onClick={() => {
-                      updateMutation.mutate({ assignee: user.id });
-                      closeMenu();
-                    }}
-                  >
-                    <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shrink-0">
-                      {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                    </span>
-                    <span className="truncate flex items-center gap-1">
-                      <span>
-                        {user.first_name || user.last_name
-                          ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                          : user.full_name || user.username || user.email || t("Unknown Member")}
-                      </span>
-                      {user.username && (
-                        <span className="text-[13px] text-heledone-ink-muted font-normal">
-                          (@{user.username})
-                        </span>
+              {/* Quick Actions & List */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 pe-0.5">
+                {(() => {
+                  const currentAssigneeIds: (string | number)[] = cardAssignees.map((a: any) => a.id);
+                  const filteredUsers = users.filter((u: any) => {
+                    if (!assigneeSearch.trim()) return true;
+                    const q = assigneeSearch.toLowerCase();
+                    const name = `${u.first_name || ""} ${u.last_name || ""} ${u.username || ""} ${u.email || ""}`.toLowerCase();
+                    return name.includes(q);
+                  });
+
+                  return (
+                    <>
+                      {/* Unassigned / Clear All Option */}
+                      <button
+                        type="button"
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
+                          currentAssigneeIds.length === 0 ? "bg-primary/10 text-primary font-bold" : "hover:bg-base-200"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const patch = {
+                            assignees: [],
+                            assignees_detail: [],
+                            assignee: null,
+                            assignee_detail: null,
+                          };
+                          setLocalAssignees([]);
+                          onPatch?.(task.id, patch);
+                          updateMutation.mutate(patch as any);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Profile2User size={14} className="text-heledone-ink-muted" />
+                          <span>{t("بدون مسئول (حذف همه)")}</span>
+                        </div>
+                        {currentAssigneeIds.length === 0 && <span className="text-primary text-xs">✓</span>}
+                      </button>
+
+                      {/* Filtered Users List */}
+                      {filteredUsers.map((user: any) => {
+                        const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                        return (
+                          <button
+                            type="button"
+                            key={user.id}
+                            className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition ${
+                              isSelected
+                                ? "bg-primary/10 text-primary font-bold"
+                                : "hover:bg-base-200"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newAssignees = isSelected
+                                ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                                : [...cardAssignees, user];
+                              const newIds = newAssignees.map((a: any) => a.id);
+                              const patch = {
+                                assignees: newIds,
+                                assignees_detail: newAssignees,
+                                assignee: newIds[0] || null,
+                                assignee_detail: newAssignees[0] || null,
+                              };
+                              setLocalAssignees(newAssignees);
+                              onPatch?.(task.id, patch);
+                              updateMutation.mutate(patch as any);
+                            }}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="grid size-5.5 place-items-center rounded-full bg-primary/10 text-[12px] font-bold text-primary shrink-0 ring-1 ring-base-content/5">
+                                {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
+                              </span>
+                              <span className="truncate flex items-center gap-1">
+                                <span className="text-xs">
+                                  {user.first_name || user.last_name
+                                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+                                    : user.full_name || user.username || user.email || t("Unknown Member")}
+                                </span>
+                                {user.username && (
+                                  <span className="text-[11px] text-heledone-ink-muted font-normal truncate">
+                                    (@{user.username})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <span className={`size-4 rounded flex items-center justify-center text-xs shrink-0 transition ${
+                              isSelected ? "bg-primary text-primary-content" : "border border-base-content/20"
+                            }`}>
+                              {isSelected ? "✓" : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+
+                      {filteredUsers.length === 0 && (
+                        <div className="px-2 py-4 text-center text-xs text-heledone-ink-muted">
+                          {t("No members found")}
+                        </div>
                       )}
-                    </span>
-                  </button>
-                );
-              })}
+                    </>
+                  );
+                })()}
+              </div>
 
-              {users.length === 0 && (
-                <div className="px-2 py-2 text-[13px] text-heledone-ink-muted">
-                  {t("No members found")}</div>
-              )}
+              {/* Done button */}
+              <div className="pt-2 mt-1 border-t border-base-content/6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={closeMenu}
+                  className="px-3 py-1 rounded-lg bg-primary text-primary-content text-xs font-bold shadow-xs hover:bg-primary/90 transition"
+                >
+                  {t("بستن")}
+                </button>
+              </div>
             </div>
           </>,
           document.body
@@ -493,35 +641,74 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-heledone-ink-muted hover:bg-base-200"
                   >
                     <CloseCircle size={15} />  {t("بازگشت")}</button>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-base-200"
-                    onClick={() => {
-                      updateMutation.mutate({ assignee: undefined });
-                      closeMenu();
-                    }}
-                  >
-                    <Profile2User size={15} />  {t("بدون مسئول")}</button>
-                  {users.map((user: any) => (
-                    <button
-                      type="button"
-                      key={user.id}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-start hover:bg-base-200"
-                      onClick={() => {
-                        updateMutation.mutate({ assignee: user.id });
-                        closeMenu();
-                      }}
-                    >
-                      <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] text-primary">
-                        {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                      </span>
-                      <span className="truncate">
-                        {user.first_name || user.last_name
-                          ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                          : user.full_name || user.username || user.email || t("Unknown Member")}
-                      </span>
-                    </button>
-                  ))}
+                  {(() => {
+                    const currentAssigneeIds: (string | number)[] = cardAssignees.map((a: any) => a.id);
+
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 hover:bg-base-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const patch = {
+                              assignees: [],
+                              assignees_detail: [],
+                              assignee: null,
+                              assignee_detail: null,
+                            };
+                            setLocalAssignees([]);
+                            onPatch?.(task.id, patch);
+                            updateMutation.mutate(patch as any);
+                            closeMenu();
+                          }}
+                        >
+                          <Profile2User size={15} />  {t("بدون مسئول")}
+                        </button>
+                        {users.map((user: any) => {
+                          const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                          return (
+                            <button
+                              type="button"
+                              key={user.id}
+                              className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-start hover:bg-base-200 ${
+                                isSelected ? "bg-primary/10 text-primary font-bold" : ""
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newAssignees = isSelected
+                                  ? cardAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                                  : [...cardAssignees, user];
+                                const newIds = newAssignees.map((a: any) => a.id);
+                                const patch = {
+                                  assignees: newIds,
+                                  assignees_detail: newAssignees,
+                                  assignee: newIds[0] || null,
+                                  assignee_detail: newAssignees[0] || null,
+                                };
+                                setLocalAssignees(newAssignees);
+                                onPatch?.(task.id, patch);
+                                updateMutation.mutate(patch as any);
+                              }}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] text-primary shrink-0">
+                                  {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
+                                </span>
+                                <span className="truncate">
+                                  {user.first_name || user.last_name
+                                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+                                    : user.full_name || user.username || user.email || t("Unknown Member")}
+                                </span>
+                              </div>
+                              {isSelected && <span className="text-primary text-xs shrink-0">✓</span>}
+                            </button>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+
                 </>
               ) : (
                 <>

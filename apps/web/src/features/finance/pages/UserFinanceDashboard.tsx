@@ -45,7 +45,7 @@ export const UserFinanceDashboard = () => {
 
   if (error || !dashboard) {
     return (
-      <div className="flex h-[50vh] flex-col items-center justify-center gap-3 text-heledone-ink-muted">
+      <div className="flex h-[50dvh] flex-col items-center justify-center gap-3 text-heledone-ink-muted">
         <Receipt21 size={48} className="opacity-20" />
         <p className="font-medium">{t("دریافت اطلاعات مالی ممکن نشد.")}</p>
         {error && (

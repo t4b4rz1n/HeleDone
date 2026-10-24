@@ -8,6 +8,7 @@ import { TaskCard } from './TaskCard';
 interface SortableTaskProps {
   task: Task;
   onClick: () => void;
+  onPatch?: (taskId: string | number, patch: Partial<Task>) => void;
   onPlayTimer?: (taskId: string | number) => void;
   onStopTimer?: (taskId: string | number) => void;
   onMarkDone?: (taskId: string | number) => void;
@@ -16,7 +17,7 @@ interface SortableTaskProps {
   onDueDateClick?: () => void;
 }
 
-export const SortableTask: React.FC<SortableTaskProps> = ({ task, onClick, onPlayTimer, onStopTimer, onMarkDone, onToggleDone, activeTimer, onDueDateClick }) => {
+export const SortableTask: React.FC<SortableTaskProps> = ({ task, onClick, onPatch, onPlayTimer, onStopTimer, onMarkDone, onToggleDone, activeTimer, onDueDateClick }) => {
   const {
     attributes,
     listeners,
@@ -40,7 +41,7 @@ export const SortableTask: React.FC<SortableTaskProps> = ({ task, onClick, onPla
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} onClick={onClick} onPlayTimer={onPlayTimer} onStopTimer={onStopTimer} onMarkDone={onMarkDone} onToggleDone={onToggleDone} activeTimer={activeTimer} onDueDateClick={onDueDateClick} />
+      <TaskCard task={task} onClick={onClick} onPatch={onPatch} onPlayTimer={onPlayTimer} onStopTimer={onStopTimer} onMarkDone={onMarkDone} onToggleDone={onToggleDone} activeTimer={activeTimer} onDueDateClick={onDueDateClick} />
     </div>
   );
 };

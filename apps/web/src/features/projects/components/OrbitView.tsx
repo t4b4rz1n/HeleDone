@@ -1297,7 +1297,7 @@ export function OrbitView({
                 initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                 animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                 exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                className="pointer-events-auto absolute bottom-[calc(100%+0.5rem)] end-0 z-40 max-h-[calc(100vh-6rem)] w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-2xl border border-base-content/10 bg-base-100/95 p-3 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-base-100/90"
+                className="pointer-events-auto absolute bottom-[calc(100%+0.5rem)] end-0 z-40 max-h-[calc(100dvh-6rem)] w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-2xl border border-base-content/10 bg-base-100/95 p-3 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-base-100/90"
                 role="region"
                 aria-label={t("Orbit filters and guide")}
               >
@@ -1484,7 +1484,7 @@ export function OrbitView({
               animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 28 }}
               transition={{ type: "spring", bounce: 0.12, duration: 0.32 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-t-3xl border border-base-content/10 bg-base-100/95 shadow-2xl backdrop-blur-xl sm:hidden"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[82dvh] overflow-y-auto rounded-t-3xl border border-base-content/10 bg-base-100/95 shadow-2xl backdrop-blur-xl sm:hidden"
             >
               <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-base-content/15" />
               <ProjectDetails
@@ -1515,7 +1515,7 @@ export function OrbitView({
               initial={{ opacity: 0, y: 24, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[75vh] overflow-y-auto rounded-t-3xl border border-base-content/10 bg-base-100 shadow-2xl md:absolute md:bottom-auto md:end-4 md:start-auto md:top-20 md:w-72 md:rounded-2xl"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[75dvh] overflow-y-auto rounded-t-3xl border border-base-content/10 bg-base-100 shadow-2xl md:absolute md:bottom-auto md:end-4 md:start-auto md:top-20 md:w-72 md:rounded-2xl"
             >
               <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-base-content/15 md:hidden" />
               {isOverflowOpen ? (

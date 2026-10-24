@@ -3,6 +3,7 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Messages2,
@@ -23,6 +24,9 @@ import type { Ticket, TicketMessage } from "../types";
 import { useAuthStore } from "../../auth/store/authStore";
 import { BrandBeats } from "../../../components/Brand";
 import { CoastalArtwork } from "../../../components/CoastalEmptyState";
+import { MentionTextarea } from "../../../components/MentionTextarea";
+import { MentionText } from "../../../components/MentionText";
+import { useUsers } from "../../users/hooks/useUsers";
 
 export default function TicketDetailsPage() {
   const t = useTranslation();
@@ -56,6 +60,9 @@ export default function TicketDetailsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const usersParams = useMemo(() => new URLSearchParams({ page_size: "100" }), []);
+  const { data: usersResponse } = useUsers(usersParams);
+
   const { control, handleSubmit, reset, formState: { errors } } = useForm<{ text?: string }>({
     resolver: zodResolver(messageSchema),
     defaultValues: { text: "" },
@@ -68,10 +75,26 @@ export default function TicketDetailsPage() {
     );
   }, [messagesResponse]);
 
+  const ticketMembers = useMemo(() => {
+    const list: any[] = [];
+    if (ticket?.user) list.push(ticket.user);
+    if (messages.length > 0) {
+      messages.forEach((m) => {
+        if (m.sender) list.push(m.sender);
+      });
+    }
+    if (usersResponse?.results) {
+      list.push(...usersResponse.results);
+    }
+    return list;
+  }, [ticket, messages, usersResponse]);
+
   // Scroll to bottom on load/new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  const queryClient = useQueryClient();
 
   const onSend = handleSubmit((data) => {
     if (!data.text?.trim() && !selectedFile) return;
@@ -84,6 +107,8 @@ export default function TicketDetailsPage() {
           if (fileInputRef.current) fileInputRef.current.value = "";
           const el = document.getElementById("chat-textarea");
           if (el) el.style.height = "44px";
+          queryClient.invalidateQueries({ queryKey: ["notification-unread"] });
+          queryClient.invalidateQueries({ queryKey: ["notification-history"] });
         },
       }
     );
@@ -137,11 +162,11 @@ export default function TicketDetailsPage() {
         <h1>{t("درخواست‌های پشتیبانی")}</h1>
         <CoastalArtwork motif="tickets" />
       </header>
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-5 min-h-[calc(100vh-180px)]">
+    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-5 min-h-[calc(100dvh-180px)]">
 
       {/* ── Chat Thread ─────────────────────────────────────────────────────── */}
       {isLoadingTicket ? (
-        <div className="animate-pulse flex flex-col bg-base-100 rounded-2xl border border-base-content/10 h-[76vh]">
+        <div className="animate-pulse flex flex-col bg-base-100 rounded-2xl border border-base-content/10 h-[76dvh]">
           <div className="p-4 border-b border-base-content/10 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-base-content/10" />
             <div className="h-4 w-48 bg-base-content/10 rounded" />
@@ -154,7 +179,7 @@ export default function TicketDetailsPage() {
           <div className="p-4 border-t border-base-content/10 h-16 bg-base-200/30" />
         </div>
       ) : isErrorTicket || !ticket ? (
-        <div className="bg-base-100 rounded-2xl border border-error/20 p-14 text-center h-[76vh] flex flex-col items-center justify-center">
+        <div className="bg-base-100 rounded-2xl border border-error/20 p-14 text-center h-[76dvh] flex flex-col items-center justify-center">
           <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-error/10 border border-error/20 flex items-center justify-center">
             <CloseCircle className="w-10 h-10 text-error" />
           </div>
@@ -171,7 +196,7 @@ export default function TicketDetailsPage() {
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          className="flex flex-col bg-base-100 rounded-2xl border border-base-content/10 shadow-xs overflow-hidden h-[76vh]"
+          className="flex flex-col bg-base-100 rounded-2xl border border-base-content/10 shadow-xs overflow-hidden h-[76dvh]"
         >
           {/* Chat Header */}
           <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-base-content/10 bg-base-200/20 flex-shrink-0">
@@ -195,7 +220,7 @@ export default function TicketDetailsPage() {
                   </span>
                   {ticketTypeName && (
                     <span className="text-[13px] bg-base-200 border border-base-content/10 px-1.5 py-0.5 rounded text-heledone-ink-muted font-mono shrink-0">
-                      {ticketTypeName}
+                      {t(ticketTypeName)}
                     </span>
                   )}
                 </div>
@@ -306,9 +331,10 @@ export default function TicketDetailsPage() {
                         </div>
                       ))}
 
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed" >
-                        {message.text}
-                      </p>
+                      <MentionText
+                        content={message.text}
+                        className="text-sm whitespace-pre-wrap leading-relaxed"
+                      />
                     </div>
                   </div>
                 );
@@ -382,24 +408,21 @@ export default function TicketDetailsPage() {
                 name="text"
                 control={control}
                 render={({ field }) => (
-                  <textarea
-                    {...field}
+                  <MentionTextarea
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    members={ticketMembers}
+                    position="top"
                     id="chat-textarea"
-                    placeholder={t("Type your reply here...")}
+                    placeholder={t("Type your reply here... (use @ to mention)")}
                     onPaste={handlePaste}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      e.target.style.height = "44px";
-                      const newHeight = Math.min(e.target.scrollHeight, 130);
-                      e.target.style.height = `${newHeight}px`;
-                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         onSend();
                       }
                     }}
-                    className={`textarea textarea-bordered w-full rounded-xl bg-base-100 px-4 py-2.5 text-sm text-base-content placeholder-base-content/30 resize-none overflow-y-auto leading-relaxed focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-11 min-h-[44px] ${
+                    className={`textarea textarea-bordered w-full rounded-xl bg-base-100 px-4 py-2.5 text-sm text-base-content placeholder-base-content/30 resize-none overflow-y-auto leading-relaxed focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary min-h-[44px] max-h-32 ${
                       errors.text ? "border-error" : "border-base-300"
                     }`}
                   />
@@ -423,7 +446,7 @@ export default function TicketDetailsPage() {
       )}
 
       {/* ── Sidebar: Chats List ────────────────────────────────────────────────── */}
-      <div className="bg-base-100 rounded-2xl border border-base-content/10 shadow-xs flex flex-col gap-0 overflow-hidden h-auto xl:h-[76vh]">
+      <div className="bg-base-100 rounded-2xl border border-base-content/10 shadow-xs flex flex-col gap-0 overflow-hidden h-auto xl:h-[76dvh]">
 
         {/* Sidebar Header */}
         <div className="px-5 py-4 border-b border-base-content/10 bg-base-200/20 flex items-center gap-2.5 flex-shrink-0">
