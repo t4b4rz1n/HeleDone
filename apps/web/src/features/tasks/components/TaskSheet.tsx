@@ -59,7 +59,8 @@ import {
   toggleChecklistItem,
   updateTask,
 } from "../api/tasksApi";
-import { MentionTextarea, MentionText } from "../../../components/MentionTextarea";
+import { MentionTextarea } from "../../../components/MentionTextarea";
+import { MentionText } from "../../../components/MentionText";
 import "./task-sheet.css";
 
 interface TaskSheetProps {

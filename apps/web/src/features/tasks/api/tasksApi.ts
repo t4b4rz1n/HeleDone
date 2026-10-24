@@ -80,7 +80,14 @@ export const reorderTasks = async (orders: { id: string | number; order: number 
   return await ApiService.post('/tasks/reorder/', { orders });
 };
 
-export const createTask = async (projectId: string, title: string, statusId: string | number, priority: string = 'low', milestone?: string | number): Promise<Task> => {
+export const createTask = async (
+  projectId: string,
+  title: string,
+  statusId: string | number,
+  priority: string = 'low',
+  milestone?: string | number,
+  assignees?: (string | number)[]
+): Promise<Task> => {
   const payload: any = {
     project: projectId,
     title,
@@ -90,9 +97,13 @@ export const createTask = async (projectId: string, title: string, statusId: str
   if (milestone) {
     payload.milestone = milestone;
   }
+  if (assignees && assignees.length > 0) {
+    payload.assignees = assignees;
+  }
   const data = await ApiService.post<Task>('/tasks/', payload);
   return (data as any).data ?? data;
 };
+
 
 export const moveTask = async (taskId: number | string, statusId: number | string, order: number): Promise<Task> => {
   const data = await ApiService.post<Task>(`/tasks/${taskId}/move/`, {

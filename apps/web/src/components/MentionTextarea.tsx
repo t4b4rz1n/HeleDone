@@ -9,13 +9,7 @@ import React, {
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "../i18n/locale";
 import { getHeledoneAvatar } from "../utils/avatarUtils";
-
-export interface MentionUser {
-  id: string | number;
-  username: string;
-  displayName: string;
-  avatar?: string | null;
-}
+import { normalizeProjectMembers, type MentionUser } from "../utils/mentionUtils";
 
 export interface MentionTextareaProps {
   value: string;
@@ -35,74 +29,6 @@ export interface MentionTextareaProps {
   wrapperClassName?: string;
   textareaRef?: React.Ref<HTMLTextAreaElement>;
 }
-
-/**
- * Normalizes various project member formats into clean MentionUser objects.
- * Guarantees only unique, valid members of the specified project are returned.
- */
-export const normalizeProjectMembers = (members: any[]): MentionUser[] => {
-  if (!Array.isArray(members)) return [];
-  const map = new Map<string, MentionUser>();
-
-  for (const item of members) {
-    if (!item) continue;
-    const u = item.user || item;
-    if (!u || !u.username) continue;
-
-    const rawUsername = String(u.username).trim();
-    if (!rawUsername) continue;
-
-    const key = rawUsername.toLowerCase();
-    if (!map.has(key)) {
-      const displayName =
-        u.full_name?.trim() ||
-        [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
-        rawUsername;
-
-      map.set(key, {
-        id: u.id,
-        username: rawUsername,
-        displayName,
-        avatar: u.avatar || null,
-      });
-    }
-  }
-
-  return Array.from(map.values());
-};
-
-/**
- * Text component that renders @mentions with stylish, highlighted badges.
- */
-export const MentionText: React.FC<{
-  content: string;
-  className?: string;
-}> = ({ content, className }) => {
-  if (!content) return null;
-
-  // Split by @username tokens
-  const parts = content.split(/(@[a-zA-Z0-9_\u0600-\u06FF.-]+)/g);
-
-  return (
-    <p className={className}>
-      {parts.map((part, index) => {
-        if (part.startsWith("@") && part.length > 1) {
-          const username = part.slice(1);
-          return (
-            <span
-              key={index}
-              className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary transition hover:bg-primary/20 cursor-default select-text"
-              title={`@${username}`}
-            >
-              @{username}
-            </span>
-          );
-        }
-        return part;
-      })}
-    </p>
-  );
-};
 
 export const MentionTextarea = React.forwardRef<
   HTMLTextAreaElement,

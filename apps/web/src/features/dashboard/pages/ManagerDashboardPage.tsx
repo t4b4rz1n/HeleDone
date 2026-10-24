@@ -424,14 +424,31 @@ const ProjectFocusPanel = ({ tasks, isLoading }: { tasks?: Task[], isLoading: bo
   const tasksByUser = useMemo(() => {
     const grouped = new Map<string, { user: any, tasks: Task[] }>();
     activeTasks.forEach(task => {
-      const assigneeId = task.assignee_detail?.id || "unassigned";
-      if (!grouped.has(assigneeId.toString())) {
-        grouped.set(assigneeId.toString(), {
-          user: task.assignee_detail || { id: "unassigned", username: t("بدون مسئول"), first_name: t("بدون مسئول"), last_name: "" },
-          tasks: []
+      const assignees = (task.assignees_detail && task.assignees_detail.length > 0)
+        ? task.assignees_detail
+        : (task.assignee_detail ? [task.assignee_detail] : []);
+
+      if (assignees.length === 0) {
+        const key = "unassigned";
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            user: { id: "unassigned", username: t("بدون مسئول"), first_name: t("بدون مسئول"), last_name: "" },
+            tasks: []
+          });
+        }
+        grouped.get(key)!.tasks.push(task);
+      } else {
+        assignees.forEach(u => {
+          const key = u.id.toString();
+          if (!grouped.has(key)) {
+            grouped.set(key, {
+              user: u,
+              tasks: []
+            });
+          }
+          grouped.get(key)!.tasks.push(task);
         });
       }
-      grouped.get(assigneeId.toString())!.tasks.push(task);
     });
     return Array.from(grouped.values()).sort((a, b) => {
       if (a.user.id === "unassigned") return 1;

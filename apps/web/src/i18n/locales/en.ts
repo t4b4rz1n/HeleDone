@@ -1,5 +1,7 @@
 // Source messages are stable translation keys. Keep both catalogs in sync.
 const messages = {
+  "{value0} members": "{value0} members",
+  "حذف همه": "Remove all",
   "اعضای پروژه": "Project Members",
   "عضوی در این پروژه با این نام یافت نشد": "No matching project member found",
   "دیدگاهی بنویسید… (از @ برای منشن کردن اعضای پروژه استفاده کنید)": "Write a comment... (use @ to mention project members)",

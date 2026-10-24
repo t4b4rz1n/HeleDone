@@ -42,7 +42,7 @@ import { ProjectReportView } from "../components/ProjectReportView";
 import { ProjectMemberSalaryPanel } from "../components/ProjectMemberSalaryPanel";
 import { ProjectBillingTab } from "../components/ProjectBillingTab";
 import { toast } from "sonner";
-import { getUnlinkedTasks, getTask, updateTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
+import { getUnlinkedTasks, getTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
 import { TaskSheet } from "../../tasks/components/TaskSheet";
 import { ViewSwitcher } from "../../../components/ViewSwitcher";
 import { OrbitView } from "../components/OrbitView";
@@ -501,11 +501,15 @@ function MilestonesTab({
                         {task.priority}
                       </span>
                     )}
-                    {task.assignee_detail && (
-                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
-                        {`${task.assignee_detail.first_name} ${task.assignee_detail.last_name}`.trim() || task.assignee_detail.username || t("Assigned")}
+                    {(task.assignees_detail && task.assignees_detail.length > 0) ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[120px]">
+                        {task.assignees_detail.map((u: any) => `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username).join(", ")}
                       </span>
-                    )}
+                    ) : task.assignee_detail ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
+                        {`${task.assignee_detail.first_name || ""} ${task.assignee_detail.last_name || ""}`.trim() || task.assignee_detail.username || t("Assigned")}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -1166,8 +1170,10 @@ export default function ProjectDetailsPage() {
       <TaskSheet
         task={taskQuery.data ?? null}
         onClose={() => setSelectedTaskId(null)}
-        onPatch={async (taskId, patch) => {
-          await updateTask(taskId, patch);
+        onPatch={(taskId, patch) => {
+          queryClient.setQueryData(["task", String(taskId)], (old: any) =>
+            old ? { ...old, ...patch } : old
+          );
           queryClient.invalidateQueries({ queryKey: ["unlinked-tasks", id] });
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
         }}
