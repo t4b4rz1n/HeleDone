@@ -83,8 +83,13 @@ def _invalidate_manager_org(org_id):
 
 @receiver([post_save, post_delete], sender=Task)
 def invalidate_on_task_change(sender, instance, **kwargs):
-    _invalidate_employee(instance.assignee_id)
-    _invalidate_manager(user_id=instance.assignee_id)
+    try:
+        assignee_ids = list(instance.assignees.values_list("id", flat=True))
+    except Exception:
+        assignee_ids = []
+    for uid in assignee_ids:
+        _invalidate_employee(uid)
+        _invalidate_manager(user_id=uid)
 
     if instance.project_id:
         project = Project.objects.filter(id=instance.project_id).first()

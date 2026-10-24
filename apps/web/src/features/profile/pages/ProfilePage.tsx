@@ -20,7 +20,7 @@ const ProfilePage = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="bg-transparent min-h-[calc(100vh-121px)] max-w-6xl mx-auto space-y-5"
+      className="bg-transparent min-h-[calc(100dvh-121px)] max-w-6xl mx-auto space-y-5"
     >
       <PageHeading title={t("Account Settings")} description={t("Manage your personal information, account security, and notification preferences.")} illustration="coastal-house" />
       <motion.div variants={itemVariants}>

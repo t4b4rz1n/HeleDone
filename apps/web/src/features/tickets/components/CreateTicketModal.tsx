@@ -85,7 +85,7 @@ export const CreateTicketModal = ({
         >
           <motion.div
             variants={modalVariants}
-            className="relative w-full max-w-2xl bg-base-100 rounded-2xl shadow-xl m-4 max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-2xl bg-base-100 rounded-2xl shadow-xl m-4 max-h-[calc(100dvh-2rem)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -183,7 +183,7 @@ export const CreateTicketModal = ({
                         <option value="">{t("Select Category")}</option>
                         {ticketTypesResponse?.results?.map((type) => (
                           <option key={type.id} value={type.id}>
-                            {type.name}
+                            {t(type.name)}
                           </option>
                         ))}
                       </select>

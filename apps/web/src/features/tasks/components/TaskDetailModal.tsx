@@ -2,7 +2,7 @@ import { getErrorMessage as translateError } from "../../../core/utils/errorHand
 import { useTranslation } from "../../../i18n/locale";
 import { CustomDatePicker } from "../../../components/CustomDatePicker";
 import { formatDisplayDate } from "../../../utils/date";
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Task } from '../types';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { ManualTimeLogForm } from '../../attendance/components/ManualTimeLogForm
 import { Timer1 } from 'iconsax-reactjs';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { MentionTextarea } from '../../../components/MentionTextarea';
 
 
 interface TaskDetailModalProps {
@@ -49,7 +50,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
 
   // Local state for optimistic UI updates
-  const [localAssignee, setLocalAssignee] = useState<any>(task.assignee_detail || null);
+  const initialAssignees: any[] = (task.assignees_detail && task.assignees_detail.length > 0)
+    ? task.assignees_detail
+    : (task.assignee_detail ? [task.assignee_detail] : []);
+  const [localAssignees, setLocalAssignees] = useState<any[]>(initialAssignees);
+
   const [localDueDate, setLocalDueDate] = useState<string | null | undefined>(task.due_date);
 
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
@@ -79,6 +84,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     },
     enabled: !!task.project,
   });
+
+  useEffect(() => {
+    if (task.assignees_detail && task.assignees_detail.length > 0) {
+      setLocalAssignees(task.assignees_detail);
+    } else if (task.assignees && task.assignees.length > 0 && users.length > 0) {
+      const fromUsers = task.assignees
+        .map((id: any) => users.find((u: any) => String(u.id) === String(id)))
+        .filter(Boolean);
+      if (fromUsers.length > 0) setLocalAssignees(fromUsers);
+    }
+  }, [task.assignees_detail, task.assignees, users]);
 
   const { data: projectMilestones = [] } = useQuery({
     queryKey: ['projects', 'detail', String(task.project), 'milestones'],
@@ -255,7 +271,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row min-h-[450px] max-h-[75vh]">
+          <div className="flex flex-col md:flex-row min-h-[450px] max-h-[calc(100dvh-2rem)]">
             {/* Left Column (Main Info) */}
             <div className="flex-[1.4] p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
 
@@ -346,73 +362,106 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
               {/* Members */}
               <div className="ms-8">
                 <h3 className="text-[13px] font-semibold text-base-content mb-2 uppercase tracking-wide">{t("اعضا")}</h3>
-                <div className="flex items-center gap-1">
-                  <div className="relative" ref={membersButtonRef}>
-                    {localAssignee ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {localAssignees.map((assigneeItem: any) => (
+                    <div
+                      key={assigneeItem.id}
+                      className="group relative flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-base-content/10 rounded-full pe-2.5 ps-0.5 py-0.5 text-xs text-base-content transition-colors"
+                    >
                       <div
-                        onClick={() => setIsMembersMenuOpen(true)}
-                        className="w-8 h-8 rounded-full bg-error text-base-content flex items-center justify-center text-xs font-bold ring-2 ring-base-100 relative cursor-pointer hover:opacity-80 transition-opacity"
-                        title={localAssignee.full_name || localAssignee.username}
+                        className="w-6 h-6 rounded-full bg-error text-base-content flex items-center justify-center text-[11px] font-bold shrink-0"
+                        title={assigneeItem.full_name || assigneeItem.username}
                       >
-                        {localAssignee.full_name?.[0] || localAssignee.username?.[0] || 'A'}
+                        {assigneeItem.full_name?.[0] || assigneeItem.username?.[0] || 'U'}
                       </div>
-                    ) : (
+                      <span className="truncate max-w-[100px] font-medium">{assigneeItem.first_name || assigneeItem.full_name || assigneeItem.username}</span>
                       <button
-                        onClick={() => setIsMembersMenuOpen(true)}
-                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-base-content/10 flex items-center justify-center text-base-content transition-colors ms-1"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newAssignees = localAssignees.filter((a: any) => String(a.id) !== String(assigneeItem.id));
+                          setLocalAssignees(newAssignees);
+                          updateMutation.mutate({ assignees: newAssignees.map((u: any) => u.id) });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-error transition-opacity"
+                        title={t("Remove")}
                       >
-                        <span className="text-lg leading-none mb-0.5">+</span>
+                        <CloseSquare size={12} />
                       </button>
-                    )}
+                    </div>
+                  ))}
+
+                  <div className="relative" ref={membersButtonRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsMembersMenuOpen(!isMembersMenuOpen)}
+                      className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-dashed border-base-content/20 flex items-center justify-center text-base-content transition-colors"
+                      title={t("Add Member")}
+                    >
+                      <span className="text-base leading-none mb-0.5">+</span>
+                    </button>
                   </div>
 
                   {isMembersMenuOpen && membersButtonRef.current && createPortal(
                     <>
                       <div className="fixed inset-0 z-[110]" onClick={() => setIsMembersMenuOpen(false)} />
                       <div
-                        className="fixed z-[120] bg-base-100 border border-base-content/10 rounded-lg shadow-2xl py-1.5 w-48 text-[13px] text-base-content flex flex-col max-h-64 overflow-y-auto custom-scrollbar"
+                        className="fixed z-[120] bg-base-100 border border-base-content/10 rounded-lg shadow-2xl py-1.5 w-52 text-[13px] text-base-content flex flex-col max-h-64 overflow-y-auto custom-scrollbar"
                         style={{
                           top: membersButtonRef.current.getBoundingClientRect().bottom + 4,
                           left: membersButtonRef.current.getBoundingClientRect().left,
                         }}
                       >
                         <div className="px-3 py-1.5 text-xs text-base-content font-semibold mb-1">{t("Select Member")}</div>
-                        <button
-                          className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start text-base-content hover:text-base-content"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateMutation.mutate({ assignee: undefined });
-                            setLocalAssignee(null);
-                            setIsMembersMenuOpen(false);
-                          }}
-                        >
-                          <div className="w-5 h-5 rounded-full border border-dashed border-base-content/40 flex items-center justify-center font-bold text-base-content">
-                            -
-                          </div>
-                          <span className="truncate">{t("بدون مسئول")}</span>
-                        </button>
-                        {users.map((user: any) => (
+                        {localAssignees.length > 0 && (
                           <button
-                            key={user.id}
-                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start"
-                            onClick={() => {
-                              setLocalAssignee(user);
-                              updateMutation.mutate({ assignee: user.id });
+                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start text-error hover:text-error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocalAssignees([]);
+                              updateMutation.mutate({ assignees: [] });
                               setIsMembersMenuOpen(false);
                             }}
                           >
-                            <div className="w-5 h-5 rounded-full bg-error text-[13px] flex items-center justify-center font-bold text-base-content">
-                              {user.full_name?.[0] || user.username?.[0] || 'U'}
+                            <div className="w-5 h-5 rounded-full border border-dashed border-error/40 flex items-center justify-center font-bold text-error">
+                              ✕
                             </div>
-                            <span className="truncate">{user.full_name || user.username || user.email}</span>
+                            <span className="truncate">{t("حذف همه")}</span>
                           </button>
-                        ))}
+                        )}
+                        {users.map((user: any) => {
+                          const isAssigned = localAssignees.some((a: any) => String(a.id) === String(user.id));
+                          return (
+                            <button
+                              key={user.id}
+                              className={`flex items-center justify-between gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors text-start ${
+                                isAssigned ? "bg-primary/10 text-primary font-bold" : ""
+                              }`}
+                              onClick={() => {
+                                const newAssignees = isAssigned
+                                  ? localAssignees.filter((a: any) => String(a.id) !== String(user.id))
+                                  : [...localAssignees, user];
+                                setLocalAssignees(newAssignees);
+                                updateMutation.mutate({ assignees: newAssignees.map((u: any) => u.id) });
+                              }}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <div className="w-5 h-5 rounded-full bg-error text-[11px] flex items-center justify-center font-bold text-white shrink-0">
+                                  {user.full_name?.[0] || user.username?.[0] || 'U'}
+                                </div>
+                                <span className="truncate">{user.full_name || user.username || user.email}</span>
+                              </div>
+                              {isAssigned && <span className="text-primary text-xs shrink-0">✓</span>}
+                            </button>
+                          );
+                        })}
                       </div>
                     </>,
                     document.body
                   )}
                 </div>
               </div>
+
 
               {/* Description */}
               <div className="flex flex-col mt-2">
@@ -541,11 +590,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                   }
                 }}
               >
-                <textarea
+                <MentionTextarea
                   value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
+                  onChange={setCommentText}
+                  members={users}
+                  position="bottom"
                   className={`w-full bg-transparent text-[14px] text-base-content outline-none resize-none px-4 py-3 transition-all duration-200 custom-scrollbar ${isCommentInputFocused || commentText.trim() || selectedFile ? 'min-h-[80px]' : 'min-h-[44px] m-0 overflow-hidden'}`}
-                  placeholder={t("Write a comment... (Markdown supported)")}
+                  placeholder={t("دیدگاهی بنویسید… (از @ برای منشن کردن اعضای پروژه استفاده کنید)")}
                 />
 
                 {selectedFile && (
@@ -627,9 +678,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
                             {editingCommentId === item.id ? (
                               <div className="bg-base-100 rounded-lg border border-base-content/10 p-0 focus-within:border-base-content/30 transition-all mb-2">
-                                <textarea
+                                <MentionTextarea
                                   value={editingCommentText}
-                                  onChange={(e) => setEditingCommentText(e.target.value)}
+                                  onChange={setEditingCommentText}
+                                  members={users}
+                                  position="bottom"
                                   className="w-full bg-transparent text-[14px] text-base-content outline-none resize-none p-3 pb-1"
                                   rows={2}
                                 />
@@ -641,7 +694,33 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                             ) : (
                               <>
                                 <div className="backdrop-blur-md bg-white/[0.03] p-4 rounded-xl text-[14px] text-base-content shadow-sm border border-base-content/5 prose  prose-p:leading-relaxed prose-pre:bg-base-100 prose-pre:border prose-pre:border-base-content/10 prose-pre:rounded-lg prose-a:text-primary max-w-none">
-                                  <ReactMarkdown>
+                                  <ReactMarkdown
+                                    components={{
+                                      p: ({ children }) => (
+                                        <p className="leading-relaxed">
+                                          {React.Children.map(children, (child) => {
+                                            if (typeof child === 'string') {
+                                              const parts = child.split(/(@[a-zA-Z0-9_\u0600-\u06FF.-]+)/g);
+                                              return parts.map((part, pIdx) => {
+                                                if (part.startsWith('@') && part.length > 1) {
+                                                  return (
+                                                    <span
+                                                      key={pIdx}
+                                                      className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 text-xs font-bold text-primary transition hover:bg-primary/25 cursor-default font-mono"
+                                                    >
+                                                      {part}
+                                                    </span>
+                                                  );
+                                                }
+                                                return part;
+                                              });
+                                            }
+                                            return child;
+                                          })}
+                                        </p>
+                                      ),
+                                    }}
+                                  >
                                     {typeof item.content === 'string' ? item.content : t("No content")}
                                   </ReactMarkdown>
 

@@ -25,6 +25,7 @@ from rest_framework_nested import routers
 from .views import (
     MilestoneViewSet,
     ProjectActivityViewSet,
+    ProjectFileViewSet,
     ProjectMemberViewSet,
     ProjectViewSet,
 )
@@ -39,6 +40,7 @@ projects_router = routers.NestedDefaultRouter(router, r"", lookup="project")
 projects_router.register(r"members", ProjectMemberViewSet, basename="project-member")
 projects_router.register(r"milestones", MilestoneViewSet, basename="project-milestone")
 projects_router.register(r"activities", ProjectActivityViewSet, basename="project-activity")
+projects_router.register(r"files", ProjectFileViewSet, basename="project-file")
 
 # URLs ordering: manual/specific endpoints first, then routers at the end
 urlpatterns = [

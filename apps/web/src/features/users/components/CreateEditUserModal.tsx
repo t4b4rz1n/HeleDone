@@ -165,7 +165,7 @@ export const CreateEditUserModal = ({
         >
           <motion.div
             variants={modalVariants}
-            className="relative w-full max-w-2xl bg-base-100 rounded-2xl shadow-xl m-4 max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-2xl bg-base-100 rounded-2xl shadow-xl m-4 max-h-[calc(100dvh-2rem)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 flex-shrink-0 border-b border-base-content/10">

@@ -234,3 +234,46 @@ class CanViewProjectActivity(_ProjectFromKwargsMixin):
         if _is_project_member(user, project):
             return True
         return False
+
+
+class CanManageProjectFile(_ProjectFromKwargsMixin):
+    """View-level: project members (+ owner, org admin, staff) can manage project files."""
+
+    message = _("You must be a project member to manage project files.")
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+            return True
+        project = self._get_project(view)
+        if project is None:
+            return False
+        if _is_project_owner(user, project):
+            return True
+        if _is_org_admin(user, project.organization):
+            return True
+        if _is_project_member(user, project):
+            return True
+        if PermissionService.has_permission(user, "project.view", project.organization_id):
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+            return True
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # For deletion or modification, uploader, project owner, or org admin is allowed
+        project = obj.project
+        if (
+            obj.uploaded_by_id == user.id
+            or _is_project_owner(user, project)
+            or _is_org_admin(user, project.organization)
+        ):
+            return True
+        return False

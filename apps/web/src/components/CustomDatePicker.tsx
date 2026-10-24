@@ -325,7 +325,7 @@ export const CustomDatePicker = ({
                           </motion.button>
                         );
                       })
-                    : calendarDays.map((day) => {
+                    : calendarDays.map((day: Date) => {
                         const isCurrentMonth = isSameMonth(day, monthStart);
                         const isSel = pendingDate ? isSameDay(day, pendingDate) : false;
                         const isTodayDate = isToday(day);

@@ -50,6 +50,7 @@ services:
       - network
 
   setup-minio:
+    image: madar-api:latest
     build:
       context: ./apps/api
       dockerfile: Dockerfile
@@ -68,6 +69,7 @@ services:
       - network
 
   api:
+    image: madar-api:latest
     build:
       context: ./apps/api
       dockerfile: Dockerfile
@@ -92,6 +94,7 @@ services:
       - network
 
   web:
+    image: madar-web:latest
     build:
       context: ./apps/web
       dockerfile: Dockerfile
@@ -109,6 +112,7 @@ services:
       - network
 
   worker:
+    image: madar-api:latest
     build:
       context: ./apps/api
       dockerfile: Dockerfile
@@ -132,6 +136,7 @@ services:
       - network
 
   beat:
+    image: madar-api:latest
     build:
       context: ./apps/api
       dockerfile: Dockerfile

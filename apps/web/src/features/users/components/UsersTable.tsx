@@ -93,8 +93,8 @@ export const UsersTable = ({
   return (
     <>
       <div className="bg-base-100/70 backdrop-blur-xl rounded-2xl border border-base-content/8 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead className="border-b border-base-content/8">
               <tr>
                 <th className="px-6 py-4 text-start text-xs font-semibold tracking-wider text-heledone-ink-muted uppercase whitespace-nowrap">

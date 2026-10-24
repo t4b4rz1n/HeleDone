@@ -706,7 +706,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
     const matchesSearch = !normalizedSearch || `${task.title} ${task.key}`.toLowerCase().includes(normalizedSearch);
     const matchesFilter = filter === 'all'
       || (filter === 'active' && !task.is_finished && task.status_detail?.code !== 'done')
-      || (filter === 'my-tasks' && Boolean(currentUser?.id) && (task.assignee_detail?.id === currentUser?.id || task.assignee === currentUser?.id))
+      || (filter === 'my-tasks' && Boolean(currentUser?.id) && (
+        task.assignees?.some(id => String(id) === String(currentUser?.id)) ||
+        task.assignees_detail?.some(u => String(u.id) === String(currentUser?.id)) ||
+        task.assignee_detail?.id === currentUser?.id ||
+        task.assignee === currentUser?.id
+      ))
       || (filter === 'blocked' && task.is_blocked)
       || (filter === 'priority' && ['high', 'critical'].includes(task.priority));
     return matchesSearch && matchesFilter;
@@ -716,8 +721,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-base-100">
       {/* ─── Top Header with Board Info ─── */}
-      <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-6 py-4">
-        <div className="flex items-start justify-between gap-4">
+      <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
           {/* Left: Board Info */}
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-extrabold text-base-content mb-1 flex items-center gap-2">
@@ -733,7 +738,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
           </div>
 
           {/* Right: Board controls and quick actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
               <button
                 type="button"
@@ -842,10 +847,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       </div>
 
       {/* ─── Filters and Search Bar ─── */}
-      <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-6 py-3">
-        <div className="flex items-center justify-between gap-4">
+      <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-4 sm:px-6 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           {/* Left: Filters */}
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1 overflow-x-auto max-w-full">
             {(['all', 'active', 'my-tasks', 'blocked', 'priority'] as const).map((item) => {
               const labels: Record<string, string> = {
                 all: t("همه"),
@@ -889,8 +894,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
           </div>
 
           {/* Right: Search */}
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-3 py-1.5 text-heledone-ink-muted focus-within:border-primary focus-within:bg-base-100 transition-all w-64">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-3 py-1.5 text-heledone-ink-muted focus-within:border-primary focus-within:bg-base-100 transition-all w-full sm:w-64">
               <SearchNormal1 size={14} />
               <input
                 aria-label={t("جستجو در تسک‌ها")}
@@ -927,7 +932,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
           activeTimer={activeTimers?.[0]}
         />
       ) : (
-        <div className="custom-scrollbar flex-1 overflow-x-auto overflow-y-visible bg-base-200/30">
+        <div className="custom-scrollbar flex-1 overflow-x-auto overflow-y-visible bg-base-200/30 snap-x snap-mandatory">
           <div className="flex min-w-max items-start gap-3 p-4 pb-6 sm:gap-4 sm:p-6 sm:pb-8">
             <DndContext
               sensors={sensors}
@@ -962,7 +967,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                       <DroppableColumn
                         key={status.id}
                         id={`col-${status.id}`}
-                        className={`heledone-kanban-column min-w-[220px] w-[clamp(220px,20vw,280px)] flex flex-col rounded-2xl bg-base-100 transition-all ${isDoneColumn ? 'heledone-kanban-column-done opacity-90' : ''
+                        className={`heledone-kanban-column snap-center min-w-[85vw] sm:min-w-[280px] sm:w-[clamp(280px,20vw,320px)] flex flex-col rounded-2xl bg-base-100 transition-all ${isDoneColumn ? 'heledone-kanban-column-done opacity-90' : ''
                           }`}
                         header={
                           <div className="mb-3 flex shrink-0 items-center justify-between px-4 pt-4">
@@ -1187,6 +1192,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                                 key={task.id}
                                 task={task}
                                 onClick={() => { setSelectedTaskForSheet(task); if (focusMode) setFocusedTaskId(task.id); }}
+                                onPatch={patchLocalTask}
                                 onPlayTimer={handlePlayTimer}
                                 onStopTimer={handleStopTimer}
                                 onToggleDone={handleToggleDone}
@@ -1308,7 +1314,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
 
               {canManageBoard && (
                 isAddingStatus ? (
-                  <div className="min-w-[220px] w-[clamp(220px,20vw,280px)] rounded-2xl border border-primary/30 bg-base-100 p-4 flex flex-col h-fit shadow-lg animate-in fade-in slide-in-from-right-2 duration-200">
+                  <div className="snap-center min-w-[85vw] sm:min-w-[280px] sm:w-[clamp(280px,20vw,320px)] rounded-2xl border border-primary/30 bg-base-100 p-4 flex flex-col h-fit shadow-lg animate-in fade-in slide-in-from-right-2 duration-200">
                     <input
                       autoFocus
                       value={newStatusName}
@@ -1344,7 +1350,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                   <button
                     onClick={() => setIsAddingStatus(true)}
                     aria-label={t("افزودن ستون")}
-                    className="group min-w-[220px] w-[clamp(220px,20vw,280px)] h-[320px] rounded-2xl border border-dashed border-primary/35 bg-base-100/70 px-5 py-6 text-heledone-ink-muted transition-all hover:border-primary hover:bg-base-100 hover:text-primary"
+                    className="group snap-center min-w-[85vw] sm:min-w-[280px] sm:w-[clamp(280px,20vw,320px)] h-[320px] rounded-2xl border border-dashed border-primary/35 bg-base-100/70 px-5 py-6 text-heledone-ink-muted transition-all hover:border-primary hover:bg-base-100 hover:text-primary"
                   >
                     <div className="flex h-full flex-col items-center justify-center text-center">
                       <div className="mb-4 grid size-14 place-items-center rounded-2xl border border-primary/15 bg-primary/5 text-primary transition-transform group-hover:scale-105">

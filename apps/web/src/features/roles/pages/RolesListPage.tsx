@@ -4,10 +4,13 @@ import { useMemo, useState } from "react";
 import { CreateRoleModal } from "../components/CreateRoleModal";
 import { EditRoleModal } from "../components/EditRoleModal";
 import { useRoles, useDeleteRole } from "../hooks/useRoles";
+import { usePermissions } from "../../auth/hooks/usePermissions";
 import type { Role } from "../types";
 
 const RolesListPage = () => {
   const t = useTranslation();
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canManageRoles = hasAnyPermission(["org.manage_roles", "org.manage_settings"]) || isStaff;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null);
@@ -75,7 +78,7 @@ const RolesListPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center p-4 sm:p-6">
+      <div className="flex min-h-[50dvh] items-center justify-center p-4 sm:p-6">
         <span className="loading loading-spinner loading-lg text-primary" />
       </div>
     );
@@ -101,26 +104,28 @@ const RolesListPage = () => {
             {t("Manage access levels and permissions for your team.")}</p>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 w-full sm:w-auto font-medium"
-          onClick={() => setIsModalOpen(true)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-5 h-5 me-1 inline"
+        {canManageRoles && (
+          <button
+            type="button"
+            className="btn btn-primary rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 w-full sm:w-auto font-medium"
+            onClick={() => setIsModalOpen(true)}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          {t("Create Role")}</button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5 me-1 inline"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+            {t("Create Role")}</button>
+        )}
       </div>
 
       <CreateRoleModal
@@ -136,8 +141,8 @@ const RolesListPage = () => {
 
       <div className="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         <div className="card-body p-0">
-          <div className="overflow-x-auto">
-            <table className="table table-zebra w-full">
+          <div className="w-full overflow-x-auto">
+            <table className="table table-zebra w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-base-300 bg-base-200/50 text-base-content/80">
                   <th className="py-4 ps-6 text-sm font-semibold">{t("Role Name")}</th>
@@ -147,8 +152,10 @@ const RolesListPage = () => {
                     {t("Permissions")}</th>
                   <th className="py-4 text-sm font-semibold text-center">
                     {t("وضعیت")}</th>
-                  <th className="py-4 pe-6 text-sm font-semibold text-end">
-                    {t("Actions")}</th>
+                  {canManageRoles && (
+                    <th className="py-4 pe-6 text-sm font-semibold text-end">
+                      {t("Actions")}</th>
+                  )}
                 </tr>
               </thead>
 
@@ -208,28 +215,30 @@ const RolesListPage = () => {
                           </div>
                         </td>
 
-                        <td className="py-4 pe-6 text-end">
-                          <div className="inline-flex gap-1">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost text-base-content/70 hover:bg-base-200 hover:text-base-content transition-all"
-                              onClick={() => handleEditClick(role.id)}
-                            >
-                              {t("ویرایش")}</button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost text-error/80 hover:bg-error/10 hover:text-error transition-all"
-                              onClick={() => handleDeleteClick(role.id)}
-                            >
-                              {t("حذف")}</button>
-                          </div>
-                        </td>
+                        {canManageRoles && (
+                          <td className="py-4 pe-6 text-end">
+                            <div className="inline-flex gap-1">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost text-base-content/70 hover:bg-base-200 hover:text-base-content transition-all"
+                                onClick={() => handleEditClick(role.id)}
+                              >
+                                {t("ویرایش")}</button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost text-error/80 hover:bg-error/10 hover:text-error transition-all"
+                                onClick={() => handleDeleteClick(role.id)}
+                              >
+                                {t("حذف")}</button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center">
+                    <td colSpan={canManageRoles ? 5 : 4} className="py-16 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -259,7 +268,7 @@ const RolesListPage = () => {
 
       {isDeleteOpen && (
         <dialog className="modal modal-open backdrop-blur-sm">
-          <div className="modal-box w-full max-w-lg rounded-3xl border border-base-300/80 bg-base-100 shadow-2xl">
+          <div className="modal-box w-full max-w-lg rounded-3xl border border-base-300/80 bg-base-100 shadow-2xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-y-auto">
             <h3 className="text-xl font-bold text-base-content">
               {deleteTitle}
             </h3>

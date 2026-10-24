@@ -42,7 +42,7 @@ import { ProjectReportView } from "../components/ProjectReportView";
 import { ProjectMemberSalaryPanel } from "../components/ProjectMemberSalaryPanel";
 import { ProjectBillingTab } from "../components/ProjectBillingTab";
 import { toast } from "sonner";
-import { getUnlinkedTasks, getTask, updateTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
+import { getUnlinkedTasks, getTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
 import { TaskSheet } from "../../tasks/components/TaskSheet";
 import { ViewSwitcher } from "../../../components/ViewSwitcher";
 import { OrbitView } from "../components/OrbitView";
@@ -93,8 +93,8 @@ function MilestoneItem({
   onDelete: (ms: Milestone) => void;
 }) {
   const t = useTranslation();
-  const { hasAnyPermission } = usePermissions();
-  const canManageProject = hasAnyPermission(["project.manage"]);
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
 
 
   const msCfg = milestoneStatusConfig[ms.status] ?? milestoneStatusConfig.pending;
@@ -120,7 +120,7 @@ function MilestoneItem({
         <div className="flex items-center gap-3 min-w-0">
           <Flag size={15} className="shrink-0 text-primary" />
           <div className="min-w-0 flex flex-col gap-1">
-            <p  className="font-bold text-base-content truncate">
+            <p className="font-bold text-base-content truncate">
               {ms.title}
             </p>
             <div className="flex items-center gap-3 text-[13px] text-heledone-ink-muted">
@@ -315,9 +315,8 @@ function StatusDropdown({
                   onChange(opt.value);
                   setOpen(false);
                 }}
-                className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-start text-[13px] transition-colors hover:bg-base-content/5 ${
-                  currentStatus === opt.value ? "bg-primary/10 font-bold text-primary" : "font-medium text-base-content"
-                }`}
+                className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-start text-[13px] transition-colors hover:bg-base-content/5 ${currentStatus === opt.value ? "bg-primary/10 font-bold text-primary" : "font-medium text-base-content"
+                  }`}
               >
                 {opt.label}
               </button>
@@ -345,8 +344,8 @@ function MilestonesTab({
   | undefined;
 }) {
   const t = useTranslation();
-  const { hasAnyPermission } = usePermissions();
-  const canManageProject = hasAnyPermission(["project.manage"]);
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
 
   // Calculate weighted progress
   const totalWeight = milestones.reduce((s, m) => s + (m.weight || 1), 0);
@@ -501,11 +500,15 @@ function MilestonesTab({
                         {task.priority}
                       </span>
                     )}
-                    {task.assignee_detail && (
-                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
-                        {`${task.assignee_detail.first_name} ${task.assignee_detail.last_name}`.trim() || task.assignee_detail.username || t("Assigned")}
+                    {(task.assignees_detail && task.assignees_detail.length > 0) ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[120px]">
+                        {task.assignees_detail.map((u: any) => `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username).join(", ")}
                       </span>
-                    )}
+                    ) : task.assignee_detail ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
+                        {`${task.assignee_detail.first_name || ""} ${task.assignee_detail.last_name || ""}`.trim() || task.assignee_detail.username || t("Assigned")}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -548,8 +551,8 @@ export default function ProjectDetailsPage() {
   const setSelectedTaskId = useTaskStore(state => state.setSelectedTaskId);
   const queryClient = useQueryClient();
 
-  const { hasAnyPermission, hasPermission } = usePermissions();
-  const canManageProject = hasAnyPermission(["project.manage"]);
+  const { hasAnyPermission, hasPermission, isStaff } = usePermissions();
+  const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
 
   const taskQuery = useQuery({
     queryKey: ["task", selectedTaskId],
@@ -681,6 +684,19 @@ export default function ProjectDetailsPage() {
 
   const ownerName = getProjectOwnerName();
 
+  const isOwnerMember = (m: ProjectMember) => {
+    if (!project?.owner) return false;
+    if (m.user?.id && project.owner.id && String(m.user.id) === String(project.owner.id)) {
+      return true;
+    }
+    if (m.user?.username && project.owner.username && m.user.username === project.owner.username) {
+      return true;
+    }
+    return false;
+  };
+
+  const nonOwnerMembers = members.filter((m: ProjectMember) => !isOwnerMember(m));
+
   const isOwner = project.owner?.id === user?.id;
   const isSuperUser = user?.is_staff;
   const canViewSalaries = isSuperUser || isOwner || hasPermission("org.manage_settings");
@@ -689,7 +705,7 @@ export default function ProjectDetailsPage() {
     <div key={id} className="space-y-5 pb-10">
       {/* Top Header */}
       <div className="heledone-page-heading flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             onClick={() => navigate("/projects")}
             className="flex size-8.5 shrink-0 items-center justify-center rounded-xl border border-base-content/10 bg-base-100 text-heledone-ink-muted transition hover:bg-base-200 hover:text-base-content"
@@ -697,8 +713,8 @@ export default function ProjectDetailsPage() {
           >
             <ArrowLeft size={16} />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
               {project.prefix && (
                 <span
                   className="rounded-lg px-2 py-0.5 text-[13px] font-bold text-base-content bg-base-200 border border-heledone-border"
@@ -707,23 +723,33 @@ export default function ProjectDetailsPage() {
                   {project.prefix}
                 </span>
               )}
-              <h1  className="text-xl font-bold tracking-tight text-base-content sm:text-2xl">
+              <h1 className="text-xl font-bold tracking-tight text-base-content sm:text-2xl truncate min-w-0">
                 {project.name}
               </h1>
-              <StatusDropdown
-                currentStatus={project.status}
-                onChange={(s) => {
-                  if (!project) return;
-                  updateProjectMutation.mutate({ id: project.id, data: { status: s } }, {
-                    onSuccess: () => toast.success(t("Project status updated.")),
-                    onError: () => toast.error(t("Failed to update status."))
-                  });
-                }}
-                disabled={updateProjectMutation.isPending}
-              />
+              {canManageProject ? (
+                <StatusDropdown
+                  currentStatus={project.status}
+                  onChange={(s) => {
+                    if (!project) return;
+                    updateProjectMutation.mutate({ id: project.id, data: { status: s } }, {
+                      onSuccess: () => toast.success(t("Project status updated.")),
+                      onError: () => toast.error(t("Failed to update status."))
+                    });
+                  }}
+                  disabled={updateProjectMutation.isPending}
+                />
+              ) : (
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+                    statusStyles[project.status] || statusStyles.draft
+                  }`}
+                >
+                  {STATUS_OPTIONS.find((o) => o.value === project.status)?.label || project.status}
+                </span>
+              )}
             </div>
             {project.description && (
-              <p  className="mt-0.5 text-xs text-heledone-ink-muted line-clamp-1">
+              <p className="mt-0.5 text-xs text-heledone-ink-muted line-clamp-1">
                 {project.description}
               </p>
             )}
@@ -747,18 +773,18 @@ export default function ProjectDetailsPage() {
           .filter(t => t.id !== "salaries" || canViewSalaries)
           .filter(t => t.id !== "billing" || canViewSalaries)
           .map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all ${activeTab === tab.id
-              ? "bg-primary text-primary-content shadow-xs"
-              : "text-heledone-ink-muted hover:bg-base-200 hover:text-base-content"
-              }`}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all ${activeTab === tab.id
+                ? "bg-primary text-primary-content shadow-xs"
+                : "text-heledone-ink-muted hover:bg-base-200 hover:text-base-content"
+                }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
       </div>
 
       {/* Tab Panels */}
@@ -774,7 +800,7 @@ export default function ProjectDetailsPage() {
           {activeTab === "overview" && (
             <div className="space-y-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-base-content">{t("Project overview")}</h2>
                   <p className="mt-1 text-xs text-heledone-ink-muted">{t("Track delivery health, milestones, and team activity.")}</p>
                 </div>
@@ -818,125 +844,125 @@ export default function ProjectDetailsPage() {
                     transition={{ duration: 0.2 }}
                     className="space-y-5"
                   >
-              {/* Quick Metrics Bar */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
-                  <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                    {t("Budget")}</p>
-                  <p className="mt-1 text-sm font-bold text-base-content truncate">
-                    {project.budget
-                      ? `${Number(project.budget).toLocaleString(getIntlLocale())} ${project.budget_currency || "IRR"}`
-                      : "—"}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
-                  <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                    {t("Deadline")}</p>
-                  <p className="mt-1 text-sm font-bold text-base-content truncate">
-                    {formatDate(project.deadline) ?? t("No deadline")}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
-                  <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                    {t("Progress")}</p>
-                  <p className="mt-1 text-sm font-bold text-primary">
-                    {formatUiNumber(progress)}%
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
-                  <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
-                    {t("تسک‌ها")}</p>
-                  <p className="mt-1 text-sm font-bold text-base-content">
-                    {formatUiNumber(project.task_count || 0)}
-                  </p>
-                </div>
-              </div>
+                    {/* Quick Metrics Bar */}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
+                        <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                          {t("Budget")}</p>
+                        <p className="mt-1 text-sm font-bold text-base-content truncate">
+                          {project.budget
+                            ? `${Number(project.budget).toLocaleString(getIntlLocale())} ${project.budget_currency || "IRR"}`
+                            : "—"}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
+                        <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                          {t("Deadline")}</p>
+                        <p className="mt-1 text-sm font-bold text-base-content truncate">
+                          {formatDate(project.deadline) ?? t("No deadline")}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
+                        <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                          {t("Progress")}</p>
+                        <p className="mt-1 text-sm font-bold text-primary">
+                          {formatUiNumber(progress)}%
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-base-content/8 bg-base-100 p-4">
+                        <p className="text-[13px] font-bold uppercase tracking-wider text-heledone-ink-muted">
+                          {t("تسک‌ها")}</p>
+                        <p className="mt-1 text-sm font-bold text-base-content">
+                          {formatUiNumber(project.task_count || 0)}
+                        </p>
+                      </div>
+                    </div>
 
-              {/* Two Column Section: Milestones & Team */}
-              <div className="grid gap-4 lg:grid-cols-2">
-                {/* Milestones */}
-                <div className="rounded-2xl border border-base-content/8 bg-base-100 p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-base-content uppercase tracking-wider">
-                      {t("Upcoming Milestones")}</h3>
-                    <button
-                      onClick={() => setActiveTab("milestones")}
-                      className="text-xs font-bold text-primary hover:underline"
-                    >
-                      {t("View all (")}{formatUiNumber(milestones.length)})
-                    </button>
-                  </div>
-
-                  {milestones.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-heledone-ink-muted">
-                      {t("No milestones defined yet.")}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {milestones.slice(0, 3).map((ms: Milestone) => {
-                        const msCfg = milestoneStatusConfig[ms.status] ?? milestoneStatusConfig.pending;
-                        return (
-                          <div
-                            key={ms.id}
-                            className="flex items-center justify-between rounded-xl border border-base-content/6 bg-base-200/40 px-3 py-2 text-xs"
+                    {/* Two Column Section: Milestones & Team */}
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      {/* Milestones */}
+                      <div className="rounded-2xl border border-base-content/8 bg-base-100 p-5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-bold text-base-content uppercase tracking-wider">
+                            {t("Upcoming Milestones")}</h3>
+                          <button
+                            onClick={() => setActiveTab("milestones")}
+                            className="text-xs font-bold text-primary hover:underline"
                           >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Flag size={14} className="shrink-0 text-primary" />
-                              <span  className="font-semibold text-base-content truncate">
-                                {ms.title}
-                              </span>
-                            </div>
-                            <span className={`shrink-0 rounded-md px-2 py-0.5 text-[13px] font-bold ${msCfg.cls}`}>
-                              {msCfg.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Team */}
-                <div className="rounded-2xl border border-base-content/8 bg-base-100 p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-base-content uppercase tracking-wider">
-                      {t("Team Members")}</h3>
-                    <button
-                      onClick={() => setActiveTab("members")}
-                      className="text-xs font-bold text-primary hover:underline"
-                    >
-                      {canManageProject ? t("Manage") : t("View all")} ({formatUiNumber(members.length)})
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 p-2.5">
-                    <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-content text-xs font-bold">
-                      <Crown size={14} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-base-content truncate">{ownerName}</p>
-                      <p className="text-[13px] font-semibold text-primary">{t("Project Owner")}</p>
-                    </div>
-                  </div>
-
-                  {members.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      {members.slice(0, 4).map((m: ProjectMember) => (
-                        <div
-                          key={m.id}
-                          className="flex items-center gap-2 rounded-xl border border-base-content/6 bg-base-200/40 p-2 text-xs"
-                        >
-                          <div className="grid size-6 place-items-center rounded-md bg-primary/10 text-[13px] font-bold text-primary shrink-0">
-                            {getUserDisplayName(m)[0]?.toUpperCase() || "U"}
-                          </div>
-                          <span  className="font-semibold text-base-content truncate text-[13px]">
-                            {getUserDisplayName(m)}
-                          </span>
+                            {t("View all (")}{formatUiNumber(milestones.length)})
+                          </button>
                         </div>
-                      ))}
+
+                        {milestones.length === 0 ? (
+                          <p className="py-6 text-center text-xs text-heledone-ink-muted">
+                            {t("No milestones defined yet.")}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {milestones.slice(0, 3).map((ms: Milestone) => {
+                              const msCfg = milestoneStatusConfig[ms.status] ?? milestoneStatusConfig.pending;
+                              return (
+                                <div
+                                  key={ms.id}
+                                  className="flex items-center justify-between rounded-xl border border-base-content/6 bg-base-200/40 px-3 py-2 text-xs"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <Flag size={14} className="shrink-0 text-primary" />
+                                    <span className="font-semibold text-base-content truncate">
+                                      {ms.title}
+                                    </span>
+                                  </div>
+                                  <span className={`shrink-0 rounded-md px-2 py-0.5 text-[13px] font-bold ${msCfg.cls}`}>
+                                    {msCfg.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Team */}
+                      <div className="rounded-2xl border border-base-content/8 bg-base-100 p-5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-bold text-base-content uppercase tracking-wider">
+                            {t("Team Members")}</h3>
+                          <button
+                            onClick={() => setActiveTab("members")}
+                            className="text-xs font-bold text-primary hover:underline"
+                          >
+                            {canManageProject ? t("Manage") : t("View all")} ({formatUiNumber(members.length)})
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 p-2.5">
+                          <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-content text-xs font-bold">
+                            <Crown size={14} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-base-content truncate">{ownerName}</p>
+                            <p className="text-[13px] font-semibold text-primary">{t("Project Owner")}</p>
+                          </div>
+                        </div>
+
+                        {nonOwnerMembers.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            {nonOwnerMembers.slice(0, 4).map((m: ProjectMember) => (
+                              <div
+                                key={m.id}
+                                className="flex items-center gap-2 rounded-xl border border-base-content/6 bg-base-200/40 p-2 text-xs"
+                              >
+                                <div className="grid size-6 place-items-center rounded-md bg-primary/10 text-[13px] font-bold text-primary shrink-0">
+                                  {getUserDisplayName(m)[0]?.toUpperCase() || "U"}
+                                </div>
+                                <span className="font-semibold text-base-content truncate text-[13px]">
+                                  {getUserDisplayName(m)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -945,7 +971,7 @@ export default function ProjectDetailsPage() {
 
           {/* ── MEMBERS TAB ── */}
           {activeTab === "members" && (() => {
-            const individualMembers = members.filter((m: ProjectMember) => !m.team && m.user?.id !== project?.owner?.id);
+            const individualMembers = members.filter((m: ProjectMember) => !m.team && !isOwnerMember(m));
             const teamMembers = members.filter((m: ProjectMember) => !!m.team);
 
             return (
@@ -994,7 +1020,7 @@ export default function ProjectDetailsPage() {
                             {getUserDisplayName(m)[0]?.toUpperCase() || "U"}
                           </div>
                           <div className="min-w-0">
-                            <p  className="text-xs font-bold text-base-content truncate">
+                            <p className="text-xs font-bold text-base-content truncate">
                               {getUserDisplayName(m)}
                             </p>
                             <p className="text-[13px] font-medium text-heledone-ink-muted truncate">
@@ -1002,20 +1028,22 @@ export default function ProjectDetailsPage() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDeleteModalState({
-                              open: true,
-                              memberId: m.id,
-                              memberName: getUserDisplayName(m),
-                            })
-                          }
-                          className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
-                          aria-label={t("Remove member")}
-                        >
-                          <Trash size={13} />
-                        </button>
+                        {canManageProject && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteModalState({
+                                open: true,
+                                memberId: m.id,
+                                memberName: getUserDisplayName(m),
+                              })
+                            }
+                            className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
+                            aria-label={t("Remove member")}
+                          >
+                            <Trash size={13} />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1038,7 +1066,7 @@ export default function ProjectDetailsPage() {
                               <People size={15} />
                             </div>
                             <div className="min-w-0">
-                              <p  className="text-xs font-bold text-base-content truncate">
+                              <p className="text-xs font-bold text-base-content truncate">
                                 {getUserDisplayName(m)}
                               </p>
                               <p className="text-[13px] font-medium text-heledone-ink-muted truncate">
@@ -1046,20 +1074,22 @@ export default function ProjectDetailsPage() {
                               </p>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDeleteModalState({
-                                open: true,
-                                memberId: m.id,
-                                memberName: getUserDisplayName(m),
-                              })
-                            }
-                            className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
-                            aria-label={t("Remove team")}
-                          >
-                            <Trash size={13} />
-                          </button>
+                          {canManageProject && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDeleteModalState({
+                                  open: true,
+                                  memberId: m.id,
+                                  memberName: getUserDisplayName(m),
+                                })
+                              }
+                              className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
+                              aria-label={t("Remove team")}
+                            >
+                              <Trash size={13} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1166,8 +1196,10 @@ export default function ProjectDetailsPage() {
       <TaskSheet
         task={taskQuery.data ?? null}
         onClose={() => setSelectedTaskId(null)}
-        onPatch={async (taskId, patch) => {
-          await updateTask(taskId, patch);
+        onPatch={(taskId, patch) => {
+          queryClient.setQueryData(["task", String(taskId)], (old: any) =>
+            old ? { ...old, ...patch } : old
+          );
           queryClient.invalidateQueries({ queryKey: ["unlinked-tasks", id] });
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
         }}

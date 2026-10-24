@@ -251,7 +251,7 @@ class TaskService:
         "description",
         "status",
         "priority",
-        "assignee",
+        "assignees",
         "due_date",
         "estimated_hours",
         "parent_task",
@@ -268,7 +268,7 @@ class TaskService:
         description=None,
         status=None,
         priority=Task.Priority.MEDIUM,
-        assignee=None,
+        assignees=None,
         due_date=None,
         estimated_hours=None,
         parent_task=None,
@@ -311,15 +311,16 @@ class TaskService:
                 if not is_member:
                     raise PermissionDenied(_("You are not a member of this project."))
 
-        # Validate that assignee is a member of the organization
-        if assignee and project:
+        # Validate that all assignees are members of the organization
+        if assignees and project:
             from organizations.models import OrganizationMembership
 
-            is_assignee_org_member = OrganizationMembership.objects.filter(
-                organization=project.organization, user=assignee
-            ).exists()
-            if not is_assignee_org_member:
-                raise ValidationError(_("Assignee must be a member of the organization."))
+            for assignee in assignees:
+                is_assignee_org_member = OrganizationMembership.objects.filter(
+                    organization=project.organization, user=assignee
+                ).exists()
+                if not is_assignee_org_member:
+                    raise ValidationError(_("All assignees must be members of the organization."))
 
         if not status:
             if project:
@@ -348,7 +349,6 @@ class TaskService:
             description=description,
             status=status,
             priority=priority,
-            assignee=assignee,
             reporter=reporter,
             due_date=due_date,
             estimated_hours=estimated_hours,
@@ -357,6 +357,10 @@ class TaskService:
             order=order,
             is_blocked=is_blocked,
         )
+
+        # Set the many-to-many assignees
+        if assignees:
+            task.assignees.set(assignees)
 
         # Log activity
         ProjectActivity.objects.create(
@@ -383,10 +387,10 @@ class TaskService:
     @staticmethod
     @transaction.atomic
     def update_task(task, actor, **kwargs):
-        # We rely on the serializer to validate that the assignee is a valid ProjectMember.
+        # We rely on the serializer to validate that the assignees are valid ProjectMembers.
         # Human-readable field labels
         field_labels = {
-            "assignee": _("Assignee"),
+            "assignees": _("Assignees"),
             "status": _("Status"),
             "priority": _("Priority"),
             "title": _("Title"),
@@ -402,7 +406,7 @@ class TaskService:
 
         def _display(val, field_name):
             if val is None:
-                return str(_("Unassigned")) if field_name == "assignee" else str(_("empty"))
+                return str(_("Unassigned")) if field_name == "assignees" else str(_("empty"))
             if isinstance(val, bool):
                 return "✓" if val else "✗"
             if hasattr(val, "get_full_name"):
@@ -422,9 +426,26 @@ class TaskService:
         skip_log_fields = {"order"}
 
         changes = []
+        assignees_to_set = None
+
         for field, value in kwargs.items():
             if field not in TaskService.UPDATABLE_FIELDS:
                 continue
+
+            # Handle M2M assignees separately
+            if field == "assignees":
+                old_assignees = set(task.assignees.values_list("id", flat=True))
+                new_assignees = {u.id for u in value} if value else set()
+                if old_assignees != new_assignees:
+                    assignees_to_set = value
+                    if field not in skip_log_fields:
+                        if value:
+                            names = ", ".join(u.get_full_name() or u.username for u in value)
+                            changes.append(str(_("Task assigned to %(users)s")) % {"users": names})
+                        else:
+                            changes.append(str(_("Task unassigned")))
+                continue
+
             old_val = getattr(task, field)
             if old_val != value:
                 setattr(task, field, value)
@@ -439,21 +460,12 @@ class TaskService:
                         TimeLogService.stop_timer(timer.user, timer.id, auto_move=False)
 
                 if field not in skip_log_fields:
-                    if field == "assignee":
-                        if value:
-                            changes.append(
-                                str(_("Task assigned to %(user)s"))
-                                % {"user": _display(value, field)}
-                            )
-                        else:
-                            changes.append(str(_("Task unassigned")))
-                    else:
-                        label = field_labels.get(field, field)
-                        changes.append(
-                            f"{label}: {_display(old_val, field)} → {_display(value, field)}"
-                        )
+                    label = field_labels.get(field, field)
+                    changes.append(
+                        f"{label}: {_display(old_val, field)} → {_display(value, field)}"
+                    )
 
-        if changes:
+        if changes or assignees_to_set is not None:
             # Sync is_finished if status changed and is_finished wasn't explicitly provided
             if "status" in kwargs and "is_finished" not in kwargs:
                 if task.status:
@@ -464,15 +476,23 @@ class TaskService:
                         task.is_finished = False
 
             task.save()
-            action_desc = ", ".join(changes)
-            ProjectActivity.objects.create(
-                project=task.status.board.project if task.status and task.status.board else None,
-                event_type=ProjectActivity.EventType.TASK_UPDATED,
-                entity_type=ProjectActivity.EntityType.TASK,
-                entity_id=str(task.id),
-                actor=actor,
-                metadata={"action": Truncator(action_desc).chars(255)},
-            )
+
+            # Set M2M assignees after save
+            if assignees_to_set is not None:
+                task.assignees.set(assignees_to_set)
+
+            if changes:
+                action_desc = ", ".join(changes)
+                ProjectActivity.objects.create(
+                    project=task.status.board.project
+                    if task.status and task.status.board
+                    else None,
+                    event_type=ProjectActivity.EventType.TASK_UPDATED,
+                    entity_type=ProjectActivity.EntityType.TASK,
+                    entity_id=str(task.id),
+                    actor=actor,
+                    metadata={"action": Truncator(action_desc).chars(255)},
+                )
 
         if "is_finished" in kwargs or "milestone" in kwargs:
             if getattr(task, "milestone_id", None):
@@ -499,7 +519,9 @@ class TaskService:
             can_manage = org_id and PermissionService.has_permission(
                 actor, "task.manage_all", org_id
             )
-            is_assignee_or_reporter = task.assignee_id == actor.id or task.reporter_id == actor.id
+            is_assignee_or_reporter = (
+                task.assignees.filter(id=actor.id).exists() or task.reporter_id == actor.id
+            )
             is_member = (
                 task.project
                 and task.project.members.filter(
