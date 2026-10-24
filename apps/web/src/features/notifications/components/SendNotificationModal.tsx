@@ -105,7 +105,7 @@ export const SendNotificationModal = ({
         >
           <motion.div
             variants={modalVariants}
-            className="relative w-full max-w-2xl bg-base-100 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            className="relative w-full max-w-2xl bg-base-100 rounded-2xl shadow-2xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

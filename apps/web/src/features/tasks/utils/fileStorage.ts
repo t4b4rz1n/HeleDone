@@ -5,10 +5,11 @@ export interface StoredFileRecord {
   fileType: 'image' | 'pdf' | 'document' | 'archive' | 'other';
   uploadedAt: string;
   size?: string;
+  description?: string;
 }
 
 const DB_NAME = 'madaar_file_storage';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'project_files';
 
 interface ProjectFilesRecord {
@@ -46,8 +47,28 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 /**
+ * Safely saves a copy of project files to localStorage (without blocking or throwing quota errors).
+ */
+function safeSaveToLocalStorage(projectId: string, files: StoredFileRecord[]) {
+  try {
+    localStorage.setItem(`project_files_${projectId}`, JSON.stringify(files));
+  } catch {
+    // If quota is exceeded due to base64 images, save metadata without heavy base64 url
+    try {
+      const lightweight = files.map((f) => ({
+        ...f,
+        url: f.url.startsWith('data:') ? '' : f.url,
+      }));
+      localStorage.setItem(`project_files_${projectId}`, JSON.stringify(lightweight));
+    } catch (e) {
+      console.warn('[fileStorage] Failed to cache to localStorage:', e);
+    }
+  }
+}
+
+/**
  * Retrieves all stored direct files for a given project.
- * Queries IndexedDB first, falls back to localStorage, and migrates existing localStorage files if found.
+ * Queries IndexedDB first, falls back to localStorage if IndexedDB is empty or inaccessible.
  */
 export async function getProjectFilesFromStorage(projectId: string | null): Promise<StoredFileRecord[]> {
   if (!projectId) return [];
@@ -64,23 +85,19 @@ export async function getProjectFilesFromStorage(projectId: string | null): Prom
       request.onerror = () => reject(request.error);
     });
 
-    if (record && Array.isArray(record.files)) {
+    if (record && Array.isArray(record.files) && record.files.length > 0) {
       return record.files;
     }
   } catch (error) {
     console.warn('[fileStorage] Failed to fetch from IndexedDB, trying localStorage fallback:', error);
   }
 
-  // 2. Safe fallback to localStorage
+  // 2. Fallback to localStorage
   try {
     const raw = localStorage.getItem(`project_files_${projectId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Asynchronously migrate to IndexedDB
-        saveProjectFilesToStorage(projectId, parsed).catch((migErr) => {
-          console.warn('[fileStorage] Background migration to IndexedDB failed:', migErr);
-        });
         return parsed;
       }
     }
@@ -93,7 +110,7 @@ export async function getProjectFilesFromStorage(projectId: string | null): Prom
 
 /**
  * Saves direct files for a given project.
- * Writes to IndexedDB with safe fallback to localStorage.
+ * Writes to IndexedDB and syncs to localStorage.
  */
 export async function saveProjectFilesToStorage(
   projectId: string | null,
@@ -101,7 +118,10 @@ export async function saveProjectFilesToStorage(
 ): Promise<void> {
   if (!projectId) return;
 
-  let idbSuccess = false;
+  // Always keep localStorage in sync for instant synchronous reads
+  safeSaveToLocalStorage(projectId, files);
+
+  // Persist full files (including data URLs) to IndexedDB
   try {
     const db = await openDB();
     const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -118,18 +138,8 @@ export async function saveProjectFilesToStorage(
       transaction.onerror = () => reject(transaction.error);
       transaction.onabort = () => reject(transaction.error);
     });
-    idbSuccess = true;
   } catch (error) {
-    console.warn('[fileStorage] Failed saving to IndexedDB, falling back to localStorage:', error);
-  }
-
-  if (!idbSuccess) {
-    try {
-      localStorage.setItem(`project_files_${projectId}`, JSON.stringify(files));
-    } catch (fallbackError) {
-      console.error('[fileStorage] Failed to save in localStorage fallback:', fallbackError);
-      throw fallbackError;
-    }
+    console.warn('[fileStorage] Failed saving to IndexedDB:', error);
   }
 }
 
@@ -141,7 +151,36 @@ export async function appendProjectFileToStorage(
   file: StoredFileRecord
 ): Promise<StoredFileRecord[]> {
   const currentFiles = await getProjectFilesFromStorage(projectId);
-  const updatedFiles = [file, ...currentFiles];
+  const updatedFiles = [file, ...currentFiles.filter((f) => f.id !== file.id)];
+  await saveProjectFilesToStorage(projectId, updatedFiles);
+  return updatedFiles;
+}
+
+/**
+ * Updates description and mentions of an existing stored file.
+ */
+export async function updateProjectFileDescription(
+  projectId: string | null,
+  fileId: string,
+  description: string
+): Promise<StoredFileRecord[]> {
+  const currentFiles = await getProjectFilesFromStorage(projectId);
+  const updatedFiles = currentFiles.map((f) =>
+    f.id === fileId ? { ...f, description: description.trim() || undefined } : f
+  );
+  await saveProjectFilesToStorage(projectId, updatedFiles);
+  return updatedFiles;
+}
+
+/**
+ * Removes a file from storage by ID.
+ */
+export async function deleteProjectFileFromStorage(
+  projectId: string | null,
+  fileId: string
+): Promise<StoredFileRecord[]> {
+  const currentFiles = await getProjectFilesFromStorage(projectId);
+  const updatedFiles = currentFiles.filter((f) => f.id !== fileId);
   await saveProjectFilesToStorage(projectId, updatedFiles);
   return updatedFiles;
 }

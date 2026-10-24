@@ -33,6 +33,13 @@ class TicketTypeSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "created_at"]
         read_only_fields = ["id", "created_at"]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from panel.Ticketing.constants import get_translated_category_name
+
+        data["name"] = get_translated_category_name(data.get("name", ""))
+        return data
+
 
 class AttachmentSerializer(serializers.ModelSerializer):
     file_type = serializers.SerializerMethodField()

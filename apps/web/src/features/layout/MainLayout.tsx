@@ -90,7 +90,7 @@ export const MainLayout = () => {
   const isTasksView = pathname.startsWith("/tasks");
 
   return (
-    <div className={`${pathname === "/dashboard" ? "home-reference-shell " : ""}heledone-workspace flex h-screen overflow-hidden bg-base-200 font-sans text-base-content`}>
+    <div className={`${pathname === "/dashboard" ? "home-reference-shell " : ""}heledone-workspace flex h-dvh overflow-hidden bg-base-200 font-sans text-base-content`}>
       <TopProgressBar />
       <a
         href="#main-content"

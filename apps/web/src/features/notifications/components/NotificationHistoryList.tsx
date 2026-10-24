@@ -163,8 +163,8 @@ export const NotificationHistoryList = ({
       ) : (
         // TABLE VIEW
         <div className="bg-base-100 rounded-2xl border border-base-content/10 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-linear-to-r from-primary/10 to-primary/5 border-b border-base-content/10">
                 <tr>
                   <th className="px-6 py-4 text-start text-sm font-bold text-base-content whitespace-nowrap">

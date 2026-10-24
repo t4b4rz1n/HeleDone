@@ -431,7 +431,7 @@ class IsTaskPermission(BaseMadaarPermission):
         if request.method == "DELETE":
             return hasattr(obj, "reporter") and obj.reporter == request.user
 
-        if hasattr(obj, "assignee") and obj.assignee == request.user:
+        if hasattr(obj, "assignees") and obj.assignees.filter(id=request.user.id).exists():
             return True
         if hasattr(obj, "reporter") and obj.reporter == request.user:
             return True
@@ -473,8 +473,12 @@ class IsTaskChecklistPermission(BaseMadaarPermission):
             return True
 
         if hasattr(obj, "task") and obj.task:
-            if obj.task.assignee == request.user or obj.task.reporter == request.user:
+            if (
+                obj.task.assignees.filter(id=request.user.id).exists()
+                or obj.task.reporter == request.user
+            ):
                 return True
+
             project_id = extract_project_id(obj)
             if project_id and is_user_project_member(request, project_id):
                 # Allow active project members to toggle/modify checklist items

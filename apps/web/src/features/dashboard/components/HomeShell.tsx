@@ -52,7 +52,7 @@ export function HomeSidebar() {
       "org.manage_members",
     ]) || isStaff;
   const canViewTeamManagement =
-    hasAnyPermission(["user.view", "org.manage_members"]) || isStaff;
+    hasAnyPermission(["org.manage_members", "org.manage_settings"]) || isStaff;
   const canViewStandups =
     hasAnyPermission(["org.manage_settings", "report.view"]) || isStaff;
 
@@ -88,13 +88,16 @@ export function HomeSidebar() {
   }[] = [
     { label: "خانه", path: "/dashboard", Icon: Home, active: location.pathname === "/dashboard" },
     { label: "کار و پروژه", path: "/projects", Icon: FolderOpen, active: projectsActive },
-    {
-      label: "مدیریت",
-      path: managerDefaultPath,
-      Icon: Briefcase,
-      active: managerActive,
-      unavailable: !canAccessManager,
-    },
+    ...(canAccessManager
+      ? [
+          {
+            label: "مدیریت",
+            path: managerDefaultPath,
+            Icon: Briefcase,
+            active: managerActive,
+          },
+        ]
+      : []),
     { label: "رشد و قدردانی", Icon: ChartNoAxesColumnIncreasing, unavailable: true },
     {
       label: "زمان و درخواست‌ها",
@@ -312,6 +315,11 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
     });
   }
   if (topNavItems.length === 0) {
+    topNavItems.push({
+      label: "کار و پروژه",
+      path: "/projects",
+      active: location.pathname.startsWith("/projects"),
+    });
     topNavItems.push({
       label: "زمان و درخواست‌ها",
       path: "/attendance",

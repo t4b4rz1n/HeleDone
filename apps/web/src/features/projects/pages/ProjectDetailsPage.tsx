@@ -42,7 +42,7 @@ import { ProjectReportView } from "../components/ProjectReportView";
 import { ProjectMemberSalaryPanel } from "../components/ProjectMemberSalaryPanel";
 import { ProjectBillingTab } from "../components/ProjectBillingTab";
 import { toast } from "sonner";
-import { getUnlinkedTasks, getTask, updateTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
+import { getUnlinkedTasks, getTask, getMilestoneTasks } from "../../tasks/api/tasksApi";
 import { TaskSheet } from "../../tasks/components/TaskSheet";
 import { ViewSwitcher } from "../../../components/ViewSwitcher";
 import { OrbitView } from "../components/OrbitView";
@@ -93,8 +93,8 @@ function MilestoneItem({
   onDelete: (ms: Milestone) => void;
 }) {
   const t = useTranslation();
-  const { hasAnyPermission } = usePermissions();
-  const canManageProject = hasAnyPermission(["project.manage"]);
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
 
 
   const msCfg = milestoneStatusConfig[ms.status] ?? milestoneStatusConfig.pending;
@@ -345,8 +345,8 @@ function MilestonesTab({
   | undefined;
 }) {
   const t = useTranslation();
-  const { hasAnyPermission } = usePermissions();
-  const canManageProject = hasAnyPermission(["project.manage"]);
+  const { hasAnyPermission, isStaff } = usePermissions();
+  const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
 
   // Calculate weighted progress
   const totalWeight = milestones.reduce((s, m) => s + (m.weight || 1), 0);
@@ -501,11 +501,15 @@ function MilestonesTab({
                         {task.priority}
                       </span>
                     )}
-                    {task.assignee_detail && (
-                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
-                        {`${task.assignee_detail.first_name} ${task.assignee_detail.last_name}`.trim() || task.assignee_detail.username || t("Assigned")}
+                    {(task.assignees_detail && task.assignees_detail.length > 0) ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[120px]">
+                        {task.assignees_detail.map((u: any) => `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username).join(", ")}
                       </span>
-                    )}
+                    ) : task.assignee_detail ? (
+                      <span className="text-[13px] text-heledone-ink-muted truncate max-w-[80px]">
+                        {`${task.assignee_detail.first_name || ""} ${task.assignee_detail.last_name || ""}`.trim() || task.assignee_detail.username || t("Assigned")}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -548,8 +552,8 @@ export default function ProjectDetailsPage() {
   const setSelectedTaskId = useTaskStore(state => state.setSelectedTaskId);
   const queryClient = useQueryClient();
 
-  const { hasAnyPermission, hasPermission } = usePermissions();
-  const canManageProject = hasAnyPermission(["project.manage"]);
+  const { hasAnyPermission, hasPermission, isStaff } = usePermissions();
+  const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
 
   const taskQuery = useQuery({
     queryKey: ["task", selectedTaskId],
@@ -689,7 +693,7 @@ export default function ProjectDetailsPage() {
     <div key={id} className="space-y-5 pb-10">
       {/* Top Header */}
       <div className="heledone-page-heading flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             onClick={() => navigate("/projects")}
             className="flex size-8.5 shrink-0 items-center justify-center rounded-xl border border-base-content/10 bg-base-100 text-heledone-ink-muted transition hover:bg-base-200 hover:text-base-content"
@@ -697,8 +701,8 @@ export default function ProjectDetailsPage() {
           >
             <ArrowLeft size={16} />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
               {project.prefix && (
                 <span
                   className="rounded-lg px-2 py-0.5 text-[13px] font-bold text-base-content bg-base-200 border border-heledone-border"
@@ -707,20 +711,30 @@ export default function ProjectDetailsPage() {
                   {project.prefix}
                 </span>
               )}
-              <h1  className="text-xl font-bold tracking-tight text-base-content sm:text-2xl">
+              <h1 className="text-xl font-bold tracking-tight text-base-content sm:text-2xl truncate min-w-0">
                 {project.name}
               </h1>
-              <StatusDropdown
-                currentStatus={project.status}
-                onChange={(s) => {
-                  if (!project) return;
-                  updateProjectMutation.mutate({ id: project.id, data: { status: s } }, {
-                    onSuccess: () => toast.success(t("Project status updated.")),
-                    onError: () => toast.error(t("Failed to update status."))
-                  });
-                }}
-                disabled={updateProjectMutation.isPending}
-              />
+              {canManageProject ? (
+                <StatusDropdown
+                  currentStatus={project.status}
+                  onChange={(s) => {
+                    if (!project) return;
+                    updateProjectMutation.mutate({ id: project.id, data: { status: s } }, {
+                      onSuccess: () => toast.success(t("Project status updated.")),
+                      onError: () => toast.error(t("Failed to update status."))
+                    });
+                  }}
+                  disabled={updateProjectMutation.isPending}
+                />
+              ) : (
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+                    statusStyles[project.status] || statusStyles.draft
+                  }`}
+                >
+                  {STATUS_OPTIONS.find((o) => o.value === project.status)?.label || project.status}
+                </span>
+              )}
             </div>
             {project.description && (
               <p  className="mt-0.5 text-xs text-heledone-ink-muted line-clamp-1">
@@ -774,7 +788,7 @@ export default function ProjectDetailsPage() {
           {activeTab === "overview" && (
             <div className="space-y-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <h2 className="text-sm font-bold uppercase tracking-wider text-base-content">{t("Project overview")}</h2>
                   <p className="mt-1 text-xs text-heledone-ink-muted">{t("Track delivery health, milestones, and team activity.")}</p>
                 </div>
@@ -1002,20 +1016,22 @@ export default function ProjectDetailsPage() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDeleteModalState({
-                              open: true,
-                              memberId: m.id,
-                              memberName: getUserDisplayName(m),
-                            })
-                          }
-                          className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
-                          aria-label={t("Remove member")}
-                        >
-                          <Trash size={13} />
-                        </button>
+                        {canManageProject && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteModalState({
+                                open: true,
+                                memberId: m.id,
+                                memberName: getUserDisplayName(m),
+                              })
+                            }
+                            className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
+                            aria-label={t("Remove member")}
+                          >
+                            <Trash size={13} />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1046,20 +1062,22 @@ export default function ProjectDetailsPage() {
                               </p>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDeleteModalState({
-                                open: true,
-                                memberId: m.id,
-                                memberName: getUserDisplayName(m),
-                              })
-                            }
-                            className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
-                            aria-label={t("Remove team")}
-                          >
-                            <Trash size={13} />
-                          </button>
+                          {canManageProject && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDeleteModalState({
+                                  open: true,
+                                  memberId: m.id,
+                                  memberName: getUserDisplayName(m),
+                                })
+                              }
+                              className="grid size-6 place-items-center rounded-lg text-error hover:bg-error/10 transition-all shrink-0"
+                              aria-label={t("Remove team")}
+                            >
+                              <Trash size={13} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1166,8 +1184,10 @@ export default function ProjectDetailsPage() {
       <TaskSheet
         task={taskQuery.data ?? null}
         onClose={() => setSelectedTaskId(null)}
-        onPatch={async (taskId, patch) => {
-          await updateTask(taskId, patch);
+        onPatch={(taskId, patch) => {
+          queryClient.setQueryData(["task", String(taskId)], (old: any) =>
+            old ? { ...old, ...patch } : old
+          );
           queryClient.invalidateQueries({ queryKey: ["unlinked-tasks", id] });
           queryClient.invalidateQueries({ queryKey: ["tasks"] });
         }}

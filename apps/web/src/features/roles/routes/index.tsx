@@ -10,7 +10,7 @@ export const rolesRoutes: RouteObject[] = [
     path: "roles",
     element: (
       <PermissionGuard
-        permissions={["org.manage_roles", "role.view"]}
+        permissions={["org.manage_roles", "org.manage_settings"]}
         fallback={<Navigate to="/dashboard" replace />}
       >
         <RolesListPage />

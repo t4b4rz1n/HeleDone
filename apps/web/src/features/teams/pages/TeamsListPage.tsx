@@ -216,7 +216,7 @@ export default function TeamsListPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="heledone-page-content min-h-[calc(100vh-121px)]"
+        className="heledone-page-content min-h-[calc(100dvh-121px)]"
       >
         {/* Header */}
         <motion.div

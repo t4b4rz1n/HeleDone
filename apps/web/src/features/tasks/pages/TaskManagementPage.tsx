@@ -36,12 +36,15 @@ export const TaskManagementPage: React.FC = () => {
 
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [targetFileId, setTargetFileId] = useState<string | null>(null);
 
   // URL search params sync
   useEffect(() => {
     const project = searchParams.get('project');
     const board = searchParams.get('board');
     const task = searchParams.get('task');
+    const view = searchParams.get('view');
+    const file = searchParams.get('file');
 
     let shouldClear = false;
     if (project) {
@@ -56,10 +59,17 @@ export const TaskManagementPage: React.FC = () => {
       setSelectedTaskId(task);
       shouldClear = true;
     }
+    if (view === 'files' || file) {
+      setViewMode('files');
+      if (file) {
+        setTargetFileId(file);
+      }
+      shouldClear = true;
+    }
     if (shouldClear) {
       setSearchParams({});
     }
-  }, [searchParams, setActiveProject, setActiveBoard, setSelectedTaskId, setSearchParams]);
+  }, [searchParams, setActiveProject, setActiveBoard, setSelectedTaskId, setViewMode, setSearchParams]);
 
   // Queries
   const { data: projects = [] } = useProjects();
@@ -164,6 +174,8 @@ export const TaskManagementPage: React.FC = () => {
             <ProjectFilesView
               tasks={tasks}
               activeProjectId={activeProjectId}
+              members={members}
+              targetFileId={targetFileId}
               onSelectTask={(task) => setSelectedTaskId(String(task.id))}
             />
           ) : (

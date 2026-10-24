@@ -72,36 +72,42 @@ export function ProjectReportView({ projectId }: ProjectReportViewProps) {
   });
 
   tasks.forEach((task) => {
-    const assigneeId = task.assignee;
-    if (!assigneeId) return;
+    const assignees = (task.assignees_detail && task.assignees_detail.length > 0)
+      ? task.assignees_detail
+      : (task.assignee_detail ? [task.assignee_detail] : (task.assignee ? [{ id: task.assignee }] : []));
 
-    const stats = memberStatsMap.get(assigneeId);
-    if (!stats) {
-      // Create entry for assignee not in members list
-      const name = task.assignee_detail ?
-        `${task.assignee_detail.first_name || ""} ${task.assignee_detail.last_name || ""}`.trim() ||
-        task.assignee_detail.username ||
-        task.assignee_detail.email ||
-        "Unknown" : "Unknown";
+    if (assignees.length === 0) return;
 
-      memberStatsMap.set(assigneeId, {
-        userId: assigneeId,
-        name,
-        email: task.assignee_detail?.email || "",
-        avatar: task.assignee_detail?.avatar || undefined,
-        totalTasks: 0,
-        completedTasks: 0,
-        spentHours: 0
-      });
-    }
+    assignees.forEach((assigneeUser: any) => {
+      const assigneeId = assigneeUser.id;
+      if (!assigneeId) return;
 
-    const memberStats = memberStatsMap.get(assigneeId)!;
-    memberStats.totalTasks++;
-    memberStats.spentHours += parseFloat(String(task.spent_hours || 0));
+      const stats = memberStatsMap.get(assigneeId);
+      if (!stats) {
+        const name = `${assigneeUser.first_name || ""} ${assigneeUser.last_name || ""}`.trim() ||
+          assigneeUser.username ||
+          assigneeUser.email ||
+          "Unknown";
 
-    if (task.is_finished) {
-      memberStats.completedTasks++;
-    }
+        memberStatsMap.set(assigneeId, {
+          userId: assigneeId,
+          name,
+          email: assigneeUser.email || "",
+          avatar: assigneeUser.avatar || undefined,
+          totalTasks: 0,
+          completedTasks: 0,
+          spentHours: 0
+        });
+      }
+
+      const memberStats = memberStatsMap.get(assigneeId)!;
+      memberStats.totalTasks++;
+      memberStats.spentHours += parseFloat(String(task.spent_hours || 0));
+
+      if (task.is_finished) {
+        memberStats.completedTasks++;
+      }
+    });
   });
 
   const memberStatsList = Array.from(memberStatsMap.values()).sort(

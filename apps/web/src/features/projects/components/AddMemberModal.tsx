@@ -163,11 +163,11 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-3xl border border-base-content/10 bg-base-100 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md overflow-hidden rounded-3xl border border-base-content/10 bg-base-100 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100dvh-2rem)] flex flex-col"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header with theme gradient */}
-        <div className="relative flex items-center justify-between px-6 py-4.5 bg-gradient-to-r from-primary/90 to-primary text-primary-content">
+        <div className="relative flex items-center justify-between px-6 py-4.5 bg-gradient-to-r from-primary/90 to-primary text-primary-content shrink-0">
           <div className="flex items-center gap-3">
             <div className="grid size-9 place-items-center rounded-2xl bg-white/20 backdrop-blur-xs">
               <UserAdd size={18} />
@@ -190,7 +190,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
           {/* Member Type Selector */}
           <div className="grid grid-cols-2 gap-1 rounded-xl border border-base-content/8 bg-base-200/50 p-1">
             <button
@@ -423,7 +423,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             />
           </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-base-content/8">
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-base-content/8 shrink-0 mt-auto">
             <button
               type="button"
               onClick={onClose}

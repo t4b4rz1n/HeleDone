@@ -417,7 +417,7 @@ export default function ProjectsPage() {
       initial={{ opacity: 0, y: reducedMotion ? 0 : 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="projects-page min-h-[calc(100vh-121px)] space-y-5 pb-10"
+      className="projects-page min-h-[calc(100dvh-121px)] space-y-5 pb-10"
     >
       <header className="projects-coastal-heading">
         <img src="/images/heledone-assets/projects-coastal-v1.png" alt="" aria-hidden="true" className="projects-coastal-art" />

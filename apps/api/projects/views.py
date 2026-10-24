@@ -37,10 +37,11 @@ from .filters import (
     ProjectFilter,
     ProjectMemberFilter,
 )
-from .models import Milestone, Project, ProjectActivity, ProjectMember
+from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
 from .permissions import (
     CanCreateProject,
     CanManageMilestone,
+    CanManageProjectFile,
     CanManageProjectMember,
     CanViewProjectActivity,
     IsProjectOwnerOrOrgAdmin,
@@ -49,6 +50,8 @@ from .serializers import (
     MilestoneSerializer,
     ProjectActivitySerializer,
     ProjectDetailSerializer,
+    ProjectFileSerializer,
+    ProjectFileUploadSerializer,
     ProjectListSerializer,
     ProjectMemberReadSerializer,
     ProjectMemberWriteSerializer,
@@ -58,6 +61,7 @@ from .serializers import (
 from .services import (
     MilestoneService,
     ProjectActivityService,
+    ProjectFileService,
     ProjectMemberService,
     ProjectService,
 )
@@ -234,6 +238,85 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         updated = ProjectService.complete(project=project, actor=request.user)
         return Response(ProjectDetailSerializer(updated).data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary=_("Mention users on a project file"),
+        tags=["projects"],
+    )
+    @action(detail=True, methods=["post"], url_path="mention-file")
+    def mention_file(self, request, pk=None):
+        """
+        Dispatches in-app, telegram, and email notifications to users mentioned on a project file.
+        Payload:
+          - file_id: str (ID of the file)
+          - file_name: str (Name of the file)
+          - message: str (Text note containing @username mentions)
+          - usernames: list[str] (Optional explicit list of usernames)
+        """
+        project = self.get_object()
+        file_id = request.data.get("file_id")
+        file_name = request.data.get("file_name", "file")
+        message = request.data.get("message", "")
+        usernames = request.data.get("usernames", [])
+
+        # If usernames are not explicitly supplied, extract from message
+        if not usernames and message:
+            import re
+
+            usernames = re.findall(r"@([\w.-]+)", message)
+
+        if not usernames:
+            return Response(
+                {"error": "No users mentioned in message or payload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        lower_usernames = [u.lower() for u in usernames]
+        from django.contrib.auth import get_user_model
+        from django.db.models.functions import Lower
+
+        from automations.events import EventDispatcher
+
+        User = get_user_model()
+        mentioned_users = list(
+            User.objects.annotate(lower_uname=Lower("username")).filter(
+                lower_uname__in=lower_usernames, is_active=True
+            )
+        )
+
+        if not mentioned_users:
+            return Response(
+                {"error": "No matching active users found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        EventDispatcher.dispatch(
+            event_type="user_mentioned",
+            payload={
+                "author": request.user.get_full_name() or request.user.username,
+                "author_id": str(request.user.id),
+                "author_name": request.user.get_full_name() or request.user.username,
+                "mentioned_user_ids": [str(u.id) for u in mentioned_users],
+                "recipient_ids": [str(u.id) for u in mentioned_users],
+                "project_id": str(project.id),
+                "project_name": project.name,
+                "file_id": str(file_id) if file_id else "",
+                "file_name": str(file_name),
+                "context_name": str(file_name),
+                "context_type": "file",
+                "message": message,
+                "link": f"/tasks?project={project.id}&view=files&file={file_id}",
+            },
+        )
+
+        return Response(
+            {
+                "status": "success",
+                "message": f"Successfully notified {len(mentioned_users)} user(s) on file '{file_name}'.",
+                "mentioned_count": len(mentioned_users),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -467,3 +550,87 @@ class ProjectActivityViewSet(viewsets.ReadOnlyModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return ProjectActivity.objects.none()
         return ProjectActivityService.get_base_queryset(project_id=self.kwargs["project_pk"])
+
+
+# ---------------------------------------------------------------------------
+# ProjectFile ViewSet (nested under /projects/<project_pk>/files/)
+# ---------------------------------------------------------------------------
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary=_("List project files"),
+        description=_("Return all files uploaded to this project."),
+        tags=["projects"],
+    ),
+    retrieve=extend_schema(
+        summary=_("Retrieve a project file"),
+        tags=["projects"],
+    ),
+    create=extend_schema(
+        summary=_("Upload a project file"),
+        description=_("Upload a file with optional description and @mentions to the project."),
+        tags=["projects"],
+    ),
+    destroy=extend_schema(
+        summary=_("Delete a project file"),
+        tags=["projects"],
+    ),
+)
+class ProjectFileViewSet(viewsets.ModelViewSet):
+    """CRUD viewset for files associated directly with a project."""
+
+    serializer_class = ProjectFileSerializer
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["created_at", "name", "file_size"]
+    ordering = ["-created_at"]
+
+    def get_permissions(self):
+        return [IsAuthenticated(), CanManageProjectFile()]
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ProjectFile.objects.none()
+        return ProjectFileService.get_base_queryset(project_id=self.kwargs["project_pk"])
+
+    def create(self, request, *args, **kwargs):
+        project = get_object_or_404(Project, pk=self.kwargs["project_pk"], is_deleted=False)
+        serializer = ProjectFileUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        file_obj = serializer.validated_data["file"]
+        description = serializer.validated_data.get("description", "")
+        name = serializer.validated_data.get("name", "")
+
+        project_file = ProjectFileService.create(
+            project=project,
+            actor=request.user,
+            file_obj=file_obj,
+            description=description,
+            name=name,
+        )
+        return Response(
+            ProjectFileSerializer(project_file, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        project_file = self.get_object()
+        description = request.data.get("description")
+        if description is not None:
+            project_file = ProjectFileService.update_description(
+                project_file=project_file,
+                actor=request.user,
+                description=description,
+            )
+        return Response(
+            ProjectFileSerializer(project_file, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        project_file = self.get_object()
+        ProjectFileService.delete(project_file=project_file, actor=request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
