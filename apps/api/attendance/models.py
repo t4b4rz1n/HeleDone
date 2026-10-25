@@ -111,6 +111,11 @@ class TimeLog(BaseModel):
                 condition=Q(end_time__gte=F("start_time")) | Q(end_time__isnull=True),
                 name="end_time_after_start_time",
             ),
+            models.UniqueConstraint(
+                fields=["user", "task"],
+                condition=Q(is_active=True, is_deleted=False, task__isnull=False),
+                name="unique_active_timer_per_user_task",
+            ),
         ]
 
     def save(self, *args, **kwargs):

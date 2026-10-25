@@ -171,16 +171,34 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         return TimeLogSerializer
 
     def get_queryset(self):
-        qs = TimeLog.objects.select_related("user", "task", "task__status", "project").filter(
-            is_deleted=False
-        )
+        qs = TimeLog.objects.select_related(
+            "user", "task", "task__status", "task__project", "project"
+        ).filter(is_deleted=False)
         user = self.request.user
         if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
             qs = qs.all()
         else:
-            org_ids = user.org_memberships.all().values_list("organization_id", flat=True)
+            organization_ids = set(
+                user.org_memberships.filter(is_deleted=False).values_list(
+                    "organization_id", flat=True
+                )
+            )
+            organization_ids.update(
+                Organization.objects.filter(owner=user, is_deleted=False).values_list(
+                    "id", flat=True
+                )
+            )
+            reportable_org_ids = [
+                organization_id
+                for organization_id in organization_ids
+                if PermissionService.has_permission(user, "attendance.view_all", organization_id)
+            ]
 
-            qs = qs.filter(Q(user=user) | Q(project__organization_id__in=org_ids)).distinct()
+            qs = qs.filter(
+                Q(user=user)
+                | Q(project__organization_id__in=reportable_org_ids)
+                | Q(task__project__organization_id__in=reportable_org_ids)
+            ).distinct()
 
         # Optional filters
         task_id = self.request.query_params.get("task")
@@ -426,7 +444,22 @@ class TimesheetViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        data = TimesheetService.get_monthly(request.user, int(year), int(month))
+        try:
+            year = int(year)
+            month = int(month)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "year and month must be integers"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not 1 <= year <= 9999 or not 1 <= month <= 12:
+            return Response(
+                {"error": "year must be between 1 and 9999 and month between 1 and 12"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        data = TimesheetService.get_monthly(request.user, year, month)
         return self.paginate_and_respond(data, TimesheetDailySerializer)
 
     @action(detail=False, methods=["get"], url_path="team")

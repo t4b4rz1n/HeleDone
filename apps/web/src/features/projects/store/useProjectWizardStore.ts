@@ -109,7 +109,12 @@ export const useProjectWizardStore = create<ProjectWizardState>((set) => ({
   prevStep: () => set((s) => ({ currentStep: Math.max(s.currentStep - 1, 1) })),
   setProjectName: (v) => set({ projectName: v }),
   setProjectColor: (v) => set({ projectColor: v }),
-  setSelectedOrgId: (id) => set({ selectedOrgId: id }),
+  setSelectedOrgId: (id) =>
+    set((state) =>
+      String(state.selectedOrgId ?? "") === String(id)
+        ? { selectedOrgId: id }
+        : { selectedOrgId: id, selectedUserIds: [] },
+    ),
   setProgressMode: (mode) => set({ progressMode: mode }),
   toggleUser: (id) =>
     set((s) => ({

@@ -4,6 +4,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import { useAuthStore } from "../../features/auth/store/authStore";
+import { useTaskStore } from "../../features/tasks/store/useTaskStore";
 import { useLocaleStore } from "../../i18n/locale";
 import { API_TIMEOUT, getApiUrl } from "../api/config";
 
@@ -17,30 +18,62 @@ const axiosClient: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
+const clearClientSession = () => {
+  useAuthStore.getState().logout();
+  useTaskStore.getState().reset();
+};
+
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (token: string) => void;
+  resolve: () => void;
   reject: (error: any) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const COOKIE_TRANSPORT_HEADER = "X-Auth-Transport";
+let csrfToken: string | null = null;
+let csrfTokenRequest: Promise<string> | null = null;
+
+const getCsrfToken = async (): Promise<string> => {
+  if (csrfToken) return csrfToken;
+  if (!csrfTokenRequest) {
+    csrfTokenRequest = axiosClient
+      .get("/auth/csrf/", {
+        withCredentials: true,
+        headers: { [COOKIE_TRANSPORT_HEADER]: "cookie" },
+      })
+      .then((response) => {
+        const token = response.data?.data?.csrfToken ?? response.data?.csrfToken;
+        if (!token) throw new Error("CSRF endpoint returned no token");
+        csrfToken = token;
+        return token;
+      })
+      .finally(() => {
+        csrfTokenRequest = null;
+      });
+  }
+  return csrfTokenRequest;
+};
+
+const processQueue = (error: any = null) => {
   failedQueue.forEach((promise) => {
     if (error) {
       promise.reject(error);
-    } else if (token) {
-      promise.resolve(token);
+    } else {
+      promise.resolve();
     }
   });
   failedQueue = [];
 };
 
-// Request interceptor: reads access token directly from Zustand memory state
 axiosClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     config.headers.set("Accept-Language", useLocaleStore.getState().locale);
-    const token = useAuthStore.getState().access;
-    if (token) {
-      config.headers.set("Authorization", `Bearer ${token}`);
+    config.headers.set(COOKIE_TRANSPORT_HEADER, "cookie");
+    config.headers.delete("Authorization");
+
+    const method = (config.method ?? "get").toUpperCase();
+    if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+      config.headers.set("X-CSRFToken", await getCsrfToken());
     }
 
     // If sending FormData (e.g. file upload), remove the hardcoded
@@ -57,7 +90,7 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Response interceptor: handles 401 with Silent Token Refresh
+// Cookie refresh keeps JWTs out of JavaScript and persisted browser storage.
 axiosClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
@@ -67,69 +100,62 @@ axiosClient.interceptors.response.use(
       _retry?: boolean;
     }) | undefined;
 
-    if (error?.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      const isRefreshEndpoint = originalRequest.url?.includes("/auth/login/refresh/");
+    if (error?.response?.status !== 401 || !originalRequest) {
+      return Promise.reject(error);
+    }
 
-      if (!isRefreshEndpoint) {
-        const refreshToken = useAuthStore.getState().refresh;
+    const url = originalRequest.url ?? "";
+    const isPublicAuthEndpoint = /\/auth\/(login|register|csrf|refresh)\//.test(url);
+    if (isPublicAuthEndpoint) return Promise.reject(error);
 
-        if (refreshToken) {
-          if (isRefreshing) {
-            return new Promise((resolve, reject) => {
-              failedQueue.push({ resolve, reject });
-            })
-              .then((newToken) => {
-                originalRequest.headers.set("Authorization", `Bearer ${newToken}`);
-                return axiosClient(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
-          }
-
-          originalRequest._retry = true;
-          isRefreshing = true;
-
-          try {
-            const refreshUrl = `${getApiUrl()}/auth/login/refresh/`;
-            const res = await axios.post(refreshUrl, { refresh: refreshToken });
-
-            // ApiRenderer envelope format wraps data inside res.data.data
-            const responseData = res.data?.data || res.data;
-            const newAccess = responseData?.access;
-            const newRefresh = responseData?.refresh || refreshToken;
-
-            if (!newAccess) throw new Error("Token refresh returned no access token");
-
-            if (newAccess) {
-              useAuthStore.getState().setTokens({
-                access: newAccess,
-                refresh: newRefresh,
-              });
-
-              processQueue(null, newAccess);
-              originalRequest.headers.set("Authorization", `Bearer ${newAccess}`);
-              return axiosClient(originalRequest);
-            }
-          } catch (refreshErr) {
-            processQueue(refreshErr, null);
-            useAuthStore.getState().logout();
-            if (window.location.pathname !== "/login") {
-              window.location.href = "/login";
-            }
-            return Promise.reject(refreshErr);
-          } finally {
-            isRefreshing = false;
-          }
-        }
-      }
-
-      // If no refresh token or refresh endpoint itself failed
-      useAuthStore.getState().logout();
+    const redirectToLogin = () => {
+      clearClientSession();
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
+    };
+
+    if (originalRequest._retry) {
+      redirectToLogin();
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    if (isRefreshing) {
+      originalRequest._retry = true;
+      return new Promise<void>((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then(() => {
+        originalRequest.headers.delete("Authorization");
+        return axiosClient(originalRequest);
+      });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    try {
+      const token = await getCsrfToken();
+      await axiosClient.post(
+        "/auth/login/refresh/",
+        {},
+        {
+          withCredentials: true,
+          headers: {
+            [COOKIE_TRANSPORT_HEADER]: "cookie",
+            "X-CSRFToken": token,
+          },
+        },
+      );
+      processQueue();
+      originalRequest.headers.delete("Authorization");
+      return axiosClient(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError);
+      redirectToLogin();
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 

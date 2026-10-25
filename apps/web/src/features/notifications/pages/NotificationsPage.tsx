@@ -30,13 +30,12 @@ const NotificationsPage = () => {
   const unreadCount = unreadData?.total_results ?? (unreadData?.results?.length ?? 0);
   const { mutate: markAllSeen } = useMarkAllNotificationsSeen();
 
-  // Mark all as seen when the page mounts and there are unread notifications
+  // Wait for the unread query to resolve before marking notifications as seen.
   useEffect(() => {
     if (unreadCount > 0) {
       markAllSeen();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [unreadCount, markAllSeen]);
 
   const {
     data: notificationsResponse,

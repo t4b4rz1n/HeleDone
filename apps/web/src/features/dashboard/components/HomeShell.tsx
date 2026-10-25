@@ -24,6 +24,7 @@ import { useAuthStore } from "../../auth/store/authStore";
 import { usePermissions } from "../../auth/hooks/usePermissions";
 import { useProjectWizardStore } from "../../projects/store/useProjectWizardStore";
 import { HeaderAttendanceControl } from "../../attendance/components/HeaderAttendanceControl";
+import { useTaskStore } from "../../tasks/store/useTaskStore";
 import "../home.css";
 
 const assets = "/images/heledone-assets/";
@@ -276,6 +277,7 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
   const t = useTranslation();
   const location = useLocation();
   const setSidebarOpen = useLayoutStore((s) => s.setSidebarOpen);
+  const setWorkspaceSidebarOpen = useTaskStore((s) => s.setWorkspaceSidebarOpen);
   const openProjectWizard = useProjectWizardStore((s) => s.open);
   const user = useAuthStore((s) => s.user);
   const { hasAnyPermission } = usePermissions();
@@ -340,18 +342,26 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
       {/* Start Group: Mobile menu toggle + quick links + primary actions */}
       <div className="home-topbar-start">
         {isTasksPage ? (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="home-menu lg:hidden"
+              aria-label={t("Open project menu")}
+              onClick={() => setWorkspaceSidebarOpen(true)}
+            >
+              <Menu size={22} />
+            </button>
             <Link to="/tasks" className="flex items-center gap-2 text-decoration-none hover:opacity-90 transition-opacity">
               <BrandBeats />
             </Link>
             <div className="h-4 w-px bg-base-300" />
             <Link
               to="/dashboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all border border-primary/20 shadow-xs"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all border border-primary/20 shadow-xs"
               title={t("بازگشت به پیشخوان و سایدبار اصلی")}
             >
               <Home size={15} />
-              <span>{t("پیشخوان")}</span>
+              <span className="hidden sm:inline">{t("پیشخوان")}</span>
             </Link>
             <HeaderAttendanceControl />
           </div>

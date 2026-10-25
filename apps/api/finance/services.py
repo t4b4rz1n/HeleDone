@@ -15,7 +15,8 @@ import logging
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +194,7 @@ class FinanceService:
         """
         from attendance.models import TimeLog
         from finance.models import SalaryConfig
-        from projects.models import ProjectMember
+        from projects.models import Project, ProjectMember
 
         memberships = ProjectMember.objects.filter(
             user=user,
@@ -202,8 +203,38 @@ class FinanceService:
             is_deleted=False,
         ).select_related("project__organization")
 
-        projects = [m.project for m in memberships]
-        project_ids = [p.pk for p in projects]
+        projects_by_id = {membership.project_id: membership.project for membership in memberships}
+
+        # A user's recorded work is attributable through TimeLog.user/project,
+        # even when the task itself has no assignee or the logger is not an
+        # active ProjectMember. Coalesce supports older logs with project=NULL.
+        timelogs = (
+            TimeLog.objects.filter(user=user, is_deleted=False)
+            .filter(
+                Q(project__organization=organization, project__is_deleted=False)
+                | Q(task__project__organization=organization, task__project__is_deleted=False)
+            )
+            .annotate(logged_project_id=Coalesce("project_id", "task__project_id"))
+            .filter(logged_project_id__isnull=False)
+            .values("logged_project_id")
+            .annotate(total=Sum("duration_seconds"))
+        )
+        timelog_map = {row["logged_project_id"]: row["total"] or 0 for row in timelogs}
+
+        member_project_ids = set(projects_by_id)
+        tracked_project_ids = set(timelog_map) - member_project_ids
+        if tracked_project_ids:
+            projects_by_id.update(
+                {
+                    project.pk: project
+                    for project in Project.objects.filter(
+                        pk__in=tracked_project_ids,
+                        organization=organization,
+                        is_deleted=False,
+                    ).select_related("organization")
+                }
+            )
+        projects = list(projects_by_id.values())
 
         configs = SalaryConfig.objects.filter(
             user=user, organization=organization, is_active=True, is_deleted=False
@@ -219,16 +250,9 @@ class FinanceService:
                 if not org_config:
                     org_config = c
 
-        timelogs = (
-            TimeLog.objects.filter(user=user, task__project_id__in=project_ids, is_deleted=False)
-            .values("task__project_id")
-            .annotate(total=Sum("duration_seconds"))
-        )
-
-        timelog_map = {tl["task__project_id"]: tl["total"] or 0 for tl in timelogs}
-
         projects_data = []
         total_earned = Decimal("0")
+        org_monthly_counted = False
 
         for project in projects:
             c = project_configs.get(project.pk)
@@ -250,7 +274,15 @@ class FinanceService:
             if payment_type == "hourly":
                 earned = rate * total_hours if total_hours else Decimal("0")
             elif payment_type == "monthly":
-                earned = rate  # flat monthly salary
+                # Preserve current monthly earnings on active membership rows.
+                # A project included only because this user logged time must not
+                # add the same org-level monthly salary again.
+                if override or project.pk in member_project_ids or not org_monthly_counted:
+                    earned = rate
+                    if not override:
+                        org_monthly_counted = True
+                else:
+                    earned = Decimal("0")
             else:
                 earned = Decimal("0")
 
@@ -305,7 +337,7 @@ class FinanceService:
         from attendance.models import TimeLog
         from finance.models import SalaryConfig
         from organizations.models import OrganizationMembership
-        from projects.models import ProjectMember
+        from projects.models import Project, ProjectMember
 
         if memberships is None:
             memberships = OrganizationMembership.objects.filter(
@@ -326,11 +358,12 @@ class FinanceService:
             is_deleted=False,
         ).select_related("project")
 
-        user_projects_map = {uid: [] for uid in user_ids}
-        project_ids = set()
+        user_projects_map = {uid: {} for uid in user_ids}
         for pm in project_members:
-            user_projects_map[pm.user_id].append(pm.project)
-            project_ids.add(pm.project_id)
+            user_projects_map[pm.user_id][pm.project_id] = pm.project
+        member_project_ids_by_user = {
+            user_id: set(projects_by_id) for user_id, projects_by_id in user_projects_map.items()
+        }
 
         # 2. Salary Configs
         configs = SalaryConfig.objects.filter(
@@ -348,17 +381,37 @@ class FinanceService:
                     org_configs[c.user_id] = c
 
         # 3. TimeLogs Aggregation
-        timelogs = (
-            TimeLog.objects.filter(
-                user_id__in=user_ids, task__project_id__in=project_ids, is_deleted=False
+        timelogs = list(
+            TimeLog.objects.filter(user_id__in=user_ids, is_deleted=False)
+            .filter(
+                Q(project__organization=organization, project__is_deleted=False)
+                | Q(task__project__organization=organization, task__project__is_deleted=False)
             )
-            .values("user_id", "task__project_id")
+            .annotate(logged_project_id=Coalesce("project_id", "task__project_id"))
+            .filter(logged_project_id__isnull=False)
+            .values("user_id", "logged_project_id")
             .annotate(total=Sum("duration_seconds"))
         )
 
         timelog_map = {}
+        logged_project_ids = set()
         for tl in timelogs:
-            timelog_map[(tl["user_id"], tl["task__project_id"])] = tl["total"] or 0
+            project_id = tl["logged_project_id"]
+            timelog_map[(tl["user_id"], project_id)] = tl["total"] or 0
+            logged_project_ids.add(project_id)
+
+        projects_by_id = {
+            project.pk: project
+            for project in Project.objects.filter(
+                pk__in=logged_project_ids,
+                organization=organization,
+                is_deleted=False,
+            )
+        }
+        for tl in timelogs:
+            project = projects_by_id.get(tl["logged_project_id"])
+            if project is not None:
+                user_projects_map[tl["user_id"]][project.pk] = project
 
         def _get_eff_salary(u_id, p_id):
             c = project_configs.get((u_id, p_id))
@@ -385,9 +438,10 @@ class FinanceService:
             if not user:
                 continue
 
-            projects = user_projects_map[user.pk]
+            projects = list(user_projects_map[user.pk].values())
             total_earned = Decimal("0")
             currency = "IRR"
+            org_monthly_counted = False
 
             for project in projects:
                 salary = _get_eff_salary(user.pk, project.pk)
@@ -401,7 +455,16 @@ class FinanceService:
                 if payment_type == "hourly":
                     earned = rate * total_hours if total_hours else Decimal("0")
                 elif payment_type == "monthly":
-                    earned = rate
+                    if (
+                        salary["override"]
+                        or project.pk in member_project_ids_by_user[user.pk]
+                        or not org_monthly_counted
+                    ):
+                        earned = rate
+                        if not salary["override"]:
+                            org_monthly_counted = True
+                    else:
+                        earned = Decimal("0")
                 else:
                     earned = Decimal("0")
 

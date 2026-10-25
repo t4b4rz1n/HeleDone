@@ -449,8 +449,28 @@ class CycleLeadTimeView(APIView):
 
         try:
             # Re-use the same accessible queryset that the project list uses.
-            ProjectService.get_accessible_queryset(user).get(pk=project_id, is_deleted=False)
+            project = ProjectService.get_accessible_queryset(user).get(
+                pk=project_id, is_deleted=False
+            )
         except Project.DoesNotExist as err:
             from rest_framework.exceptions import PermissionDenied
 
             raise PermissionDenied("You do not have access to this project.") from err
+
+        from rest_framework.exceptions import PermissionDenied
+
+        from organizations.services import PermissionService
+
+        has_team_report_access = project.owner_id == user.pk or any(
+            PermissionService.has_permission(user, permission, project.organization_id)
+            for permission in (
+                "project.manage",
+                "report.view",
+                "report.view_team_lead",
+                "org.manage_settings",
+            )
+        )
+        if not has_team_report_access:
+            raise PermissionDenied(
+                "You do not have permission to view this team's performance data."
+            )

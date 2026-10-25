@@ -600,7 +600,13 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   };
 
   const handleTimePreset = (timeStr: string) => {
-    const datePart = dueDate ? dueDate.split("T")[0] : new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const localToday = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+    const datePart = dueDate ? dueDate.split("T")[0] : localToday;
     const newVal = `${datePart}T${timeStr}`;
     setDueDate(newVal);
     save({ due_date: new Date(newVal).toISOString() });

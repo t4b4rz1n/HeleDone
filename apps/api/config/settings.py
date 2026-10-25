@@ -2,6 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -206,6 +207,8 @@ else:
     CORS_ALLOW_CREDENTIALS = env("CORS_ALLOW_CREDENTIALS")
     CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
+CORS_ALLOW_HEADERS = (*default_headers, "x-auth-transport")
+
 # --- Static and Media Files (with MinIO/S3) ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -234,8 +237,10 @@ if USE_MINIO:
     AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN", default=None)
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
     AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = "public-read"
-    AWS_QUERYSTRING_AUTH = False
+    # Uploaded media can contain private project, attendance, and ticket data.
+    # Honor explicit deployment settings while keeping uploads private by default.
+    AWS_DEFAULT_ACL = env("AWS_DEFAULT_ACL", default="private")
+    AWS_QUERYSTRING_AUTH = env.bool("AWS_QUERYSTRING_AUTH", default=True)
     AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_S3_ADDRESSING_STYLE = "path"
     AWS_S3_REGION_NAME = "us-east-1"
@@ -260,7 +265,7 @@ if USE_MINIO:
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 API_AUTHENTICATION_CLASSES = [
-    "rest_framework_simplejwt.authentication.JWTAuthentication",
+    "authentication.cookie_auth.CookieJWTAuthentication",
 ]
 
 if DEBUG:
@@ -302,6 +307,15 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+# JWT cookies are sent only to API paths and are protected from JavaScript.
+# Secure defaults to enabled; local HTTP development must opt out explicitly.
+AUTH_ACCESS_COOKIE_NAME = env("AUTH_ACCESS_COOKIE_NAME", default="madaar_access")
+AUTH_REFRESH_COOKIE_NAME = env("AUTH_REFRESH_COOKIE_NAME", default="madaar_refresh")
+AUTH_COOKIE_PATH = env("AUTH_COOKIE_PATH", default="/api/")
+AUTH_COOKIE_DOMAIN = env("AUTH_COOKIE_DOMAIN", default=None)
+AUTH_COOKIE_SECURE = env.bool("AUTH_COOKIE_SECURE", default=True)
+AUTH_COOKIE_SAMESITE = "Lax"
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Madaar API",

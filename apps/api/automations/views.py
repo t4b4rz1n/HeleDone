@@ -1,5 +1,6 @@
 import json
 import logging
+import secrets
 import uuid
 
 from django.conf import settings
@@ -87,11 +88,15 @@ class TelegramWebhookView(View):
 
     def post(self, request, *args, **kwargs):
         expected_secret = getattr(settings, "TELEGRAM_WEBHOOK_SECRET", "")
-        if expected_secret:
-            received_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-            if received_secret != expected_secret:
-                logger.warning("Telegram Webhook unauthorized access attempt.")
-                return JsonResponse({"error": "Unauthorized"}, status=403)
+        received_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+        if not expected_secret:
+            logger.error(
+                "Telegram webhook rejected because TELEGRAM_WEBHOOK_SECRET is not configured."
+            )
+            return JsonResponse({"error": "Webhook is not configured."}, status=503)
+        if not secrets.compare_digest(received_secret, expected_secret):
+            logger.warning("Telegram Webhook unauthorized access attempt.")
+            return JsonResponse({"error": "Unauthorized"}, status=403)
 
         try:
             data = json.loads(request.body)

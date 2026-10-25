@@ -29,6 +29,15 @@ jobs:
       - name: Lint web
         run: npm run lint -w apps/web
 
+      - name: Check API integration
+        run: npm run test:api -w apps/web
+
+      - name: Check localization
+        run: npm run test:i18n -w apps/web
+
+      - name: Check shared UI components
+        run: npm run test:coastal -w apps/web
+
       - name: Build web
         run: npm run build -w apps/web
         env:

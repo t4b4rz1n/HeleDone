@@ -45,6 +45,10 @@ export const loginRequest = async (
   }
 };
 
+export const logoutRequest = async (): Promise<void> => {
+  await ApiService.post<void>("/auth/logout/");
+};
+
 export const getProfileRequest = async (): Promise<User> => {
   try {
     const response = await ApiService.get<User>("/accounts/profile/");

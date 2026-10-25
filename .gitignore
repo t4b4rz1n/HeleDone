@@ -133,9 +133,7 @@ node_modules/
 .kilo/
 .local/
 .agents/
-skills/
 AGENTS.md
-SKILL.md
 .python_history
 *.history
 # Ignore bash history
