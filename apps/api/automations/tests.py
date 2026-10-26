@@ -200,10 +200,10 @@ class InAppNotificationLocalizationTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         body = response.data.get("data", response.data)
-        self.assertEqual(
-            body["sender_avatar_url"],
-            f"http://testserver/media/{submitter.avatar.name}",
-        )
+        expected_url = submitter.avatar.url
+        if not expected_url.startswith(("http://", "https://")):
+            expected_url = f"http://testserver{expected_url}"
+        self.assertEqual(body["sender_avatar_url"], expected_url)
     def test_broadcasts_and_existing_records_have_no_event_data(self):
         from dashboard.Notification.serializers import NotificationSerializer
         from panel.Notification.models import Notification
