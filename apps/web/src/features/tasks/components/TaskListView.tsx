@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import React, { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,7 +20,6 @@ import { useTranslation, formatNumber as formatUiNumber } from '../../../i18n/lo
 import { updateTask, deleteTask, createTask } from '../api/tasksApi';
 import { usePermissions } from '../../auth/hooks/usePermissions';
 import type { Task, TaskStatus, User as TaskUser } from '../types';
-import { getHeledoneAvatar } from '../../../utils/avatarUtils';
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -424,11 +424,12 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                   <div className="flex items-center gap-2 cursor-pointer group/asgn" title={assignees.map((a: any) => a.first_name || a.username).join(', ')}>
                                     <div className="flex -space-x-1.5 rtl:space-x-reverse shrink-0">
                                       {assignees.slice(0, 3).map((u: any) => (
-                                        <img
+                                        <ProfileAvatar
                                           key={u.id}
-                                          src={u.avatar || u.avatar_url || getHeledoneAvatar(u.id, u.username)}
-                                          alt=""
-                                          className="size-5.5 rounded-full object-cover ring-1 ring-base-100 shadow-2xs"
+                                          src={u.avatar || u.avatar_url}
+                                          name={`${u.first_name || ""} ${u.last_name || u.username || ""}`}
+                                          className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-100 shadow-2xs"
+                                          fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary"
                                         />
                                       ))}
                                       {assignees.length > 3 && (

@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { useTranslation } from "../../../i18n/locale";
 import { useEffect, useState } from "react";
@@ -181,20 +182,12 @@ export const TeamMembersModal = ({ team, isOpen, onClose }: TeamMembersModalProp
                       key={member.id}
                       className="group flex items-center gap-3 rounded-2xl border border-base-content/10 bg-base-200/20 p-3.5 transition-colors duration-200 hover:border-base-content/15 hover:bg-base-200/60 sm:gap-4 sm:p-4"
                     >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden">
-                        {member.user_details?.avatar ? (
-                          <img
-                            src={member.user_details.avatar}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <>
-                            {member.user_details?.username?.[0]?.toUpperCase() || member.user_details?.first_name?.[0]?.toUpperCase() || member.user_details?.email?.[0]?.toUpperCase() || "?"}
-                            {(!member.user_details?.username && member.user_details?.first_name) ? member.user_details?.last_name?.[0]?.toUpperCase() || "" : ""}
-                          </>
-                        )}
-                      </div>
+                      <ProfileAvatar
+                        src={member.user_details?.avatar}
+                        name={member.user_details?.username || `${member.user_details?.first_name || ""} ${member.user_details?.last_name || ""}`.trim() || member.user_details?.email}
+                        className="size-10 shrink-0 overflow-hidden rounded-full"
+                        fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm text-base-content truncate">

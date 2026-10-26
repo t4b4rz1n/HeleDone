@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { useEffect, useId, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -39,9 +40,8 @@ import ApiService from "../../../core/api/apiService";
 import type { EmployeeTaskSummary } from "../types";
 import { StandupMatrix } from "../../tasks/components/StandupMatrix";
 import "../home.css";
-
 const asset = "/images/heledone-assets/";
-const avatar = (id: number) => asset + `avatar-${String(id).padStart(2, "0")}.png`;
+
 const taskLink = (task: EmployeeTaskSummary) =>
   `/tasks?project=${encodeURIComponent(task.project_id ?? "")}&board=${encodeURIComponent(
     task.board_id ?? ""
@@ -623,7 +623,7 @@ export const UserDashboardPage = () => {
             </div>
 
             <div className="divide-y divide-base-200">
-              {news.data?.slice(0, 3).map((item, index) => {
+              {news.data?.slice(0, 3).map((item) => {
                 const formatted = formatNews(item);
                 return (
                   <Link
@@ -636,11 +636,13 @@ export const UserDashboardPage = () => {
                     className="flex items-center justify-between py-3 gap-3 hover:bg-base-200/60 rounded-xl px-2 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <img
-                        src={user?.profile_image_url || user?.avatar_url || avatar(index + 1)}
-                        alt=""
-                        className="size-8 rounded-full object-cover shrink-0 border border-base-300"
-                      />
+                      {item.sender_avatar_url && (
+                        <ProfileAvatar
+                          src={item.sender_avatar_url}
+                          name={item.message_data?.values.user_name}
+                          className="size-8 shrink-0 overflow-hidden rounded-full border border-base-300"
+                        />
+                      )}
                       <div className="min-w-0 text-start">
                         <h3 className="text-xs font-bold text-base-content truncate">
                           {formatted.heading}
@@ -650,11 +652,6 @@ export const UserDashboardPage = () => {
                         </small>
                       </div>
                     </div>
-                    <img
-                      src={avatar(index + 2)}
-                      alt=""
-                      className="size-7 rounded-full object-cover shrink-0"
-                    />
                   </Link>
                 );
               })}

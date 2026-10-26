@@ -107,6 +107,8 @@ export const WizardStep1Basics: React.FC = () => {
                 key={c}
                 type="button"
                 onClick={() => setProjectColor(c)}
+                aria-label={t("Project color {value0}", { value0: c })}
+                aria-pressed={projectColor === c}
                 className="w-7 h-7 rounded-full transition-all duration-150"
                 style={{
                   backgroundColor: c,

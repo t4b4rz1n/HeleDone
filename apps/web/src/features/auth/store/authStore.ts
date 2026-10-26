@@ -5,15 +5,12 @@ import type { User } from "../types/authTypes";
 
 interface AuthState {
   user: User | null;
-  access: string | null;
-  refresh: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
 
 interface AuthActions {
-  setAuthData: (data: { user: User; access: string; refresh?: string }) => void;
-  setTokens: (tokens: { access: string; refresh?: string }) => void;
+  setAuthData: (data: { user: User }) => void;
   updateUser: (user: Partial<User>) => void;
   logout: () => void;
   setLoading: (isLoading: boolean) => void;
@@ -21,8 +18,6 @@ interface AuthActions {
 
 const initialState: AuthState = {
   user: null,
-  access: null,
-  refresh: null,
   isAuthenticated: false,
   isLoading: true,
 };
@@ -35,18 +30,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       setAuthData: (data) => {
         set({
           user: data.user,
-          access: data.access,
-          refresh: data.refresh || null,
           isAuthenticated: true,
           isLoading: false,
         });
-      },
-
-      setTokens: (tokens) => {
-        set((state) => ({
-          access: tokens.access,
-          refresh: tokens.refresh !== undefined ? tokens.refresh : state.refresh,
-        }));
       },
 
       updateUser: (userData) => {
@@ -61,8 +47,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       logout: () => {
         set({
           user: null,
-          access: null,
-          refresh: null,
           isAuthenticated: false,
           isLoading: false,
         });
@@ -77,10 +61,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-        access: state.access,
-        refresh: state.refresh,
         isAuthenticated: state.isAuthenticated,
       }),
+      version: 1,
+      migrate: (persistedState) => {
+        const persisted = persistedState as Partial<AuthState> | undefined;
+        return {
+          user: persisted?.user ?? null,
+          isAuthenticated: persisted?.isAuthenticated ?? false,
+          isLoading: false,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         state?.setLoading(false);
       },

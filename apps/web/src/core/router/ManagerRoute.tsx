@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "../../features/auth/store/authStore";
 import { usePermissions } from "../../features/auth/hooks/usePermissions";
 
@@ -11,10 +12,12 @@ interface ManagerRouteProps {
  */
 export const ManagerRoute = ({ children }: ManagerRouteProps) => {
   const location = useLocation();
-  const { isAuthenticated, isLoading } = useAuthStore((state) => ({
-    isAuthenticated: state.isAuthenticated,
-    isLoading: state.isLoading,
-  }));
+  const { isAuthenticated, isLoading } = useAuthStore(
+    useShallow((state) => ({
+      isAuthenticated: state.isAuthenticated,
+      isLoading: state.isLoading,
+    })),
+  );
   const { hasAnyPermission, isStaff } = usePermissions();
 
   if (isLoading) {

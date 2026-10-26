@@ -25,6 +25,9 @@ try {
   }
   const { deleteStandup } = await server.ssrLoadModule("/src/features/tasks/api/tasksApi.ts");
   client.defaults.adapter = async (config) => {
+    if (config.url === "/auth/csrf/") {
+      return { data: { data: { csrfToken: "test-csrf-token" } }, status: 200, statusText: "OK", headers: {}, config };
+    }
     assert.equal(client.getUri(config), "/api/v1/tasks/standups/test-id/");
     return { data: "", status: 204, statusText: "No Content", headers: {}, config };
   };

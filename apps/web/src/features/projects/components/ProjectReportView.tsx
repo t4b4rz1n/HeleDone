@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { formatNumber, useTranslation } from "../../../i18n/locale";
 import { useQuery } from "@tanstack/react-query";
@@ -191,17 +192,12 @@ export function ProjectReportView({ projectId }: ProjectReportViewProps) {
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    {member.avatar ? (
-                      <img
-                        src={member.avatar}
-                        alt={member.name}
-                        className="size-10 rounded-full object-cover ring-2 ring-base-content/10"
-                      />
-                    ) : (
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-2 ring-base-content/10">
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <ProfileAvatar
+                      src={member.avatar}
+                      name={member.name}
+                      className="size-10 shrink-0 overflow-hidden rounded-full ring-2 ring-base-content/10"
+                      fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary"
+                    />
                     <div className="min-w-0">
                       <p className="font-bold text-base-content truncate">{member.name}</p>
                       {member.email && (

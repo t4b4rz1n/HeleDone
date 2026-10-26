@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getIntlLocale, t as translate, useTranslation, useLocale } from "../../../i18n/locale";
 import { formatDisplayDate } from "../../../utils/date";
@@ -951,9 +952,7 @@ export default function ProjectDetailsPage() {
                                 key={m.id}
                                 className="flex items-center gap-2 rounded-xl border border-base-content/6 bg-base-200/40 p-2 text-xs"
                               >
-                                <div className="grid size-6 place-items-center rounded-md bg-primary/10 text-[13px] font-bold text-primary shrink-0">
-                                  {getUserDisplayName(m)[0]?.toUpperCase() || "U"}
-                                </div>
+                                <ProfileAvatar src={m.user?.avatar} name={getUserDisplayName(m)} className="size-6 shrink-0 overflow-hidden rounded-md" fallbackClassName="flex size-full items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary" />
                                 <span className="font-semibold text-base-content truncate text-[13px]">
                                   {getUserDisplayName(m)}
                                 </span>
@@ -1016,9 +1015,7 @@ export default function ProjectDetailsPage() {
                         className="flex items-center justify-between rounded-xl border border-base-content/8 bg-base-200/40 p-3"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary text-xs font-bold shrink-0">
-                            {getUserDisplayName(m)[0]?.toUpperCase() || "U"}
-                          </div>
+                          <ProfileAvatar src={m.user?.avatar} name={getUserDisplayName(m)} className="size-8 shrink-0 overflow-hidden rounded-lg" fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary" />
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-base-content truncate">
                               {getUserDisplayName(m)}

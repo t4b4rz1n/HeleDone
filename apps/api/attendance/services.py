@@ -1,7 +1,7 @@
 import datetime
 import threading
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -221,7 +221,12 @@ class TimeLogService:
 
         from attendance.models import TimeLog
 
-        if TimeLog.objects.filter(user=user, task=task, is_active=True).exists():
+        if TimeLog.objects.filter(
+            user=user,
+            task=task,
+            is_active=True,
+            is_deleted=False,
+        ).exists():
             raise ValidationError(_("A timer is already running for this task."))
 
         # Guard against re-entrant calls (move_task → start_timer loop)
@@ -229,14 +234,28 @@ class TimeLogService:
             return None
 
         now = timezone.now()
-        timer = TimeLog.objects.create(
-            user=user,
-            task=task,
-            project=task.project,
-            date=now.date(),
-            start_time=now,
-            is_active=True,
-        )
+        try:
+            # The conditional unique constraint closes the race between the
+            # existence check above and this insert. Keep it in a savepoint so
+            # the enclosing atomic service transaction remains usable on conflict.
+            with transaction.atomic():
+                timer = TimeLog.objects.create(
+                    user=user,
+                    task=task,
+                    project=task.project,
+                    date=now.date(),
+                    start_time=now,
+                    is_active=True,
+                )
+        except IntegrityError as exc:
+            if TimeLog.objects.filter(
+                user=user,
+                task=task,
+                is_active=True,
+                is_deleted=False,
+            ).exists():
+                raise ValidationError(_("A timer is already running for this task.")) from exc
+            raise
 
         # Auto-move task to the IN_PROGRESS status ONLY if it's currently in a TODO status
         from tasks.models import TaskStatus as TS

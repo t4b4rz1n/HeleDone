@@ -3,7 +3,7 @@ import { t } from "../../../i18n/locale";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { loginRequest, registerRequest } from "../api/authApi";
+import { loginRequest, logoutRequest, registerRequest } from "../api/authApi";
 import { useAuthStore } from "../store/authStore";
 import type {
   LoginFormData,
@@ -17,11 +17,8 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (loginData: LoginFormData) => loginRequest(loginData),
     onSuccess: (data) => {
-      if (data && data.access && data.user) {
-        setAuthData({
-          access: data.access,
-          user: data.user,
-        });
+      if (data?.user) {
+        setAuthData({ user: data.user });
         toast.success(t("خوش برگشتید؛ روز خوبی در پیش باشد!"));
         navigate("/", { replace: true });
       }
@@ -53,7 +50,12 @@ export const useLogout = () => {
   const logoutAction = useAuthStore((state) => state.logout);
   const queryClient = useQueryClient();
 
-  return () => {
+  return async () => {
+    try {
+      await logoutRequest();
+    } catch {
+      // Always clear local state if the server cannot be reached.
+    }
     logoutAction();
     import("../../tasks/store/useTaskStore").then(module => {
       module.useTaskStore.getState().reset();

@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { getIntlLocale, useTranslation, t } from "../../../i18n/locale";
@@ -51,13 +52,6 @@ const formatSalary = (amount?: string | null, type?: string | null) => {
   return `${formatted} ${typeText}`;
 };
 
-const getInitials = (name: string): string => {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return (name[0] || "?").toUpperCase();
-};
 
 import { usePermissions } from "../../auth/hooks/usePermissions";
 
@@ -288,9 +282,7 @@ export default function OrganizationDetailPage() {
                   }}
                   className={`heledone-surface group relative flex items-center gap-4 rounded-2xl border border-base-content/10 bg-base-200/25 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-base-100 hover:shadow-heledone-raised ${hasPermission("org.manage_members") ? "cursor-pointer" : ""}`}
                 >
-                  <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {getInitials(getUserDisplayName(member))}
-                  </div>
+                  <ProfileAvatar src={member.avatar} name={getUserDisplayName(member)} className="size-10 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {getUserDisplayName(member)}

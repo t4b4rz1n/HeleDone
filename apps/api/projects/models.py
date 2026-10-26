@@ -225,6 +225,10 @@ class ProjectMember(BaseModel):
                 name="unique_active_project_team",
             ),
             models.CheckConstraint(
+                condition=Q(allocation_percentage__gte=1, allocation_percentage__lte=100),
+                name="project_member_allocation_percentage_range",
+            ),
+            models.CheckConstraint(
                 condition=Q(allocation_end_date__isnull=True)
                 | Q(allocation_start_date__isnull=True)
                 | Q(allocation_end_date__gte=models.F("allocation_start_date")),

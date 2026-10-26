@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../components/ProfileAvatar";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogOut, UserRound } from "lucide-react";
@@ -14,7 +15,7 @@ export function UserMenu() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.username || t("Account");
-  const avatar = user?.profile_image_url || user?.avatar_url || "/images/heledone-assets/avatar-04.png";
+  const avatar = user?.profile_image_url || user?.avatar_url;
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +58,7 @@ export function UserMenu() {
         onClick={() => setOpen((value) => !value)}
         className="motion-interactive grid size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-transparent hover:bg-base-200 sm:size-11"
       >
-        <img src={avatar} alt="" className="size-9 rounded-full border border-primary/30 object-cover" />
+        <ProfileAvatar src={avatar} name={name} className="size-9 overflow-hidden rounded-full border border-primary/30 sm:size-10" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-primary" />
       </button>
       {open && (
         <div id={menuId} className="absolute end-0 top-full z-[100] mt-2 w-56 max-w-[calc(100vw-24px)] rounded-lg border border-heledone-border bg-base-100 p-2 text-base-content shadow-xl">

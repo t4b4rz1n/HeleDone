@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getIntlLocale, t as translate, useTranslation } from "../../../i18n/locale";
 import {
@@ -333,17 +334,12 @@ function MemberDetails({
         <CloseCircle size={19} />
       </button>
       <div className="flex items-center gap-3 pe-9">
-        <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-secondary text-sm font-black text-secondary-content shadow-lg shadow-secondary/20">
-          {member.user?.avatar ? (
-            <img
-              src={member.user.avatar}
-              alt=""
-              className="size-full object-cover"
-            />
-          ) : (
-            getInitials(name)
-          )}
-        </div>
+        <ProfileAvatar
+          src={member.user?.avatar}
+          name={name}
+          className="size-12 shrink-0 overflow-hidden rounded-2xl shadow-lg shadow-secondary/20"
+          fallbackClassName="flex size-full items-center justify-center rounded-2xl bg-secondary text-sm font-black text-secondary-content"
+        />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-base-content">{name}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -456,19 +452,18 @@ function ClusterDetails({
               onClick={() => onSelectMember(member)}
               className="flex min-w-0 items-center gap-3 rounded-xl border border-base-content/8 bg-base-200/55 p-2.5 text-start transition hover:border-secondary/30 hover:bg-base-200 active:scale-[0.99]"
             >
-              <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary text-[13px] font-black text-secondary-content">
-                {member.user?.avatar ? (
-                  <img
-                    src={member.user.avatar}
-                    alt=""
-                    className="size-full object-cover"
-                  />
-                ) : member.team ? (
-                  <People size={16} />
-                ) : (
-                  getInitials(name)
-                )}
-              </span>
+              {member.user ? (
+                <ProfileAvatar
+                  src={member.user.avatar}
+                  name={name}
+                  className="size-9 shrink-0 overflow-hidden rounded-xl"
+                  fallbackClassName="flex size-full items-center justify-center rounded-xl bg-secondary text-[13px] font-black text-secondary-content"
+                />
+              ) : (
+                <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary text-[13px] font-black text-secondary-content">
+                  {member.team ? <People size={16} /> : getInitials(name)}
+                </span>
+              )}
               <span className="min-w-0">
                 <span className="block truncate text-xs font-bold text-base-content">
                   {name}
@@ -1087,16 +1082,15 @@ export function OrbitView({
                                 }`}
                                 aria-label={t("Open details for {value0}", { value0: name })}
                               >
-                                {member.user?.avatar ? (
-                                  <img
+                                {member.user ? (
+                                  <ProfileAvatar
                                     src={member.user.avatar}
-                                    alt=""
-                                    className="size-full rounded-[inherit] object-cover"
+                                    name={name}
+                                    className="size-full overflow-hidden rounded-[inherit]"
+                                    fallbackClassName="flex size-full items-center justify-center rounded-[inherit] bg-secondary text-[10px] font-black text-secondary-content"
                                   />
-                                ) : member.team ? (
-                                  <People size={15} />
                                 ) : (
-                                  getInitials(name)
+                                  <People size={15} />
                                 )}
                                 <span
                                   className={`absolute end-0 top-0 size-2 rounded-full border border-base-100 ${

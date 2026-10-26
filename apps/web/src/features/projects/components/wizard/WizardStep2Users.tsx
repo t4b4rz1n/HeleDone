@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../../i18n/locale";
 import { useTranslation } from "../../../../i18n/locale";
 import React, { useState } from 'react';
@@ -35,8 +36,6 @@ export const WizardStep2Users: React.FC = () => {
   const isOwner = (m: OrganizationMember) =>
     String(m.user_id) === String(user?.id) || m.email === user?.email;
 
-  const initials = (name: string) =>
-    name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div className="flex flex-col h-full">
@@ -79,13 +78,12 @@ export const WizardStep2Users: React.FC = () => {
                       : 'bg-base-200/40 border border-transparent hover:bg-base-200'
                   } ${locked ? 'cursor-default' : 'cursor-pointer'}`}
                 >
-                  {/* Avatar */}
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: locked ? '#087F83' : '#52666C' }}
-                  >
-                    {initials(m.full_name || m.email || '?')}
-                  </div>
+                  <ProfileAvatar
+                    src={m.avatar}
+                    name={m.full_name || m.email}
+                    className="size-9 shrink-0 overflow-hidden rounded-full"
+                    fallbackClassName={`flex size-full items-center justify-center rounded-full text-xs font-bold text-white ${locked ? "bg-[#087F83]" : "bg-[#52666C]"}`}
+                  />
 
                   {/* Info */}
                   <div className="flex-1 text-start min-w-0">

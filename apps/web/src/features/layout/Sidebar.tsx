@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../components/ProfileAvatar";
 import { useTranslation, getDirection } from "../../i18n/locale";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft2, Setting2, Add } from "iconsax-reactjs";
@@ -314,9 +315,7 @@ export const Sidebar = () => {
         {/* Footer with Admin Settings button & Profile */}
         <div className="shrink-0 space-y-1 border-t border-base-content/8 p-2">
           <Link to="/profile" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 rounded-xl py-3 hover:bg-base-100 ${sidebarCollapsed ? 'justify-center px-1' : 'px-3'}`} aria-label={t("حساب من")}>
-            <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-primary">
-              {user?.profile_image_url ? <img src={user.profile_image_url} alt="" className="size-full object-cover" /> : <span className="font-bold">{user?.first_name?.[0] || user?.username?.[0]}</span>}
-            </span>
+            <ProfileAvatar src={user?.profile_image_url || user?.avatar_url} name={`${user?.first_name || ""} ${user?.last_name || user?.username || ""}`} className="size-10 shrink-0 overflow-hidden rounded-full bg-primary/10" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 font-bold text-primary" />
             {!sidebarCollapsed && <span className="min-w-0"><span className="block truncate text-sm font-bold">{user?.first_name} {user?.last_name}</span><span className="block text-xs text-heledone-ink-muted">{t("حساب من")}</span></span>}
           </Link>
           {/* تنظیمات فضای کار Link */}

@@ -1,6 +1,8 @@
+import re
+
 import requests
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.urls import reverse
 
 
@@ -31,17 +33,21 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("TELEGRAM_BOT_TOKEN is not set in settings/.env"))
             return
 
+        secret_token = getattr(settings, "TELEGRAM_WEBHOOK_SECRET", "")
+        if not secret_token or not re.fullmatch(r"[A-Za-z0-9_-]{1,256}", secret_token):
+            raise CommandError(
+                "TELEGRAM_WEBHOOK_SECRET must contain 1-256 letters, digits, underscores, or hyphens."
+            )
+
         webhook_path = reverse("telegram_webhook")
         full_webhook_url = f"{domain}{webhook_path}"
 
         url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
         payload = {"url": full_webhook_url}
-        secret_token = getattr(settings, "TELEGRAM_WEBHOOK_SECRET", None)
-        if secret_token:
-            payload["secret_token"] = secret_token
+        payload["secret_token"] = secret_token
 
         try:
-            response = requests.post(url, json=payload)
+            response = requests.post(url, json=payload, timeout=15)
             response.raise_for_status()
             data = response.json()
             if data.get("ok"):

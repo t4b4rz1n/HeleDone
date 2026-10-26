@@ -1,8 +1,11 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from .cookie_auth import uses_cookie_transport
 
 User = get_user_model()
 
@@ -40,12 +43,16 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         )
 
     def get_access(self, obj):
+        if uses_cookie_transport(self.context.get("request")):
+            return None
         if not hasattr(obj, "_tokens"):
             refresh = RefreshToken.for_user(obj)
             obj._tokens = (str(refresh.access_token), str(refresh))
         return obj._tokens[0]
 
     def get_refresh(self, obj):
+        if uses_cookie_transport(self.context.get("request")):
+            return None
         if not hasattr(obj, "_tokens"):
             refresh = RefreshToken.for_user(obj)
             obj._tokens = (str(refresh.access_token), str(refresh))
@@ -60,6 +67,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop("password_confirm")
         user = User.objects.create_user(**validated_data)
         return user
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if uses_cookie_transport(self.context.get("request")):
+            representation.pop("access", None)
+            representation.pop("refresh", None)
+        return representation
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -188,3 +202,12 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=True, write_only=True)
+
+
+class CookieAwareTokenRefreshSerializer(TokenRefreshSerializer):
+    def to_internal_value(self, data):
+        request = self.context.get("request")
+        if uses_cookie_transport(request):
+            data = data.copy()
+            data["refresh"] = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME, "")
+        return super().to_internal_value(data)

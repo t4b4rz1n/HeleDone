@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { useTranslation } from "../../../i18n/locale";
@@ -340,32 +341,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 >
                   <div className="relative shrink-0">
                     {cardAssignees.length <= 1 ? (
-                      <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shadow-xs">
-                        {cardAssignees[0]?.avatar_url || cardAssignees[0]?.avatar ? (
-                          <img
-                            src={cardAssignees[0].avatar_url || cardAssignees[0].avatar}
-                            alt=""
-                            className="size-6 rounded-full object-cover"
-                          />
-                        ) : cardAssignees[0] ? (
-                          (cardAssignees[0].first_name?.[0] || cardAssignees[0].username?.[0] || "U").toUpperCase()
-                        ) : (
-                          initials || <Profile2User size={12} className="text-heledone-ink-muted" />
-                        )}
-                      </span>
+                      cardAssignees[0] ? (
+                        <ProfileAvatar
+                          src={cardAssignees[0].avatar_url || cardAssignees[0].avatar}
+                          name={`${cardAssignees[0].first_name || ""} ${cardAssignees[0].last_name || cardAssignees[0].username || ""}`}
+                          className="size-6 overflow-hidden rounded-full shadow-xs"
+                          fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary"
+                        />
+                      ) : (
+                        <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[13px] font-bold text-primary shadow-xs">
+                          {initials || <Profile2User size={12} className="text-heledone-ink-muted" />}
+                        </span>
+                      )
                     ) : (
                       <div className="flex -space-x-1.5 rtl:space-x-reverse overflow-hidden">
                         {cardAssignees.slice(0, 3).map((a) => (
-                          <span
+                          <ProfileAvatar
                             key={a.id}
-                            className="grid size-6 place-items-center rounded-full bg-primary/10 text-[11px] font-bold text-primary shadow-xs ring-1 ring-base-100"
-                          >
-                            {a.avatar_url || a.avatar ? (
-                              <img src={a.avatar_url || a.avatar} alt="" className="size-6 rounded-full object-cover" />
-                            ) : (
-                              (a.first_name?.[0] || a.username?.[0] || "U").toUpperCase()
-                            )}
-                          </span>
+                            src={a.avatar_url || a.avatar}
+                            name={`${a.first_name || ""} ${a.last_name || a.username || ""}`}
+                            className="size-6 shrink-0 overflow-hidden rounded-full shadow-xs ring-1 ring-base-100"
+                            fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary"
+                          />
                         ))}
                         {cardAssignees.length > 3 && (
                           <span className="grid size-6 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-heledone-ink-muted ring-1 ring-base-100">
@@ -564,9 +561,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                             }}
                           >
                             <div className="flex items-center gap-2 truncate">
-                              <span className="grid size-5.5 place-items-center rounded-full bg-primary/10 text-[12px] font-bold text-primary shrink-0 ring-1 ring-base-content/5">
-                                {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                              </span>
+                              <ProfileAvatar src={user.avatar || user.avatar_url} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/5" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                               <span className="truncate flex items-center gap-1">
                                 <span className="text-xs">
                                   {user.first_name || user.last_name
@@ -692,9 +687,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                               }}
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-[13px] text-primary shrink-0">
-                                  {(user.first_name?.[0] || user.full_name?.[0] || user.username?.[0] || user.email?.[0] || "?").toUpperCase()}
-                                </span>
+                                <ProfileAvatar src={user.avatar || user.avatar_url} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                                 <span className="truncate">
                                   {user.first_name || user.last_name
                                     ? `${user.first_name || ""} ${user.last_name || ""}`.trim()

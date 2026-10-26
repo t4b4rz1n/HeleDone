@@ -107,13 +107,14 @@ export const NotificationHistoryList = ({
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {notifications.map((notification, index) => (
-            <motion.div
+            <motion.button
               key={notification.id}
+              type="button"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.05 }}
               onClick={() => handleCardClick(notification)}
-              className="coastal-item group relative bg-base-100 rounded-lg border border-base-content/10 p-5 hover:shadow-heledone-raised transition-all duration-200 flex flex-col h-full cursor-pointer"
+              className="coastal-item group relative w-full text-start bg-base-100 rounded-lg border border-base-content/10 p-5 hover:shadow-heledone-raised transition-all duration-200 flex flex-col h-full cursor-pointer"
             >
               {!notification.seen && (
                 <span className="absolute top-5 end-5 w-2.5 h-2.5 bg-warning rounded-full ring-4 ring-warning/20 animate-pulse" />
@@ -157,7 +158,7 @@ export const NotificationHistoryList = ({
                   {notification.seen ? t("Read") : t("Unread")}
                 </div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
       ) : (
@@ -185,6 +186,13 @@ export const NotificationHistoryList = ({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     onClick={() => handleCardClick(notif)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleCardClick(notif);
+                      }
+                    }}
+                    tabIndex={0}
                     className="hover:bg-base-200 transition-all duration-200 group cursor-pointer"
                   >
                     {/* Type Column */}
