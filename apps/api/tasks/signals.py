@@ -373,6 +373,7 @@ def handle_standup_submitted(sender, instance, created, **kwargs):
                     payload={
                         "organization_id": str(org_id),
                         "project_id": str(instance.project_id) if instance.project else None,
+                        "user_id": str(instance.user_id),
                         "user_name": user_name,
                     },
                 )

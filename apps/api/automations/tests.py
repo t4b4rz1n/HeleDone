@@ -173,6 +173,37 @@ class InAppNotificationLocalizationTests(APITestCase):
             body = response.data.get("data", response.data)
             self.assertEqual(body["message_data"], notification.message_data)
 
+
+    def test_standup_notification_exposes_submitters_current_avatar(self):
+        from panel.Notification.models import Notification
+
+        submitter = User.objects.create_user(
+            email="submitter@example.com", username="standup-submitter"
+        )
+        submitter.avatar.name = "avatars/submitter.jpg"
+        submitter.save(update_fields=["avatar"])
+        notification = Notification.objects.create(
+            user=self.user,
+            text="A colleague shared their daily update.",
+            message_data={
+                "event": "standup_submitted",
+                "values": {
+                    "user_id": str(submitter.id),
+                    "user_name": submitter.username,
+                },
+            },
+        )
+
+        response = self.client.get(
+            f"/api/v1/dashboard/notifications/{notification.id}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.data.get("data", response.data)
+        self.assertEqual(
+            body["sender_avatar_url"],
+            f"http://testserver/media/{submitter.avatar.name}",
+        )
     def test_broadcasts_and_existing_records_have_no_event_data(self):
         from dashboard.Notification.serializers import NotificationSerializer
         from panel.Notification.models import Notification

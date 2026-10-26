@@ -834,6 +834,7 @@ class AsyncStandupViewSet(viewsets.ModelViewSet):
                 "username": member.username,
                 "first_name": member.first_name,
                 "last_name": member.last_name,
+                "avatar_url": request.build_absolute_uri(member.avatar.url) if member.avatar else None,
                 "total_hours": str(totals.get(member.id) or 0),
             }
             for member in list(member_users) + extra_users

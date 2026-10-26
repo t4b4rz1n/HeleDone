@@ -5,6 +5,7 @@ export interface Notification {
     event: string;
     values: Record<string, string>;
   };
+  sender_avatar_url?: string | null;
   link: string;
   seen: boolean;
   created_at: string;
