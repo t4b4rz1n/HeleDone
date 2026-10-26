@@ -266,7 +266,7 @@ class CumulativeFlowView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def _check_project_access(self, user, project_id):
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return
         from projects.models import Project
         from projects.services import ProjectService
@@ -336,7 +336,7 @@ class MilestoneBurndownView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def _check_milestone_access(self, user, milestone_id):
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return
         try:
             m = Milestone.objects.select_related("project").get(pk=milestone_id, is_deleted=False)
@@ -442,7 +442,7 @@ class CycleLeadTimeView(APIView):
             raise ParseError(f"Invalid date format: '{value}'. Use YYYY-MM-DD.") from err
 
     def _check_project_access(self, user, project_id):
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return
         from projects.models import Project
         from projects.services import ProjectService

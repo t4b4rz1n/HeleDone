@@ -21,7 +21,7 @@ class CanManageDiscounts(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         mem = user.org_memberships.filter(is_deleted=False).first()

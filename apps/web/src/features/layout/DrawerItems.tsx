@@ -195,11 +195,11 @@ export const getVisibleDrawerItems = (
 ) =>
   drawerItems.filter((item) => {
     if (primaryOnly && !item.isPrimary) return false;
-    if (item.staffOnly && !user?.is_staff) return false;
+    if (item.staffOnly && !user?.is_superuser) return false;
     if (
       item.requiresOrgAdmin &&
       !user?.can_manage_automations &&
-      !user?.is_staff &&
+      !user?.is_superuser &&
       !hasAnyPermission(["org.manage_settings", "core.automations.manage"])
     ) {
       return false;
@@ -219,11 +219,11 @@ export const getAdminDrawerItems = (
 ) =>
   drawerItems.filter((item) => {
     if (item.isPrimary) return false;
-    if (item.staffOnly && !user?.is_staff) return false;
+    if (item.staffOnly && !user?.is_superuser) return false;
     if (
       item.requiresOrgAdmin &&
       !user?.can_manage_automations &&
-      !user?.is_staff &&
+      !user?.is_superuser &&
       !hasAnyPermission(["org.manage_settings", "core.automations.manage"])
     ) {
       return false;

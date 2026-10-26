@@ -156,7 +156,7 @@ const HomeAttendanceCard = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(["today-attendance"], data);
       queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
-      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
       toast.success(t("ورود شما با موفقیت ثبت شد"));
     },
     onError: (error: any) =>
@@ -170,7 +170,7 @@ const HomeAttendanceCard = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(["today-attendance"], data);
       queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
-      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
       toast.success(t("خروج شما با موفقیت ثبت شد"));
     },
     onError: (error: any) =>

@@ -9,7 +9,7 @@ class BaseAttendancePermission(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return None
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return "owner"
 
         if not hasattr(request, "_user_org_roles_cache"):
@@ -68,7 +68,7 @@ class IsAttendanceOwnerOrAdmin(BaseAttendancePermission):
     """Attendance: only the record owner or those with 'attendance.view_all' can access."""
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
         if obj.user == request.user:
             return True
@@ -81,7 +81,7 @@ class IsTimeLogOwnerOrAdmin(BaseAttendancePermission):
     """Time logs are visible to their owner or users with attendance.view_all."""
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
 
         # Check org from project or task
@@ -100,7 +100,7 @@ class IsTimeOffRequestPermission(BaseAttendancePermission):
     """Time-off: only the requester or someone with 'leave.approve' can view/modify; approve/reject requires 'leave.approve'."""
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
 
         is_owner = obj.user == request.user
@@ -125,7 +125,7 @@ class IsHolidayPermission(BaseAttendancePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
 
         org_id = self.extract_organization_id(request, view)
@@ -144,7 +144,7 @@ class IsTimesheetPermission(BaseAttendancePermission):
             # All org members can view team/project timesheets
             org_id = self.extract_organization_id(request, view)
             role = self.get_user_org_role(request, org_id)
-            return role is not None or request.user.is_staff
+            return role is not None or request.user.is_superuser
 
         # personal timesheets (daily/weekly/monthly)
         return True

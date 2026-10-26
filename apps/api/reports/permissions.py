@@ -121,7 +121,7 @@ class IsEmployeeOrAbove(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         return _get_user_org_roles(user).exists()
@@ -144,7 +144,7 @@ class IsManagerOrAbove(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         team_id = request.query_params.get("team_id")
@@ -211,7 +211,7 @@ class IsExecutive(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         org_id = request.query_params.get("org_id")

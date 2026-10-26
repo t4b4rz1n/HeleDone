@@ -15,7 +15,6 @@ import {
   Activity,
   Add,
   Trash,
-  Crown,
   Flag,
   Chart,
   DollarCircle,
@@ -699,7 +698,7 @@ export default function ProjectDetailsPage() {
   const nonOwnerMembers = members.filter((m: ProjectMember) => !isOwnerMember(m));
 
   const isOwner = project.owner?.id === user?.id;
-  const isSuperUser = user?.is_staff;
+  const isSuperUser = user?.is_superuser;
   const canViewSalaries = isSuperUser || isOwner || hasPermission("org.manage_settings");
 
   return (
@@ -936,9 +935,12 @@ export default function ProjectDetailsPage() {
                         </div>
 
                         <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 p-2.5">
-                          <div className="grid size-7 place-items-center rounded-lg bg-primary text-primary-content text-xs font-bold">
-                            <Crown size={14} />
-                          </div>
+                          <ProfileAvatar
+                            src={project.owner?.avatar}
+                            name={ownerName}
+                            className="size-7 shrink-0 overflow-hidden rounded-lg"
+                            fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-content"
+                          />
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-base-content truncate">{ownerName}</p>
                             <p className="text-[13px] font-semibold text-primary">{t("Project Owner")}</p>
@@ -998,9 +1000,12 @@ export default function ProjectDetailsPage() {
                     {/* Owner Card */}
                     <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="grid size-8 place-items-center rounded-lg bg-primary text-primary-content text-xs font-bold shrink-0">
-                          <Crown size={15} />
-                        </div>
+                        <ProfileAvatar
+                          src={project.owner?.avatar}
+                          name={ownerName}
+                          className="size-8 shrink-0 overflow-hidden rounded-lg"
+                          fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-content"
+                        />
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-base-content truncate">{ownerName}</p>
                           <p className="text-[13px] font-semibold text-primary">{t("Owner")}</p>

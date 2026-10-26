@@ -36,7 +36,7 @@ class UserViewSet(FieldFilterOverviewMixin, viewsets.ModelViewSet):
             )
             qs = qs.filter(~Exists(active_membership))
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return qs
 
         # Get organizations the user belongs to
@@ -45,10 +45,14 @@ class UserViewSet(FieldFilterOverviewMixin, viewsets.ModelViewSet):
         )
 
         # Filter users who belong to the same organizations
-        return qs.filter(
-            org_memberships__organization_id__in=org_ids,
-            org_memberships__is_deleted=False,
-        ).distinct()
+        return (
+            qs.filter(
+                org_memberships__organization_id__in=org_ids,
+                org_memberships__is_deleted=False,
+            )
+            .exclude(is_superuser=True)
+            .distinct()
+        )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -86,6 +90,12 @@ class UserViewSet(FieldFilterOverviewMixin, viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        from organizations.models import Organization
+
+        if Organization.objects.filter(owner=instance, is_deleted=False).exists():
+            return Response(
+                {"detail": "Cannot delete an organization owner."}, status=status.HTTP_403_FORBIDDEN
+            )
         user_id = instance.pk
         with transaction.atomic():
             if hasattr(instance, "org_memberships"):

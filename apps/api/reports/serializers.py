@@ -144,6 +144,7 @@ class MemberAttendanceSerializer(serializers.Serializer):
     def get_avatar_url(self, data):
         return _avatar_url(self, data)
 
+
 class ProjectSummarySerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()
@@ -181,6 +182,7 @@ class MemberDetailSerializer(serializers.Serializer):
 
     def get_avatar_url(self, data):
         return _avatar_url(self, data)
+
 
 class ProjectStatsSerializer(serializers.Serializer):
     total = serializers.IntegerField()

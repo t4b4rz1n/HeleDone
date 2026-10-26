@@ -14,8 +14,8 @@ import type { Role } from "../types";
 
 const OrgRolesPage = () => {
   const t = useTranslation();
-  const { hasAnyPermission, isStaff } = usePermissions();
-  const canManageRoles = hasAnyPermission(["org.manage_roles", "org.manage_settings"]) || isStaff;
+  const { hasAnyPermission } = usePermissions();
+  const canManageRoles = hasAnyPermission(["org.manage_roles", "org.manage_settings"]);
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
 

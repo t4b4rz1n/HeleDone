@@ -50,6 +50,7 @@ export default function CumulativeFlowChart({
   const [end, setEnd] = useState(initialEnd ?? today);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(null);
     getProjectCfd(projectId, {
@@ -58,9 +59,10 @@ export default function CumulativeFlowChart({
       end_date: end,
       tz: tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     })
-      .then(setData)
-      .catch(() => setError(t("Error loading CFD data")))
-      .finally(() => setLoading(false));
+      .then((result) => { if (active) setData(result); })
+      .catch(() => { if (active) setError(t("Error loading CFD data")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [projectId, boardId, start, end, tz, t]);
 
   // Build recharts-compatible data: [{date, <code>: count, ...}]

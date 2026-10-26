@@ -145,6 +145,12 @@ export const useAddProjectMember = (projectId: string | number) => {
       queryClient.invalidateQueries({
         queryKey: projectKeys.members(projectId),
       });
+      queryClient.invalidateQueries({
+        queryKey: ["project-members", String(projectId)],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["projectUsers"],
+      });
     },
   });
 };
@@ -158,6 +164,12 @@ export const useRemoveProjectMember = (projectId: string | number) => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: projectKeys.members(projectId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["project-members", String(projectId)],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["projectUsers"],
       });
       queryClient.invalidateQueries({
         queryKey: projectKeys.detail(projectId),

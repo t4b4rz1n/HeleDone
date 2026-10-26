@@ -115,7 +115,7 @@ class ProjectService:
         """
         qs = cls.get_base_queryset()
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return qs
 
         from organizations.models import Organization, OrganizationMembership

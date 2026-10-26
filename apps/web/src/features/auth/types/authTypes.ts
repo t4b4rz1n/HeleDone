@@ -11,6 +11,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   is_staff?: boolean;
+  is_superuser?: boolean;
   role_id?: string | null;
   role?: UserRole | null;
   profile_image_url?: string | null;

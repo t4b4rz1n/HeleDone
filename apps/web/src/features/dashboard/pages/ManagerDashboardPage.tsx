@@ -282,7 +282,7 @@ const ManagerDashboardPage = () => {
                 ) : (
                   <>
                     <div className="hidden grid-cols-[minmax(13rem,1.2fr)_minmax(12rem,1fr)_5rem_5rem_6rem] gap-3 px-5 pb-2 text-[13px] font-black uppercase tracking-wider text-heledone-ink-muted sm:grid"><span>{t("Member")}</span><span>{t("Workload")}</span><span className="text-end">{t("انجام‌شده")}</span><span className="text-end">{t("Risk")}</span><span className="text-end">{t("تمرکز")}</span></div>
-                    {members.length === 0 ? <div className="px-5 pb-6 text-sm font-semibold text-heledone-ink-muted">{t("No team members are visible in this scope.")}</div> : <div>{members.slice(0, 8).map(member => <MemberRow key={member.id} member={member} maxTasks={maxTasks} workSeconds={workHoursByUser.get(member.id.toString()) || member.week_seconds || 0} />)}</div>}
+                    {membersQuery.isLoading ? <div className="space-y-3 px-5 pb-5">{[1, 2, 3].map(item => <div key={item} className="h-14 animate-pulse rounded-xl bg-base-200" />)}</div> : membersQuery.isError ? <div className="px-5 pb-6 text-sm font-semibold text-error">{t("Failed to load members.")}</div> : members.length === 0 ? <div className="px-5 pb-6 text-sm font-semibold text-heledone-ink-muted">{t("No team members are visible in this scope.")}</div> : <div>{members.slice(0, 8).map(member => <MemberRow key={member.id} member={member} maxTasks={maxTasks} workSeconds={workHoursByUser.get(member.id.toString()) || member.week_seconds || 0} />)}</div>}
                   </>
                 )}
               </section>

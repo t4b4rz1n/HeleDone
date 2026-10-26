@@ -66,7 +66,7 @@ class BoardViewSet(viewsets.ModelViewSet):
         # Org isolation: find all orgs the user belongs to
         org_ids = (
             user.org_memberships.values_list("organization_id", flat=True)
-            if not (user.is_staff or user.is_superuser)
+            if not (user.is_superuser)
             else None
         )
 
@@ -162,7 +162,7 @@ class TaskStatusViewSet(viewsets.ModelViewSet):
         user = self.request.user
         org_ids = (
             user.org_memberships.values_list("organization_id", flat=True)
-            if not (user.is_staff or user.is_superuser)
+            if not (user.is_superuser)
             else None
         )
 
@@ -224,7 +224,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         org_ids = (
             user.org_memberships.values_list("organization_id", flat=True)
-            if not (user.is_staff or user.is_superuser)
+            if not (user.is_superuser)
             else None
         )
 
@@ -536,7 +536,7 @@ class TaskChecklistItemViewSet(viewsets.ModelViewSet):
         user = self.request.user
         org_ids = (
             user.org_memberships.values_list("organization_id", flat=True)
-            if not (user.is_staff or user.is_superuser)
+            if not (user.is_superuser)
             else None
         )
 
@@ -583,7 +583,7 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         org_ids = (
             user.org_memberships.values_list("organization_id", flat=True)
-            if not (user.is_staff or user.is_superuser)
+            if not (user.is_superuser)
             else None
         )
 
@@ -637,7 +637,7 @@ class AsyncStandupViewSet(viewsets.ModelViewSet):
             .order_by("-date", "-created_at")
         )
 
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_superuser):
             admin_org_ids = [
                 membership.organization_id
                 for membership in user.org_memberships.filter(is_deleted=False)
@@ -749,7 +749,7 @@ class AsyncStandupViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        is_super = user.is_staff or user.is_superuser
+        is_super = user.is_superuser
         from organizations.services import PermissionService
 
         org_id = project.organization_id
@@ -834,7 +834,9 @@ class AsyncStandupViewSet(viewsets.ModelViewSet):
                 "username": member.username,
                 "first_name": member.first_name,
                 "last_name": member.last_name,
-                "avatar_url": request.build_absolute_uri(member.avatar.url) if member.avatar else None,
+                "avatar_url": request.build_absolute_uri(member.avatar.url)
+                if member.avatar
+                else None,
                 "total_hours": str(totals.get(member.id) or 0),
             }
             for member in list(member_users) + extra_users

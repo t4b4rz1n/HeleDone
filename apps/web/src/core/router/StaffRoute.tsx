@@ -9,7 +9,7 @@ export const StaffRoute = ({ children }: StaffRouteProps) => {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
 
-  if (user?.is_staff === true) {
+  if (user?.is_superuser === true) {
     return children;
   }
 

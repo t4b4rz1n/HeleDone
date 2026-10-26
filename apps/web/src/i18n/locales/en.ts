@@ -341,8 +341,6 @@ const messages = {
   "Network Error": "Network Error",
   "Request timed out. Please try again.": "Request timed out. Please try again.",
   "Token refresh returned no access token": "Token refresh returned no access token",
-  "Choose a Heledone avatar": "Choose a Heledone avatar",
-  "Choose avatar {number}": "Choose avatar {number}",
   "Profile image could not be loaded.": "Profile image could not be loaded.",
   "هله‌دان": "Heledone",
   "heledone": "heledone",

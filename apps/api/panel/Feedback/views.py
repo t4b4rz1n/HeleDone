@@ -31,7 +31,7 @@ class CanViewFeedback(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         org_id = self._get_org_id(request)
@@ -50,7 +50,7 @@ class CanViewFeedback(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         org_id = self._get_org_id(request, obj)
@@ -78,7 +78,7 @@ class StaffFeedbackViewSet(FieldFilterOverviewMixin, viewsets.ModelViewSet):
         user = self.request.user
         qs = Feedback.objects.all().select_related("user")
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return qs
 
         # Non-staff: filter to feedback from users in the same organizations

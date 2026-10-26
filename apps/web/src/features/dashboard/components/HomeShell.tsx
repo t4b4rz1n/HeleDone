@@ -37,7 +37,7 @@ export function HomeSidebar() {
   const user = useAuthStore((s) => s.user);
   const { hasAnyPermission } = usePermissions();
 
-  const isStaff = user?.is_staff === true;
+  const isStaff = user?.is_superuser === true;
   const canViewManagerOverview =
     hasAnyPermission([
       "report.view",
@@ -284,7 +284,7 @@ export function HomeHeader({ onSearch }: { onSearch: () => void }) {
   const user = useAuthStore((s) => s.user);
   const { hasAnyPermission } = usePermissions();
 
-  const isStaff = user?.is_staff === true;
+  const isStaff = user?.is_superuser === true;
   const canCreateProject =
     hasAnyPermission(["project.create", "org.manage_settings"]) || isStaff;
   const canViewManagerOverview =

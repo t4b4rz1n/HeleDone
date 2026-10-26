@@ -5,6 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from organizations.services import PermissionService
+
 from .models import Organization, OrganizationMembership, Role, Team, TeamMembership
 from .permissions import CanManageOrganization
 from .serializers import (
@@ -34,7 +36,7 @@ class CanCreateOrganization(permissions.BasePermission):
             return False
 
         # Staff / superusers always allowed
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         # Allow users who have org.manage_settings in ANY organization they belong to
@@ -55,6 +57,16 @@ class CanCreateOrganization(permissions.BasePermission):
                 return True
 
         return False
+
+
+def can_assign_org_role(actor, organization, role):
+    if actor.is_superuser:
+        return True
+    if not role or role.organization_id != organization.id:
+        return False
+    held = PermissionService.get_user_permissions(actor, organization.id)
+    granted = set(role.permissions.filter(is_deleted=False).values_list("code", flat=True))
+    return granted.issubset(held)
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -96,7 +108,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             .select_related("owner")
         )
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return queryset
 
         return queryset.filter(
@@ -115,7 +127,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         user = request.user
         has_permission = False
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             has_permission = True
         elif not user.org_memberships.filter(is_deleted=False).exists():
             has_permission = True
@@ -217,7 +229,6 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                     or Role.objects.filter(
                         name__iexact=str(raw_role), organization=organization, is_deleted=False
                     ).first()
-                    or Role.objects.filter(id=raw_role, is_deleted=False).first()
                 )
                 if role_obj:
                     name_lower = role_obj.name.lower().replace(" ", "_")
@@ -229,6 +240,27 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                         legacy_role = None
                 elif raw_role in [c[0] for c in OrganizationMembership.Role.choices]:
                     legacy_role = raw_role
+
+            target = (
+                OrganizationMembership._meta.get_field("user")
+                .remote_field.model.objects.filter(pk=user_id)
+                .first()
+            )
+            if target and target.is_superuser and target.pk != request.user.pk:
+                return Response(
+                    {"detail": "Another superuser cannot be changed."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if raw_role and not role_obj:
+                return Response(
+                    {"detail": "Role must belong to this organization."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if role_obj and not can_assign_org_role(request.user, organization, role_obj):
+                return Response(
+                    {"detail": "Cannot assign permissions you do not hold."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
             try:
                 with transaction.atomic():
@@ -305,6 +337,16 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        target = (
+            OrganizationMembership._meta.get_field("user")
+            .remote_field.model.objects.filter(pk=user_id)
+            .first()
+        )
+        if target and target.is_superuser and target.pk != request.user.pk:
+            return Response(
+                {"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN
+            )
+
         membership = (
             OrganizationMembership.all_objects.filter(
                 organization=organization,
@@ -312,6 +354,11 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             .filter(Q(user_id=user_id) | Q(id=user_id))
             .first()
         )
+
+        if membership and membership.user.is_superuser and membership.user_id != request.user.pk:
+            return Response({"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN)
+        if membership and membership.user_id == organization.owner_id:
+            return Response({"detail": "Cannot remove the organization owner."}, status=status.HTTP_400_BAD_REQUEST)
 
         if membership:
             membership.is_deleted = True
@@ -382,8 +429,35 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         User = get_user_model()
 
+        if role_id:
+            import uuid
+
+            try:
+                uuid.UUID(str(role_id))
+                requested_role = Role.objects.filter(
+                    id=role_id, organization=organization, is_deleted=False
+                ).first()
+            except (ValueError, TypeError):
+                requested_role = Role.objects.filter(
+                    name__iexact=str(role_id), organization=organization, is_deleted=False
+                ).first()
+            if not requested_role:
+                return Response(
+                    {"detail": "Role must belong to this organization."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not can_assign_org_role(request.user, organization, requested_role):
+                return Response(
+                    {"detail": "Cannot assign permissions you do not hold."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         # Check if user exists
         user = User.objects.filter(email=email).first()
+        if user and user.is_superuser and user.pk != request.user.pk:
+            return Response(
+                {"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN
+            )
         # created_user variable is no longer needed
         if not user:
             # Check if username exists
@@ -415,12 +489,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 is_uuid = False
 
             if is_uuid:
-                role_obj = (
-                    Role.objects.filter(
-                        id=role_id, organization=organization, is_deleted=False
-                    ).first()
-                    or Role.objects.filter(id=role_id, is_deleted=False).first()
-                )
+                role_obj = Role.objects.filter(
+                    id=role_id, organization=organization, is_deleted=False
+                ).first()
 
             if not role_obj:
                 role_obj = Role.objects.filter(
@@ -437,6 +508,21 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                     legacy_role = None
             elif role_id in [c[0] for c in OrganizationMembership.Role.choices]:
                 legacy_role = role_id
+
+        if user.is_superuser and user.pk != request.user.pk:
+            return Response(
+                {"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN
+            )
+        if role_id and not role_obj:
+            return Response(
+                {"detail": "Role must belong to this organization."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if role_obj and not can_assign_org_role(request.user, organization, role_obj):
+            return Response(
+                {"detail": "Cannot assign permissions you do not hold."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         try:
             with transaction.atomic():

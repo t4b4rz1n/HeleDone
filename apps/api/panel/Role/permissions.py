@@ -1,5 +1,6 @@
 from rest_framework import permissions
 
+from organizations.models import Role
 from organizations.services import PermissionService
 
 
@@ -46,10 +47,18 @@ class CanManageRoles(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
-        org_id = self._extract_org_id(request, view)
+        if view.action in {"retrieve", "update", "partial_update", "destroy"}:
+            role = Role.objects.filter(pk=view.kwargs.get("pk"), is_deleted=False).first()
+            if not role:
+                return False
+            org_id = role.organization_id
+            if role.is_protected and request.method not in permissions.SAFE_METHODS:
+                return False
+        else:
+            org_id = self._extract_org_id(request, view)
         if not org_id:
             return False
 
@@ -70,7 +79,7 @@ class CanManageRoles(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         org_id = getattr(obj, "organization_id", None) or self._extract_org_id(request, view, obj)
