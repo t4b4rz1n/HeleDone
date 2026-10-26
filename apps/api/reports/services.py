@@ -907,6 +907,7 @@ class ManagerDashboardService:
                 "username",
                 "first_name",
                 "last_name",
+                "email",
                 "avatar",
                 "total_tasks",
                 "done_tasks",

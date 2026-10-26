@@ -172,7 +172,7 @@ class MemberDetailSerializer(serializers.Serializer):
     username = serializers.CharField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
-    email = serializers.EmailField()
+    email = serializers.EmailField(allow_null=True, allow_blank=True, required=False)
     total_tasks = serializers.IntegerField()
     done_tasks = serializers.IntegerField()
     overdue_tasks = serializers.IntegerField()
