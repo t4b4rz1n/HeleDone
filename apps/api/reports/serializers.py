@@ -8,7 +8,19 @@ because the reports app has no models — it aggregates data from
 other apps and returns structured JSON responses.
 """
 
+from django.core.files.storage import default_storage
 from rest_framework import serializers
+
+
+def _avatar_url(serializer, data):
+    avatar = data.get("avatar")
+    if not avatar:
+        return None
+    url = default_storage.url(avatar)
+    request = serializer.context.get("request")
+    if request and not url.startswith(("http://", "https://")):
+        return request.build_absolute_uri(url)
+    return url
 
 
 class TaskSummarySerializer(serializers.Serializer):
@@ -97,7 +109,10 @@ class TaskStatSerializer(serializers.Serializer):
 class OverdueMemberSerializer(serializers.Serializer):
     username = serializers.CharField()
     first_name = serializers.CharField()
-    count = serializers.IntegerField()
+    avatar_url = serializers.SerializerMethodField()
+
+    def get_avatar_url(self, data):
+        return _avatar_url(self, data)
 
 
 class OverdueSummarySerializer(serializers.Serializer):
@@ -111,7 +126,10 @@ class MemberWorkHoursSerializer(serializers.Serializer):
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     total_seconds = serializers.IntegerField()
-    total_logs = serializers.IntegerField()
+    avatar_url = serializers.SerializerMethodField()
+
+    def get_avatar_url(self, data):
+        return _avatar_url(self, data)
 
 
 class MemberAttendanceSerializer(serializers.Serializer):
@@ -121,7 +139,10 @@ class MemberAttendanceSerializer(serializers.Serializer):
     check_in = serializers.DateTimeField(allow_null=True)
     check_out = serializers.DateTimeField(allow_null=True)
     is_remote = serializers.BooleanField()
+    avatar_url = serializers.SerializerMethodField()
 
+    def get_avatar_url(self, data):
+        return _avatar_url(self, data)
 
 class ProjectSummarySerializer(serializers.Serializer):
     id = serializers.UUIDField()
@@ -156,7 +177,10 @@ class MemberDetailSerializer(serializers.Serializer):
     done_tasks = serializers.IntegerField()
     overdue_tasks = serializers.IntegerField()
     week_seconds = serializers.IntegerField(allow_null=True)
+    avatar_url = serializers.SerializerMethodField()
 
+    def get_avatar_url(self, data):
+        return _avatar_url(self, data)
 
 class ProjectStatsSerializer(serializers.Serializer):
     total = serializers.IntegerField()

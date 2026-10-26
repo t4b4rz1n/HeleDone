@@ -101,7 +101,7 @@ class ManagerDashboardView(APIView):
         team_id = request.query_params.get("team_id")
         tz_name = request.query_params.get("tz", "UTC")
         data = ManagerDashboardService.get_dashboard(request.user, team_id=team_id, tz_name=tz_name)
-        serializer = ManagerDashboardSerializer(data)
+        serializer = ManagerDashboardSerializer(data, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -140,7 +140,7 @@ class ManagerMembersView(APIView):
         data = ManagerDashboardService.get_members_detail(
             request.user, team_id=team_id, tz_name=tz_name
         )
-        serializer = MemberDetailSerializer(data, many=True)
+        serializer = MemberDetailSerializer(data, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

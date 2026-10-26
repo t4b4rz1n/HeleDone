@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { useTranslation } from "../../../i18n/locale";
 import { CustomDatePicker } from "../../../components/CustomDatePicker";
@@ -660,13 +661,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
                   return (
                     <div key={`${item.type}-${item.id}`} className={`flex gap-3 ${!isComment ? 'opacity-70' : 'mt-4'}`}>
-                      {avatar ? (
-                        <img src={avatar} alt={name} className="w-8 h-8 rounded-full shrink-0" />
-                      ) : (
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold text-base-content shrink-0 ${isComment ? 'bg-primary' : 'bg-white/10'}`}>
-                          {name[0]?.toUpperCase()}
-                        </div>
-                      )}
+                      <ProfileAvatar src={avatar} name={name} className="size-8 shrink-0 overflow-hidden rounded-full" fallbackClassName={`flex size-full items-center justify-center rounded-full text-[13px] font-bold text-base-content ${isComment ? "bg-primary" : "bg-white/10"}`} />
 
                       <div className="flex-1">
                         {isComment ? (

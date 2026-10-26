@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -384,28 +385,18 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
                     member.team?.name ||
                     t('User');
                   const avatar = user?.avatar || (user as any)?.avatar_url || (user as any)?.profile_image_url;
-                  const initial = name.charAt(0).toUpperCase();
-
                   return (
                     <div
                       key={member.id}
                       className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-base-200/50 transition-colors"
                       title={name}
                     >
-                      {avatar ? (
-                        <img
-                          src={avatar}
-                          alt={name}
-                          className="w-6 h-6 rounded-full object-cover border border-base-200 shrink-0"
-                        />
+                      {user ? (
+                        <ProfileAvatar src={avatar} name={name} className="size-6 shrink-0 overflow-hidden rounded-full border border-base-200" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary" />
                       ) : (
-                        <span className="w-6 h-6 rounded-full bg-primary/10 text-primary font-bold text-[11px] grid place-items-center shrink-0">
-                          {initial}
-                        </span>
+                        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-heledone-ink-muted"><Users size={12} /></span>
                       )}
-                      <span className="truncate text-xs font-semibold text-base-content/90">
-                        {name}
-                      </span>
+                      <span className="truncate text-xs font-semibold text-base-content/90">{name}</span>
                     </div>
                   );
                 })}

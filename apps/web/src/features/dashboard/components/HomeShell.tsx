@@ -14,6 +14,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { Brand, BrandBeats } from "../../../components/Brand";
 import ThemeToggle from "../../../components/ThemeToggle";
 import { useTranslation } from "../../../i18n/locale";
@@ -243,10 +244,11 @@ export function HomeSidebar() {
           </div>
 
           <Link to="/profile" className="home-user" aria-label={t("حساب من")}>
-            <img
-              src={user?.profile_image_url || user?.avatar_url || assets + "avatar-04.png"}
-              alt=""
-              className="home-user-avatar"
+            <ProfileAvatar
+              src={user?.profile_image_url || user?.avatar_url}
+              name={`${user?.first_name || ""} ${user?.last_name || user?.username || ""}`}
+              className="home-user-avatar overflow-hidden"
+              fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"
             />
             <div className="home-user-info">
               <strong>

@@ -82,6 +82,7 @@ export interface ManagerWorkHours {
   username: string;
   first_name: string;
   last_name: string;
+  avatar_url?: string | null;
   total_seconds: number;
   total_logs: number;
 }
@@ -90,6 +91,7 @@ export interface ManagerAttendance {
   user_id: string;
   username: string;
   first_name: string;
+  avatar_url?: string | null;
   check_in: string | null;
   check_out: string | null;
   is_remote: boolean;
@@ -114,7 +116,7 @@ export interface ManagerDashboard {
   task_stats: ManagerTaskStat[];
   overdue_summary: {
     total_overdue: number;
-    by_member: Array<{ username: string; first_name: string; count: number }>;
+    by_member: Array<{ username: string; first_name: string; avatar_url?: string | null; count: number }>;
   };
   work_hours: ManagerWorkHours[];
   members_attendance: ManagerAttendance[];
@@ -130,6 +132,7 @@ export interface ManagerMemberDetail {
   total_tasks: number;
   done_tasks: number;
   overdue_tasks: number;
+  avatar_url?: string | null;
   week_seconds: number | null;
 }
 

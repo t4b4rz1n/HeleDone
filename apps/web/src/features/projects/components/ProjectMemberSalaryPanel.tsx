@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getIntlLocale, useTranslation } from "../../../i18n/locale";
 import { useState } from "react";
@@ -194,17 +195,12 @@ export const ProjectMemberSalaryPanel = ({
                 >
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      {member.user?.avatar ? (
-                        <img
-                          src={member.user.avatar}
-                          alt={displayName}
-                          className="size-10 rounded-full object-cover ring-2 ring-base-content/10"
-                        />
-                      ) : (
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-2 ring-base-content/10">
-                          {displayName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <ProfileAvatar
+                        src={member.user?.avatar}
+                        name={displayName}
+                        className="size-10 shrink-0 overflow-hidden rounded-full ring-2 ring-base-content/10"
+                        fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary"
+                      />
                       <div className="min-w-0">
                         <p className="font-bold text-base-content truncate">{displayName}</p>
                         {member.user?.email && (

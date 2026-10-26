@@ -92,4 +92,5 @@ class CookieJWTAuthentication(JWTAuthentication):
         token = request.COOKIES.get(settings.AUTH_ACCESS_COOKIE_NAME)
         if not token:
             return None
-        return self.header_types[0] + b" " + token.encode("ascii")
+        header_type = settings.SIMPLE_JWT["AUTH_HEADER_TYPES"][0]
+        return header_type.encode("ascii") + b" " + token.encode("ascii")

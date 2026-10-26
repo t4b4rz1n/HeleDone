@@ -563,8 +563,9 @@ class ManagerDashboardService:
                 qs.annotate(
                     username=F("assignees__username"),
                     first_name=F("assignees__first_name"),
+                    avatar=F("assignees__avatar"),
                 )
-                .values("username", "first_name")
+                .values("username", "first_name", "avatar")
                 .annotate(count=Count("id"))
                 .order_by("-count")
             ),
@@ -585,12 +586,14 @@ class ManagerDashboardService:
                 username=F("user__username"),
                 first_name=F("user__first_name"),
                 last_name=F("user__last_name"),
+                avatar=F("user__avatar"),
             )
             .values(
                 "user_id",
                 "username",
                 "first_name",
                 "last_name",
+                "avatar",
             )
             .annotate(
                 total_seconds=Sum("duration_seconds"),
@@ -611,11 +614,13 @@ class ManagerDashboardService:
             .annotate(
                 username=F("user__username"),
                 first_name=F("user__first_name"),
+                avatar=F("user__avatar"),
             )
             .values(
                 "user_id",
                 "username",
                 "first_name",
+                "avatar",
                 "check_in",
                 "check_out",
                 "is_remote",
@@ -902,7 +907,7 @@ class ManagerDashboardService:
                 "username",
                 "first_name",
                 "last_name",
-                "email",
+                "avatar",
                 "total_tasks",
                 "done_tasks",
                 "overdue_tasks",
