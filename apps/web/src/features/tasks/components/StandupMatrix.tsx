@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { formatDisplayDate } from "../../../utils/date";
@@ -60,6 +61,7 @@ interface MatrixRow {
   total: number;
   color?: string;
   projectId?: string;
+  avatarUrl?: string | null;
 }
 
 interface CellModalState {
@@ -320,6 +322,7 @@ export const StandupMatrix: React.FC<StandupMatrixProps> = ({
       sublabel: member.username ? `@${member.username}` : undefined,
       total: Number(member.total_hours) || 0,
       projectId: selectedProjectId,
+      avatarUrl: member.avatar_url,
     }));
 
     return { rows: matrixRows, cellIndex: index };
@@ -770,14 +773,15 @@ export const StandupMatrix: React.FC<StandupMatrixProps> = ({
                               style={{ background: rowColor }}
                             />
                           ) : (
-                            <div
-                              className={`grid size-7 place-items-center rounded-lg text-[13px] font-bold shrink-0 ${isCurrent
-                                  ? 'bg-primary text-primary-content'
-                                  : 'bg-base-200 text-heledone-ink-muted'
+                            <ProfileAvatar
+                              src={row.avatarUrl}
+                              name={row.label}
+                              className="size-7 shrink-0 overflow-hidden rounded-lg"
+                              fallbackClassName={`grid size-full place-items-center rounded-lg text-[13px] font-bold ${isCurrent
+                                ? 'bg-primary text-primary-content'
+                                : 'bg-base-200 text-heledone-ink-muted'
                                 }`}
-                            >
-                              {row.label[0]?.toUpperCase() || 'U'}
-                            </div>
+                            />
                           )}
                           <div className="min-w-0">
                             <p

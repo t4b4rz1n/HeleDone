@@ -58,29 +58,51 @@ export const ProjectWizard: React.FC = () => {
         progress_mode: progressMode,
       });
 
-
       // 2. Add selected users
-      const addMemberPromises = selectedUserIds.map((uid) =>
-        addProjectMember(project.id, { user_id: uid }).catch(() => null)
+      const failedSteps: string[] = [];
+      const memberResults = await Promise.allSettled(
+        selectedUserIds.map((uid) => addProjectMember(project.id, { user_id: uid })),
       );
-      await Promise.all(addMemberPromises);
+      if (memberResults.some((result) => result.status === "rejected")) {
+        failedSteps.push("members");
+      }
 
       // 3. Create board (without default statuses)
-      const board = await createBoard(
-        String(project.id),
-        selectedTemplate.name,
-        projectColor,
-        false
-      );
+      let board: Awaited<ReturnType<typeof createBoard>> | null = null;
+      try {
+        board = await createBoard(
+          String(project.id),
+          selectedTemplate.name,
+          projectColor,
+          false
+        );
+
+        if (!board?.id) {
+          throw new Error("Board creation returned no id");
+        }
+      } catch {
+        failedSteps.push("board");
+      }
 
       // 4. Create statuses (columns) for the board
-      const statusPromises = selectedTemplate.statuses.map((s, index) =>
-        createStatus(board.id, s.name, s.code, s.category, index + 1).catch(() => null)
-      );
+      if (board?.id) {
+        const statusResults = await Promise.allSettled(
+          selectedTemplate.statuses.map((status, index) =>
+            createStatus(board.id, status.name, status.code, status.category, index + 1),
+          ),
+        );
+        if (statusResults.some((result) => result.status === "rejected")) {
+          failedSteps.push("columns");
+        }
+      }
 
-      await Promise.all(statusPromises);
-
-      toast.success(t("\"{value0}\" created!", { value0: projectName }));
+      if (failedSteps.length > 0) {
+        toast.warning(
+          t("Project created, but setup is incomplete. Review members and board."),
+        );
+      } else {
+        toast.success(t("\"{value0}\" created!", { value0: projectName }));
+      }
       reset();
       close();
 
@@ -90,7 +112,9 @@ export const ProjectWizard: React.FC = () => {
 
       // Set active project & board directly in the store BEFORE navigating
       setActiveProject(String(project.id));
-      setActiveBoard(String(board.id));
+      if (board?.id) {
+        setActiveBoard(String(board.id));
+      }
       setViewMode('kanban');
 
       // Invalidate in the background so fresh data loads from server

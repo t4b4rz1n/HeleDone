@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { t as translate, useTranslation } from "../../../i18n/locale";
 import { useState, useEffect, useRef } from "react";
@@ -344,9 +345,7 @@ export const CreateOrgMemberModal = ({
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="grid size-7 place-items-center rounded-lg bg-primary/15 text-primary text-[13px] font-bold shrink-0">
-                                    {displayName[0]?.toUpperCase() || "U"}
-                                  </div>
+                                  <ProfileAvatar src={u.avatar} name={displayName} className="size-7 shrink-0 overflow-hidden rounded-lg" fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary/15 text-[13px] font-bold text-primary" />
                                   <div className="min-w-0">
                                     <p  className="truncate text-xs font-bold">{displayName}</p>
                                     {u.email && (

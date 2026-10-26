@@ -1,9 +1,9 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { t as translate, useTranslation, formatRelativeTime } from "../../../i18n/locale";
 import { formatDisplayDate } from "../../../utils/date";
 import { getWorkflowAppearance } from "../../../core/config/designTokens";
-import { getHeledoneAvatar } from "../../../utils/avatarUtils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -600,7 +600,13 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   };
 
   const handleTimePreset = (timeStr: string) => {
-    const datePart = dueDate ? dueDate.split("T")[0] : new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const localToday = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+    const datePart = dueDate ? dueDate.split("T")[0] : localToday;
     const newVal = `${datePart}T${timeStr}`;
     setDueDate(newVal);
     save({ due_date: new Date(newVal).toISOString() });
@@ -918,12 +924,12 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                         {/* Avatar stack */}
                         <div className="flex -space-x-2 rtl:space-x-reverse shrink-0">
                           {localAssignees.slice(0, 4).map((assigneeItem: any) => (
-                            <img
+                            <ProfileAvatar
                               key={assigneeItem.id}
-                              src={assigneeItem.avatar || assigneeItem.avatar_url || getHeledoneAvatar(assigneeItem.id, assigneeItem.username)}
-                              alt=""
-                              title={`${assigneeItem.first_name || ""} ${assigneeItem.last_name || ""}`.trim() || assigneeItem.username}
-                              className="size-6.5 rounded-full object-cover ring-2 ring-base-100 shadow-2xs"
+                              src={assigneeItem.avatar || assigneeItem.avatar_url}
+                              name={`${assigneeItem.first_name || ""} ${assigneeItem.last_name || assigneeItem.username || ""}`}
+                              className="size-6.5 shrink-0 overflow-hidden rounded-full ring-2 ring-base-100 shadow-2xs"
+                              fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary"
                             />
                           ))}
                           {localAssignees.length > 4 && (
@@ -959,11 +965,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           key={u.id}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-base-content/8 bg-base-200/60 pe-2 ps-1 py-0.5 text-[11px] font-bold text-base-content shadow-2xs group"
                         >
-                          <img
-                            src={u.avatar || u.avatar_url || getHeledoneAvatar(u.id, u.username)}
-                            alt=""
-                            className="size-4.5 rounded-full object-cover"
-                          />
+                          <ProfileAvatar src={u.avatar || u.avatar_url} name={name} className="size-4.5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary" />
                           <span className="truncate max-w-[110px]">{name}</span>
                           <button
                             type="button"
@@ -1067,11 +1069,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <img
-                                    src={u.avatar || u.avatar_url || getHeledoneAvatar(u.id, u.username)}
-                                    alt=""
-                                    className="size-6.5 rounded-full object-cover shrink-0 ring-1 ring-base-content/10"
-                                  />
+                                  <ProfileAvatar src={u.avatar || u.avatar_url} name={displayName} className="size-6.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/10" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary" />
                                   <div className="flex flex-col text-start min-w-0">
                                     <span className="text-xs truncate font-bold leading-tight">{displayName}</span>
                                     {u.username && (
@@ -1949,9 +1947,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                   )}
 
                   {comments.map((comment) => {
-                    const authorAvatar =
-                      comment.author_detail?.avatar ||
-                      getHeledoneAvatar(comment.author_detail?.id, comment.author_detail?.username);
+                    const authorAvatar = comment.author_detail?.avatar || comment.author_detail?.avatar_url;
                     const isAuthor =
                       currentUser &&
                       (String(comment.author) === String(currentUser.id) ||
@@ -1965,11 +1961,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
-                            <img
-                              src={authorAvatar}
-                              alt=""
-                              className="size-7 rounded-full object-cover border border-base-content/10 shadow-2xs"
-                            />
+                            <ProfileAvatar src={authorAvatar} name={comment.author_detail?.first_name || comment.author_detail?.username || t("User")} className="size-7 shrink-0 overflow-hidden rounded-full border border-base-content/10 shadow-2xs" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                             <span className="text-xs font-bold text-base-content">
                               {comment.author_detail?.first_name ||
                                 comment.author_detail?.username ||

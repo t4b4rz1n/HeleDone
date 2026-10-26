@@ -123,7 +123,16 @@ class AdminFinanceReportView(APIView):
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("page_size", 20))
         except ValueError:
-            page, page_size = 1, 20
+            return Response(
+                {"detail": _("page and page_size must be integers.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if page < 1 or not 1 <= page_size <= 100:
+            return Response(
+                {"detail": _("page must be positive and page_size must be between 1 and 100.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         start = (page - 1) * page_size
         end = start + page_size
@@ -199,7 +208,16 @@ class ProjectBillingView(APIView):
             page = int(request.query_params.get("page", 1))
             page_size = int(request.query_params.get("page_size", 20))
         except ValueError:
-            page, page_size = 1, 20
+            return Response(
+                {"detail": _("page and page_size must be integers.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if page < 1 or not 1 <= page_size <= 100:
+            return Response(
+                {"detail": _("page must be positive and page_size must be between 1 and 100.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         start = (page - 1) * page_size
         end = start + page_size

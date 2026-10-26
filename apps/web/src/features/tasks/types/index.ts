@@ -49,6 +49,7 @@ export interface StandupGridMember {
   username: string;
   first_name: string;
   last_name: string;
+  avatar_url?: string | null;
   total_hours: string;
 }
 

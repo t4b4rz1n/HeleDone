@@ -26,7 +26,7 @@ _IN_APP_MESSAGE_FIELDS = {
     "task_deadline_approaching": ("task_title",),
     "user_mentioned": ("author", "author_name", "task_title", "context_name", "file_name"),
     "task_commented": ("author", "task_title"),
-    "standup_submitted": ("user_name",),
+    "standup_submitted": ("user_id", "user_name"),
     "leave_requested": ("user_name", "leave_type"),
     "leave_resolved": ("status",),
     "timer_started": ("user_name", "task_title"),

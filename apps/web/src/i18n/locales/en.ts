@@ -1,5 +1,11 @@
 // Source messages are stable translation keys. Keep both catalogs in sync.
 const messages = {
+  "Open project menu": "Open project menu",
+  "Project menu": "Project menu",
+  "Create a new status": "Create a new status",
+  "Workspace menu": "Workspace menu",
+  "Scroll left": "Scroll left",
+  "Scroll right": "Scroll right",
   "توضیحات و منشن‌ها:": "Description & Mentions:",
   "هنوز توضیحات یا منشنی برای این فایل ثبت نشده است.": "No description or mentions added to this file yet.",
   "ویرایش یا ارسال مجدد": "Edit or resend",
@@ -2034,6 +2040,8 @@ const messages = {
   "Open details for {value0}": "Open details for {value0}",
   "{value0} project details": "{value0} project details",
   "\"{value0}\" created!": "\"{value0}\" created!",
+  "Project created, but setup is incomplete. Review members and board.": "Project created, but setup is incomplete. Review members and board.",
+  "Project color {value0}": "Project color {value0}",
   "Actions for {value0}": "Actions for {value0}",
   "Edit Role \"{value0}\"": "Edit Role \"{value0}\"",
   "{value0} priority": "{value0} priority",

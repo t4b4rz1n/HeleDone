@@ -230,15 +230,10 @@ class Task(BaseModel):
     def clean(self):
         super().clean()
         if self.status_id and self.project_id:
-            try:
-                if self.status.board and self.status.board.project_id != self.project_id:
-                    from django.core.exceptions import ValidationError
-
-                    raise ValidationError(
-                        {"status": _("Status must belong to a board in the same project.")}
-                    )
-            except Exception:
-                pass
+            if self.status.board.project_id != self.project_id:
+                raise ValidationError(
+                    {"status": _("Status must belong to a board in the same project.")}
+                )
 
     def __init__(self, *args, **kwargs):
         initial_assignee = kwargs.pop("assignee", None)

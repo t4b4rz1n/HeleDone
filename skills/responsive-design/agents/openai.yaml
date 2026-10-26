@@ -1,0 +1,4 @@
+interface:
+  display_name: "Responsive Design"
+  short_description: "Build fluid, mobile-first, and RTL-safe interfaces in Madaar"
+  default_prompt: "Use $responsive-design to ensure UI components, pages, sidebars, and boards adapt seamlessly across mobile, tablet, and desktop viewports."

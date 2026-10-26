@@ -75,14 +75,14 @@ export const ProfileEditForm = () => {
 
   useEffect(() => {
     return () => {
-      if (profileImagePreview) URL.revokeObjectURL(profileImagePreview);
+      if (profileImagePreview?.startsWith("blob:")) URL.revokeObjectURL(profileImagePreview);
     };
   }, [profileImagePreview]);
-
   if (!user) {
     return (
       <div className="text-center text-error py-10">
-        {t("Error loading profile information.")}</div>
+        {t("Error loading profile information.")}
+      </div>
     );
   }
 
@@ -211,6 +211,15 @@ export const ProfileEditForm = () => {
                   </button>
                 ))}
               </div>
+              {profileImage && (
+                <button
+                  type="submit"
+                  disabled={loadingAvatar || updateMutation.isPending}
+                  className="btn btn-sm btn-primary mt-3"
+                >
+                  {updateMutation.isPending ? t("Saving...") : t("Save Changes")}
+                </button>
+              )}
             </div>
 
             <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-sm btn-outline rounded-lg bg-base-100 mb-4">

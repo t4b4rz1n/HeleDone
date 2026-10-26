@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { CoastalArtwork } from "../../../components/CoastalEmptyState";
 import { getIntlLocale, t as translate, useTranslation, useLocale } from "../../../i18n/locale";
@@ -77,12 +78,6 @@ const formatTime = (isoString: string | null | undefined) => {
 
 const formatDate = (value: string | null | undefined) => value ? formatDisplayDate(new Date(value), "MMM d, yyyy") : "-";;
 
-const getInitials = (
-  firstName?: string,
-  lastName?: string,
-  fallback = "?"
-) =>
-  `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase() || fallback;
 
 /**
  * Color mapping for project.status — from backend real values (Project.Status)
@@ -201,7 +196,7 @@ const MemberRow = ({ member, maxTasks, workSeconds }: { member: ManagerMemberDet
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid gap-3 border-t border-base-content/8 px-5 py-4 sm:grid-cols-[minmax(13rem,1.2fr)_minmax(12rem,1fr)_5rem_5rem] sm:items-center">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">{getInitials(member.first_name, member.last_name, member.username?.[0]?.toUpperCase())}</div>
+        <ProfileAvatar src={member.avatar_url} name={`${member.first_name} ${member.last_name}`} className="size-9 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary" />
         <div className="min-w-0"><p className="truncate text-sm font-bold text-base-content">{member.first_name || member.username} {member.last_name}</p><p className="truncate text-xs text-heledone-ink-muted">@{member.username}</p></div>
       </div>
       <div><div className="mb-1 flex items-center justify-between text-[13px] font-bold text-heledone-ink-muted"><span>{t("Workload")}</span><span>{formatUiNumber(member.total_tasks)}  {t("tasks")}</span></div><div className="h-2 overflow-hidden rounded-full bg-base-200"><motion.div initial={{ width: 0 }} animate={{ width: `${workload}%` }} transition={{ duration: 0.7 }} className="h-full rounded-full bg-primary" /></div></div>
@@ -249,9 +244,7 @@ const AttendancePanel = ({
               className="flex items-center justify-between gap-4 px-5 py-3"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
-                  {getInitials(member.first_name, undefined, member.username?.[0]?.toUpperCase())}
-                </div>
+                <ProfileAvatar src={member.avatar_url} name={member.first_name || member.username} className="size-9 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-base-content">
                     {member.first_name || member.username}
@@ -332,9 +325,7 @@ const WorkHoursPanel = ({
               <div key={item.user_id} className="px-5 py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-[13px] font-black text-secondary">
-                      {getInitials(item.first_name, item.last_name, item.username?.[0]?.toUpperCase())}
-                    </div>
+                    <ProfileAvatar src={item.avatar_url} name={`${item.first_name} ${item.last_name}`} className="size-8 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-secondary/10 text-[13px] font-black text-secondary" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-base-content">
                         {item.first_name} {item.last_name}
@@ -496,11 +487,7 @@ const OverdueSummaryPanel = ({
             className="flex items-center justify-between gap-3 px-5 py-3"
           >
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-error/10 text-[13px] font-black text-error">
-                {member.first_name?.[0]?.toUpperCase() ||
-                  member.username?.[0]?.toUpperCase() ||
-                  "?"}
-              </div>
+              <ProfileAvatar src={member.avatar_url} name={member.first_name || member.username} className="size-8 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-error/10 text-[13px] font-black text-error" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-base-content">
                   {member.first_name || member.username}

@@ -78,6 +78,8 @@ class IsAttendanceOwnerOrAdmin(BaseAttendancePermission):
 
 
 class IsTimeLogOwnerOrAdmin(BaseAttendancePermission):
+    """Time logs are visible to their owner or users with attendance.view_all."""
+
     def has_object_permission(self, request, view, obj):
         if request.user.is_staff or request.user.is_superuser:
             return True
@@ -88,10 +90,6 @@ class IsTimeLogOwnerOrAdmin(BaseAttendancePermission):
             org_id = obj.project.organization_id
         elif obj.task and obj.task.project:
             org_id = obj.task.project.organization_id
-
-        if request.method in permissions.SAFE_METHODS:
-            role = self.get_user_org_role(request, org_id)
-            return role is not None
 
         if obj.user == request.user:
             return True

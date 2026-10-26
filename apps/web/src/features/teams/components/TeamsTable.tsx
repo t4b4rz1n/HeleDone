@@ -1,3 +1,4 @@
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { useTranslation } from "../../../i18n/locale";
 import { CoastalEmptyState } from "../../../components/CoastalEmptyState";
 import { formatDisplayDate } from "../../../utils/date";
@@ -112,10 +113,12 @@ export const TeamsTable = ({
               <td className="text-base-content/80">
                 <div className="flex items-center gap-2">
                   {team.leader_details ? (
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                      {team.leader_details.username?.[0]?.toUpperCase() || team.leader_details.first_name?.[0]?.toUpperCase() || team.leader_details.email?.[0]?.toUpperCase() || "?"}
-                      {(!team.leader_details.username && team.leader_details.first_name) ? team.leader_details.last_name?.[0]?.toUpperCase() || "" : ""}
-                    </div>
+                    <ProfileAvatar
+                      src={team.leader_details.avatar}
+                      name={team.leader_details.username || `${team.leader_details.first_name} ${team.leader_details.last_name}`}
+                      className="size-7 shrink-0 overflow-hidden rounded-full"
+                      fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
+                    />
                   ) : (
                     <div className="w-7 h-7 rounded-full bg-base-200 text-heledone-ink-muted flex items-center justify-center shrink-0">
                       <Profile2User size={14} />
