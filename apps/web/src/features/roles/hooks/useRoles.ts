@@ -24,10 +24,10 @@ export const useRoles = (params?: GetRolesParams) => {
 };
 
 /** Fetches all system permissions + default role→permissions mapping from the backend. */
-export const usePermissions = () => {
+export const usePermissions = (organizationId?: string) => {
   return useQuery<PermissionsResponse>({
-    queryKey: PERMISSIONS_QUERY_KEY,
-    queryFn: getPermissions,
+    queryKey: [...PERMISSIONS_QUERY_KEY, organizationId],
+    queryFn: () => getPermissions(organizationId),
     staleTime: 1000 * 60 * 10, // Cache for 10 minutes — permissions rarely change
   });
 };

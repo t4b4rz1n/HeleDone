@@ -173,7 +173,6 @@ class InAppNotificationLocalizationTests(APITestCase):
             body = response.data.get("data", response.data)
             self.assertEqual(body["message_data"], notification.message_data)
 
-
     def test_standup_notification_exposes_submitters_current_avatar(self):
         from panel.Notification.models import Notification
 
@@ -194,9 +193,7 @@ class InAppNotificationLocalizationTests(APITestCase):
             },
         )
 
-        response = self.client.get(
-            f"/api/v1/dashboard/notifications/{notification.id}/"
-        )
+        response = self.client.get(f"/api/v1/dashboard/notifications/{notification.id}/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         body = response.data.get("data", response.data)
@@ -204,6 +201,7 @@ class InAppNotificationLocalizationTests(APITestCase):
         if not expected_url.startswith(("http://", "https://")):
             expected_url = f"http://testserver{expected_url}"
         self.assertEqual(body["sender_avatar_url"], expected_url)
+
     def test_broadcasts_and_existing_records_have_no_event_data(self):
         from dashboard.Notification.serializers import NotificationSerializer
         from panel.Notification.models import Notification

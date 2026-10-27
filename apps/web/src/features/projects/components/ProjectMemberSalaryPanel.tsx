@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DollarCircle, Edit2, RefreshCircle, TickCircle, CloseCircle } from "iconsax-reactjs";
 import { updateProjectMemberSalary, resetProjectMemberSalary } from "../api/projectsApi";
+import { projectKeys } from "../hooks/useProjects";
 import type { ProjectMember } from "../types";
 
 interface ProjectMemberSalaryPanelProps {
@@ -46,7 +47,7 @@ export const ProjectMemberSalaryPanel = ({
     }) => updateProjectMemberSalary(projectId, memberId, data),
     onSuccess: () => {
       toast.success(t("Project salary updated"));
-      queryClient.invalidateQueries({ queryKey: ["project-members", String(projectId)] });
+      queryClient.invalidateQueries({ queryKey: projectKeys.members(projectId) });
       queryClient.invalidateQueries({ queryKey: ["finance"] });
       setEditState(null);
     },
@@ -58,7 +59,7 @@ export const ProjectMemberSalaryPanel = ({
       resetProjectMemberSalary(projectId, memberId),
     onSuccess: () => {
       toast.success(t("Salary reset to organization level"));
-      queryClient.invalidateQueries({ queryKey: ["project-members", String(projectId)] });
+      queryClient.invalidateQueries({ queryKey: projectKeys.members(projectId) });
       queryClient.invalidateQueries({ queryKey: ["finance"] });
     },
     onError: () => toast.error(t("Failed to reset salary")),

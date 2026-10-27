@@ -85,7 +85,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         )
 
         user = self.request.user
-        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        if getattr(user, "is_superuser", False):
             qs = qs.all()
         else:
             # Use PermissionService: orgs where the user has attendance.view_all permission
@@ -175,7 +175,7 @@ class TimeLogViewSet(viewsets.ModelViewSet):
             "user", "task", "task__status", "task__project", "project"
         ).filter(is_deleted=False)
         user = self.request.user
-        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        if getattr(user, "is_superuser", False):
             qs = qs.all()
         else:
             organization_ids = set(
@@ -306,7 +306,7 @@ class TimeOffRequestViewSet(viewsets.ModelViewSet):
             is_deleted=False
         )
         user = self.request.user
-        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        if getattr(user, "is_superuser", False):
             qs = qs.all()
         else:
             # Use PermissionService: orgs where the user can approve leaves
@@ -368,7 +368,7 @@ class HolidayViewSet(viewsets.ModelViewSet):
         qs = Holiday.objects.filter(is_deleted=False)
         user = self.request.user
 
-        if not user.is_staff and not user.is_superuser:
+        if not user.is_superuser:
             user_orgs = OrganizationMembership.objects.filter(user=user).values_list(
                 "organization_id", flat=True
             )
@@ -510,7 +510,7 @@ class LiveActivityView(viewsets.GenericViewSet):
         user = request.user
 
         # Check if user is staff or belongs to the project/organization
-        if not user.is_staff and not user.is_superuser:
+        if not user.is_superuser:
             project = get_object_or_404(
                 Task.objects.model.project.field.related_model, id=project_id, is_deleted=False
             )

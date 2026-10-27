@@ -42,7 +42,7 @@ class CanManageTeams(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         org_id = self._extract_org_id(request)
@@ -64,7 +64,7 @@ class CanManageTeams(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         org_id = getattr(obj, "organization_id", None) or self._extract_org_id(request, obj)
@@ -101,7 +101,7 @@ class StaffTeamViewSet(FieldFilterOverviewMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(is_deleted=True)
         # If not specified (e.g. "All Teams"), we don't filter by is_deleted to show all.
 
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_superuser):
             org_ids = user.org_memberships.filter(is_deleted=False).values_list(
                 "organization_id", flat=True
             )
@@ -128,7 +128,7 @@ class StaffTeamMembershipViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = TeamMembership.objects.filter(is_deleted=False).select_related("user")
-        if not (user.is_staff or user.is_superuser):
+        if not (user.is_superuser):
             org_ids = user.org_memberships.filter(is_deleted=False).values_list(
                 "organization_id", flat=True
             )

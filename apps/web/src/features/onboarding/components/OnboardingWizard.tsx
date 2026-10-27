@@ -34,10 +34,16 @@ export const OnboardingWizard: React.FC = () => {
         <div className="flex justify-center">
           <Brand />
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-base-content mt-4 tracking-tight text-center">
+        <h1
+          className="text-2xl sm:text-3xl font-black text-base-content mt-4 tracking-tight text-center w-full"
+          style={{ textAlign: 'center' }}
+        >
           {t("وقت هماهنگ شدن است")}
         </h1>
-        <p className="text-heledone-ink-muted text-sm sm:text-base mt-1.5 font-medium text-center">
+        <p
+          className="text-heledone-ink-muted text-sm sm:text-base mt-1.5 font-medium text-center w-full"
+          style={{ textAlign: 'center' }}
+        >
           {t("فضای کار تیم‌تان را در هله‌دان بسازید")}
         </p>
       </header>

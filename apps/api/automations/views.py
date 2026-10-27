@@ -155,7 +155,7 @@ class AutomationRuleViewSet(viewsets.ModelViewSet):
         Falls back gracefully for superusers and staff.
         """
         user = self.request.user
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
         return PermissionService.has_permission(
             user=user,
@@ -187,7 +187,7 @@ class AutomationRuleViewSet(viewsets.ModelViewSet):
         organization = self._get_organization_from_request()
         if organization:
             return AutomationRule.objects.filter(organization=organization).order_by("event_type")
-        if self.request.user.is_staff or self.request.user.is_superuser:
+        if self.request.user.is_superuser:
             return AutomationRule.objects.all().order_by("event_type")
         # Return rules for all orgs where the user has automation.manage or org.manage_settings permission
         manageable_org_ids = [
@@ -261,8 +261,7 @@ class AutomationCatalogView(APIView):
             return Response({"detail": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
 
         can_manage = (
-            request.user.is_staff
-            or request.user.is_superuser
+            request.user.is_superuser
             or PermissionService.has_permission(
                 user=request.user,
                 permission_code="automation.manage",

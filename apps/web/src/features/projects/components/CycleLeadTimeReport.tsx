@@ -41,6 +41,7 @@ export default function CycleLeadTimeReport({
   const [end, setEnd] = useState(params?.end_date ?? today);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(null);
     getProjectCycleTime(projectId, {
@@ -49,9 +50,10 @@ export default function CycleLeadTimeReport({
       end_date: end,
       tz: params?.tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     })
-      .then(setData)
-      .catch(() => setError(t("Error loading Cycle Time data")))
-      .finally(() => setLoading(false));
+      .then((result) => { if (active) setData(result); })
+      .catch(() => { if (active) setError(t("Error loading Cycle Time data")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [projectId, start, end, params, t]);
 
   if (loading) return <Skeleton />;

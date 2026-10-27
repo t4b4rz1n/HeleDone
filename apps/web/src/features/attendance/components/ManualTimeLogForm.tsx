@@ -13,7 +13,7 @@ export const ManualTimeLogForm: React.FC<{ taskId?: string | number; tasks?: Tas
   const [formData, setFormData] = useState({ task: taskId?.toString() || "", hours: "", minutes: "", description: "" });
   const mutation = useMutation({
     mutationFn: (data: { task: string | number; start_time: string; end_time: string; description?: string }) => createManualLog(data as any),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["myWeeklyTimesheet"] }); queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success(t("Time logged successfully")); setFormData({ task: taskId?.toString() || "", hours: "", minutes: "", description: "" }); onSuccess?.(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["myWeeklyTimesheet"] }); queryClient.invalidateQueries({ queryKey: ["tasks"] }); queryClient.invalidateQueries({ queryKey: ["attendanceTasks"] }); queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] }); queryClient.invalidateQueries({ queryKey: ["home-dashboard"] }); queryClient.invalidateQueries({ queryKey: ["executive-dashboard"] }); queryClient.invalidateQueries({ queryKey: ["manager-dashboard"] }); queryClient.invalidateQueries({ queryKey: ["finance"] }); toast.success(t("Time logged successfully")); setFormData({ task: taskId?.toString() || "", hours: "", minutes: "", description: "" }); onSuccess?.(); },
     onError: (error: any) => toast.error(translateError(error.response?.data?.detail || error.response?.data?.error || "Could not log time.")),
   });
   const submit = (event: React.FormEvent) => {

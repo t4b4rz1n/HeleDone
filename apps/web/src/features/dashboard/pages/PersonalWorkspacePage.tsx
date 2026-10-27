@@ -215,7 +215,7 @@ export const UserDashboardPage = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(["today-attendance"], data);
       queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
-      toast.success(t("ورود شما ثبت شد"));
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
     },
     onError: (err: any) => {
       // axiosClient transforms errors: err is already the response body
@@ -235,7 +235,7 @@ export const UserDashboardPage = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(["today-attendance"], data);
       queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
-      toast.success(t("خروج شما ثبت شد"));
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
     },
     onError: () => toast.error(t("ثبت خروج ممکن نشد")),
   });
@@ -247,6 +247,11 @@ export const UserDashboardPage = () => {
       queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["myWeeklyTimesheet"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["executive-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
       toast.success(t("زمان‌سنج شروع شد"));
     },
     onError: () => toast.error(t("شروع زمان‌سنج ممکن نشد")),
@@ -258,6 +263,11 @@ export const UserDashboardPage = () => {
       queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["myWeeklyTimesheet"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["executive-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
       toast.success(t("زمان‌سنج متوقف شد"));
     },
     onError: () => toast.error(t("توقف زمان‌سنج ممکن نشد")),

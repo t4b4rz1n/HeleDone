@@ -104,6 +104,8 @@ export const CheckInOut: React.FC = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(["today-attendance"], data);
       queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
       toast.success(t("Timer started (Checked in)"));
     },
     onError: (error: MutationError) =>
@@ -117,6 +119,8 @@ export const CheckInOut: React.FC = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(["today-attendance"], data);
       queryClient.invalidateQueries({ queryKey: ["today-attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
       toast.success(t("Timer stopped (Checked out)"));
     },
     onError: (error: MutationError) =>

@@ -35,6 +35,7 @@ export const useCreateTeam = () => {
       await queryClient.invalidateQueries({
         queryKey: ["teams"],
       });
+      await queryClient.invalidateQueries({ queryKey: ["teams-list"] });
 
       toast.success(t("Team created successfully"));
     },
@@ -59,6 +60,7 @@ export const useUpdateTeam = () => {
       await queryClient.invalidateQueries({
         queryKey: ["teams"],
       });
+      await queryClient.invalidateQueries({ queryKey: ["teams-list"] });
 
       toast.success(t("Team updated successfully"));
     },
@@ -82,6 +84,7 @@ export const useDeleteTeam = () => {
       await queryClient.invalidateQueries({
         queryKey: ["teams"],
       });
+      await queryClient.invalidateQueries({ queryKey: ["teams-list"] });
 
       toast.success(t("Team deleted successfully"));
     },
@@ -118,6 +121,7 @@ export const useAddTeamMember = () => {
         queryClient.invalidateQueries({ queryKey: ["teams", variables.teamId, "members"] }),
         queryClient.invalidateQueries({ queryKey: ["teams", variables.teamId] }),
         queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["teams-list"] }),
         queryClient.invalidateQueries({ queryKey: ["organizations"] }),
       ]);
       toast.success(t("Member added successfully"));
@@ -143,6 +147,7 @@ export const useRemoveTeamMember = () => {
         queryClient.invalidateQueries({ queryKey: ["teams", variables.teamId, "members"] }),
         queryClient.invalidateQueries({ queryKey: ["teams", variables.teamId] }),
         queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["teams-list"] }),
         queryClient.invalidateQueries({ queryKey: ["organizations"] }),
       ]);
       toast.success(t("Member removed successfully"));
@@ -167,6 +172,7 @@ export const useUpdateTeamMemberRole = () => {
         queryClient.invalidateQueries({ queryKey: ["teams", variables.teamId, "members"] }),
         queryClient.invalidateQueries({ queryKey: ["teams", variables.teamId] }),
         queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["teams-list"] }),
         queryClient.invalidateQueries({ queryKey: ["organizations"] }),
       ]);
       toast.success(t("Member role updated successfully"));

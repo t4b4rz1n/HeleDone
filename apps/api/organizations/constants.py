@@ -41,6 +41,13 @@ SYSTEM_PERMISSIONS = [
     {"code": "report.view", "name": "View Executive & Manager Reports", "module": "reports"},
 ]
 
+# Organization-wide access can only be assigned by platform staff.
+ORG_LEVEL_PERMISSION_CODES = frozenset(
+    permission["code"]
+    for permission in SYSTEM_PERMISSIONS
+    if permission["code"].startswith("org.") or permission["code"] in {"user.view", "role.view"}
+)
+
 DEFAULT_ORG_PERMISSIONS = [
     "org.view",
     "user.view",

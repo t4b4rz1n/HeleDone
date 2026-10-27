@@ -36,6 +36,7 @@ export const useCreateUser = () => {
   return useMutation({
     mutationFn: (data: UserFormData) => createUser(data),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["users-list"] });
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       await queryClient.invalidateQueries({ queryKey: ["organization-members"] });
       await queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -60,9 +61,11 @@ export const useUpdateUser = () => {
       updateUser(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
+      await queryClient.invalidateQueries({ queryKey: ["users-list"] });
       await queryClient.invalidateQueries({ queryKey: ["organization-members"] });
       await queryClient.invalidateQueries({ queryKey: ["roles"] });
       await queryClient.invalidateQueries({ queryKey: ["current-user-profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
       await queryClient.invalidateQueries({ queryKey: ["finance"] });
       toast.success(t("User updated successfully"));
     },
@@ -82,10 +85,14 @@ export const useDeleteUser = () => {
   return useMutation({
     mutationFn: (id: string | number) => deleteUser(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["users"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["organizations"], exact: false });
-      await queryClient.refetchQueries({ queryKey: ["users"], exact: false });
-      await queryClient.refetchQueries({ queryKey: ["organizations"], exact: false });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["users-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["organization-members"] }),
+        queryClient.invalidateQueries({ queryKey: ["organizations"] }),
+        queryClient.invalidateQueries({ queryKey: ["roles"] }),
+        queryClient.invalidateQueries({ queryKey: ["finance"] }),
+      ]);
       toast.success(t("User deleted successfully"));
     },
     onError: (error: any) => {

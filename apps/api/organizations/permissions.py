@@ -32,4 +32,4 @@ class CanManageOrganization(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         user = request.user
-        return bool(user.is_staff or obj.owner_id == user.pk or is_org_admin(user, obj))
+        return bool(user.is_superuser or obj.owner_id == user.pk or is_org_admin(user, obj))

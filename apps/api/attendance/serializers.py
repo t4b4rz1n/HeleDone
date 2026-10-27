@@ -144,7 +144,7 @@ class AttendanceWriteSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if date and date < timezone.localdate():
             if request and request.user and request.user.is_authenticated:
-                is_admin = request.user.is_staff or request.user.is_superuser
+                is_admin = request.user.is_superuser
                 if not is_admin and organization:
                     from organizations.services import PermissionService
 
@@ -196,7 +196,7 @@ class AttendanceWriteSerializer(serializers.ModelSerializer):
                 is_member = request.user.org_memberships.filter(
                     organization=organization,
                 ).exists()
-                if not is_member and not (request.user.is_staff or request.user.is_superuser):
+                if not is_member and not request.user.is_superuser:
                     raise serializers.ValidationError(
                         {"organization": _("You are not a member of this organization.")}
                     )
@@ -265,7 +265,7 @@ class TimeLogWriteSerializer(serializers.ModelSerializer):
                 is_member = request.user.org_memberships.filter(
                     organization=org,
                 ).exists()
-                if not is_member and not (request.user.is_staff or request.user.is_superuser):
+                if not is_member and not request.user.is_superuser:
                     raise serializers.ValidationError(
                         {"organization": _("You are not a member of this organization.")}
                     )
@@ -331,7 +331,7 @@ class TimeOffRequestWriteSerializer(serializers.ModelSerializer):
                 is_member = request.user.org_memberships.filter(
                     organization=organization,
                 ).exists()
-                if not is_member and not (request.user.is_staff or request.user.is_superuser):
+                if not is_member and not request.user.is_superuser:
                     raise serializers.ValidationError(
                         {"organization": _("You are not a member of this organization.")}
                     )
@@ -378,7 +378,7 @@ class HolidaySerializer(serializers.ModelSerializer):
                         if hasattr(organization, "id")
                         else str(organization),
                     )
-                    if not is_admin and not (request.user.is_staff or request.user.is_superuser):
+                    if not is_admin and not request.user.is_superuser:
                         raise serializers.ValidationError(
                             {
                                 "organization": _(
@@ -388,7 +388,7 @@ class HolidaySerializer(serializers.ModelSerializer):
                         )
             else:
                 # Global holiday - only superuser
-                if not (request.user and (request.user.is_staff or request.user.is_superuser)):
+                if not (request.user and request.user.is_superuser):
                     raise serializers.ValidationError(
                         {"organization": _("Only superusers can create global holidays.")}
                     )

@@ -83,8 +83,7 @@ class AdminFinanceReportView(APIView):
         from organizations.services import PermissionService
 
         if not (
-            user.is_staff
-            or user.is_superuser
+            user.is_superuser
             or PermissionService.has_permission(user, "finance.manage", organization.pk)
             or PermissionService.has_permission(user, "finance.view_reports", organization.pk)
             or PermissionService.has_permission(user, "org.manage_settings", organization.pk)
@@ -176,8 +175,7 @@ class ProjectBillingView(APIView):
         from organizations.services import PermissionService
 
         if not (
-            user.is_staff
-            or user.is_superuser
+            user.is_superuser
             or project.owner_id == user.pk
             or PermissionService.has_permission(user, "finance.manage", organization.pk)
             or PermissionService.has_permission(user, "finance.view_reports", organization.pk)

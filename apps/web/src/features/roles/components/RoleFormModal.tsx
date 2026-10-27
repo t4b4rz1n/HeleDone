@@ -46,13 +46,14 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
 }) => {
   const t = useTranslation();
   // Load permissions dynamically from the backend
-  const { data: permissionsData, isLoading: isLoadingPerms } = usePermissions();
+  const { data: permissionsData, isLoading: isLoadingPerms } = usePermissions(lockedOrganizationId);
 
   // Load organizations for the selector (only when showOrgSelector is true)
   const { data: organizations = [] } = useOrganizations();
 
   const filteredPermissions = useMemo(
-    () => (permissionsData?.permissions || []).filter((p: Permission) => !HIDDEN_PERMISSIONS.includes(p.code)),
+    () => (permissionsData?.permissions || []).filter((p: Permission) =>
+      !HIDDEN_PERMISSIONS.includes(p.code)),
     [permissionsData],
   );
 
@@ -120,17 +121,21 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
     onSubmit({
       name: values.name,
       description: values.description,
-      permissions: values.permissions,
+      permissions: [...new Set([
+        ...values.permissions,
+        ...(initialRole?.permissions ?? []).filter((code) => !allPermissionIds.includes(code)),
+      ])],
       organization_id: values.organization_id || lockedOrganizationId,
     });
   };
 
   const handleSelectAll = () => {
-    const current = (watchedPermissions as string[]) || [];
-    const allSelected =
-      allPermissionIds.length > 0 &&
-      allPermissionIds.every((id: string) => current.includes(id));
-    setValue("permissions", allSelected ? [] : allPermissionIds, {
+    const current = watchedPermissions || [];
+    const allSelected = allPermissionIds.length > 0 &&
+      allPermissionIds.every((id) => current.includes(id));
+    setValue("permissions", allSelected
+      ? current.filter((id) => !allPermissionIds.includes(id))
+      : [...new Set([...current, ...allPermissionIds])], {
       shouldDirty: true,
       shouldValidate: true,
     });
@@ -139,7 +144,7 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  const selectedCount = (watchedPermissions as string[]).length;
+  const selectedCount = allPermissionIds.filter((id) => watchedPermissions.includes(id)).length;
   const totalCount = allPermissionIds.length;
   const allSelected = totalCount > 0 && selectedCount === totalCount;
 

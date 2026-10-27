@@ -50,8 +50,10 @@ export const deleteRole = async (id: string): Promise<void> => {
   await ApiService.delete(`${ROLES_ENDPOINT}${id}/`);
 };
 
-export const getPermissions = async (): Promise<PermissionsResponse> => {
-  const response = await ApiService.get<PermissionsResponse>(PERMISSIONS_ENDPOINT);
+export const getPermissions = async (organizationId?: string): Promise<PermissionsResponse> => {
+  const response = await ApiService.get<PermissionsResponse>(PERMISSIONS_ENDPOINT, {
+    params: organizationId ? { organization_id: organizationId } : undefined,
+  });
   // Handle wrapped response: {status, data: {permissions, default_roles}}
   const data = (response.data as any)?.data ?? response.data;
   return data as PermissionsResponse;

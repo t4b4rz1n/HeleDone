@@ -1,9 +1,41 @@
-from django.db import transaction
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import User
 from organizations.models import Organization, OrganizationMembership
+from organizations.services import PermissionService
+
+
+def _validate_role_grant(actor, organization, role_id):
+    from organizations.models import Role
+
+    if not role_id:
+        return
+    role = (
+        Role.objects.filter(organization=organization, is_deleted=False)
+        .filter(models.Q(id=role_id) if _is_uuid(role_id) else models.Q(name__iexact=str(role_id)))
+        .first()
+    )
+    if not role:
+        raise serializers.ValidationError({"role_id": "Role not found in this organization."})
+    if actor and not actor.is_superuser:
+        held = PermissionService.get_user_permissions(actor, organization.id)
+        granted = set(role.permissions.filter(is_deleted=False).values_list("code", flat=True))
+        if granted - held:
+            raise serializers.ValidationError(
+                {"role_id": "You can only assign permissions you hold in this organization."}
+            )
+
+
+def _is_uuid(value):
+    import uuid
+
+    try:
+        uuid.UUID(str(value))
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 def _extract_org_id(request):
@@ -231,6 +263,29 @@ class UserCreateSerializer(serializers.ModelSerializer):
             _("You do not have permission to create members for this organization.")
         )
 
+    def validate(self, attrs):
+        actor = self.context["request"].user
+        if attrs.get("is_staff") and not actor.is_superuser:
+            raise serializers.ValidationError(
+                {"is_staff": "Only a superuser can change staff status."}
+            )
+        org_id = attrs.get("organization_id") or _extract_org_id(self.context["request"])
+        if not org_id and not actor.is_superuser:
+            mem = actor.org_memberships.filter(is_deleted=False).first()
+            org_id = mem.organization_id if mem else None
+        org = Organization.objects.filter(id=org_id, is_deleted=False).first() if org_id else None
+        if not org:
+            raise serializers.ValidationError(
+                {"organization_id": "Organization context is required."}
+            )
+        if not PermissionService.has_permission(actor, "org.manage_members", org.id):
+            raise serializers.ValidationError(
+                {"organization_id": "Cannot manage members in this organization."}
+            )
+        _validate_role_grant(actor, org, attrs.get("role_id"))
+        attrs["organization_id"] = org.id
+        return attrs
+
     def create(self, validated_data):
         from automations.events import EventDispatcher
         from organizations.models import Organization, Role
@@ -448,6 +503,46 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("A user with this email already exists."))
         return value
 
+    def validate(self, attrs):
+        actor = self.context["request"].user
+        if self.instance.is_superuser and self.instance.pk != actor.pk:
+            raise serializers.ValidationError("Another superuser account cannot be modified.")
+        if (
+            "is_staff" in attrs
+            and not actor.is_superuser
+            and attrs["is_staff"] != self.instance.is_staff
+        ):
+            raise serializers.ValidationError(
+                {"is_staff": "Only a superuser can change staff status."}
+            )
+        if any(key in attrs for key in ("role_id", "salary_type", "salary_amount")):
+            org_id = _extract_org_id(self.context["request"])
+            if not org_id:
+                membership = self.instance.org_memberships.filter(is_deleted=False).first()
+                org_id = membership.organization_id if membership else None
+            org = (
+                Organization.objects.filter(id=org_id, is_deleted=False).first() if org_id else None
+            )
+            if not org or (
+                not actor.is_superuser
+                and not PermissionService.has_permission(actor, "org.manage_members", org.id)
+            ):
+                raise serializers.ValidationError(
+                    {"role_id": "Cannot manage roles in this organization."}
+                )
+            if not self.instance.org_memberships.filter(
+                organization=org, is_deleted=False
+            ).exists():
+                raise serializers.ValidationError(
+                    {"organization_id": "User is not a member of this organization."}
+                )
+            if "role_id" in attrs and org.owner_id == self.instance.pk:
+                raise serializers.ValidationError(
+                    {"role_id": "The organization owner's role cannot be changed here."}
+                )
+            _validate_role_grant(actor, org, attrs.get("role_id"))
+        return attrs
+
     def update(self, instance, validated_data):
         from organizations.models import Organization, Role
 
@@ -465,7 +560,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         if new_password:
             can_change_password = False
             if actor:
-                if actor.is_superuser or actor.is_staff:
+                if actor.is_superuser:
                     can_change_password = True
                 elif actor.pk == instance.pk:
                     # Users can always change their own password
