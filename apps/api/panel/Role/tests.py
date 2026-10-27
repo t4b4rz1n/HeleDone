@@ -205,3 +205,42 @@ class RoleGrantTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_permission_changes_invalidate_cached_role_permissions(self):
+        from organizations.services import PermissionService
+
+        target = User.objects.create_user(
+            username="cache-target", email="cache-target@test.com", password="pass123"
+        )
+        membership = OrganizationMembership.objects.create(
+            user=target, organization=self.org, role="employee"
+        )
+        membership.dynamic_roles.add(self.owner_role)
+        self.assertTrue(PermissionService.has_permission(target, "org.manage_roles", self.org.id))
+        self.owner_role.permissions.remove(self.manage_roles)
+        self.assertFalse(PermissionService.has_permission(target, "org.manage_roles", self.org.id))
+
+    def test_only_owner_employee_are_static_roles_and_custom_roles_still_work(self):
+        from organizations.constants import COMPATIBILITY_ROLE_PERMISSIONS_MAP, SYSTEM_DEFAULT_ROLES
+
+        self.assertEqual(set(COMPATIBILITY_ROLE_PERMISSIONS_MAP), {"owner", "employee"})
+        self.assertEqual({role["name"] for role in SYSTEM_DEFAULT_ROLES}, {"Owner", "Employee"})
+        response = self.client.get(self.url, {"organization_id": str(self.org.id)})
+        self.assertEqual(response.status_code, 200)
+        result_roles = response.data["data"]["results"]
+        self.assertNotIn("Admin", {role["name"] for role in result_roles})
+
+        custom = self.client.post(
+            self.url,
+            {"name": "Project Reviewer", "organization_id": str(self.org.id), "permissions": ["task.view"]},
+            format="json",
+        )
+        self.assertEqual(custom.status_code, 201)
+
+    def test_legacy_admin_role_name_cannot_be_created(self):
+        response = self.client.post(
+            self.url,
+            {"name": "Admin", "organization_id": str(self.org.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)

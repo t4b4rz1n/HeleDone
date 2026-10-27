@@ -5,10 +5,7 @@ import { useOnboardingStore } from '../store/useOnboardingStore';
 import { Eye, EyeOff, UserPlus, Trash2, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const ROLES = [
-  { value: 'admin', get label() { return translate("Admin"); } },
   { value: 'employee', get label() { return translate("Employee"); } },
-  { value: 'hr', get label() { return translate("HR"); } },
-  { value: 'accountant', get label() { return translate("Accountant"); } },
 ];
 
 export const StepAddUsers: React.FC = () => {
@@ -17,7 +14,7 @@ export const StepAddUsers: React.FC = () => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('admin');
+  const [role, setRole] = useState('employee');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,7 +31,7 @@ export const StepAddUsers: React.FC = () => {
     setEmail('');
     setUsername('');
     setPassword('');
-    setRole('admin');
+    setRole('employee');
   };
 
   return (

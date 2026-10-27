@@ -20,7 +20,6 @@ Access matrix
 from django.utils.translation import gettext_lazy as _
 from rest_framework import permissions
 
-from organizations.models import OrganizationMembership
 from organizations.services import PermissionService
 
 # ---------------------------------------------------------------------------
@@ -28,25 +27,15 @@ from organizations.services import PermissionService
 # ---------------------------------------------------------------------------
 
 
-def _get_org_role(user, organization):
-    """Return the user's organisation role, or ``None``."""
-    if not organization:
-        return None
-    try:
-        return OrganizationMembership.objects.get(
-            user=user, organization=organization, is_deleted=False
-        ).role
-    except OrganizationMembership.DoesNotExist:
-        return None
 
 
 def _is_org_admin(user, organization) -> bool:
     """Check whether *user* can manage the organization (admin/owner via dynamic permissions)."""
     if not organization:
         return False
-    return PermissionService.has_permission(
-        user, "project.manage", organization.id
-    ) or PermissionService.has_permission(user, "org.manage_settings", organization.id)
+    from organizations.permissions import is_org_admin
+
+    return is_org_admin(user, organization)
 
 
 def _is_project_member(user, project) -> bool:
@@ -86,7 +75,7 @@ class _ProjectFromKwargsMixin(permissions.BasePermission):
         try:
             from projects.models import Project
 
-            project = Project.objects.get(pk=pk)
+            project = Project.objects.get(pk=pk, is_deleted=False)
         except Project.DoesNotExist:
             project = None
 
@@ -159,20 +148,16 @@ class CanManageProjectMember(_ProjectFromKwargsMixin):
     message = _("You do not have permission to manage project members.")
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_superuser:
-            return True
         project = self._get_project(view)
-        if project is None:
-            return False  # deny access if project doesn't exist
-        if _is_project_owner(user, project):
+        if project is None or project.is_deleted:
+            return False
+        if user.is_superuser or _is_project_owner(user, project) or _is_org_admin(user, project.organization):
             return True
-        if _is_org_admin(user, project.organization):
-            return True
+        if request.method in permissions.SAFE_METHODS:
+            return _is_project_member(user, project)
         return False
 
 
@@ -187,19 +172,13 @@ class CanManageMilestone(_ProjectFromKwargsMixin):
     message = _("You must be a project member to manage milestones.")
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_superuser:
-            return True
         project = self._get_project(view)
-        if project is None:
+        if project is None or project.is_deleted:
             return False
-        if _is_project_owner(user, project):
-            return True
-        if _is_org_admin(user, project.organization):
+        if user.is_superuser or _is_project_owner(user, project) or _is_org_admin(user, project.organization):
             return True
         if _is_project_member(user, project):
             return True

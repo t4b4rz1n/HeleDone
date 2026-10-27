@@ -60,24 +60,29 @@ class RoleCreateSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "description", "permissions", "organization_id"]
 
     def validate_name(self, value):
-        return value.strip()
+        value = value.strip()
+        if value.casefold() in {"admin", "hr", "accountant"}:
+            raise serializers.ValidationError("This role name is reserved.")
+        return value
 
     def validate(self, attrs):
         request = self.context.get("request")
         org_id = attrs.get("organization_id") or (
             request.data.get("organization_id") if request else None
         )
-        if not org_id and request:
-            org_id = request.query_params.get("organization_id") or request.headers.get(
-                "X-Organization-Id"
-            )
         if not org_id and request and not request.user.is_superuser:
             membership = request.user.org_memberships.filter(is_deleted=False).first()
             org_id = membership.organization_id if membership else None
-        if not org_id and not (request and request.user.is_superuser):
-            raise serializers.ValidationError(
-                {"organization_id": "Organization context is required."}
-            )
+        if not org_id:
+            raise serializers.ValidationError({"organization_id": "Organization context is required."})
+        if request and not request.user.is_superuser:
+            if not request.user.org_memberships.filter(
+                organization_id=org_id, is_deleted=False
+            ).exists():
+                raise serializers.ValidationError({"organization_id": "Invalid organization context."})
+            if not PermissionService.has_permission(request.user, "org.manage_roles", org_id) and not PermissionService.has_permission(request.user, "org.manage_settings", org_id):
+                raise serializers.ValidationError({"organization_id": "You cannot manage roles in this organization."})
+        attrs["organization_id"] = org_id
         if "permissions" in attrs:
             validate_role_permissions(attrs["permissions"], request, org_id)
         return attrs
@@ -86,29 +91,10 @@ class RoleCreateSerializer(serializers.ModelSerializer):
         permission_codes = validated_data.pop("permissions", [])
         org_id = validated_data.pop("organization_id", None)
 
-        request = self.context.get("request")
-        if not org_id and request:
-            org_id = (
-                request.data.get("organization_id")
-                or request.query_params.get("organization_id")
-                or request.headers.get("X-Organization-Id")
-            )
-            if not org_id and request.user and request.user.is_authenticated:
-                mem = request.user.org_memberships.filter(is_deleted=False).first()
-                if mem:
-                    org_id = mem.organization_id
-
-        if not org_id and request and request.user and request.user.is_superuser:
-            from organizations.models import Organization
-
-            first_org = Organization.objects.filter(is_deleted=False).first()
-            org_id = first_org.id if first_org else None
-
         if not org_id:
             raise serializers.ValidationError(
                 {"organization_id": "Organization context is required."}
             )
-
         role = Role.objects.create(organization_id=org_id, **validated_data)
 
         if permission_codes:
@@ -127,6 +113,11 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
         model = Role
         fields = ["name", "description", "permissions"]
 
+    def validate_name(self, value):
+        value = value.strip()
+        if value.casefold() in {"admin", "hr", "accountant"}:
+            raise serializers.ValidationError("This role name is reserved.")
+        return value
     def validate_permissions(self, value):
         return validate_role_permissions(
             value,
@@ -142,5 +133,6 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
         if permission_codes is not None:
             perms = Permission.objects.filter(code__in=permission_codes, is_deleted=False)
             instance.permissions.set(perms)
+            PermissionService.clear_users_with_role(instance)
 
         return instance

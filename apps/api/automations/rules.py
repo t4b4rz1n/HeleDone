@@ -303,7 +303,6 @@ def _determine_target_users(recipients: list[str], payload: dict) -> set[str]:
             Recipient.HAS_PERM_TASK_REVIEW,
             Recipient.HAS_PERM_TASK_MANAGE,
         ):
-            from django.db import models
 
             from organizations.models import OrganizationMembership
 
@@ -317,21 +316,11 @@ def _determine_target_users(recipients: list[str], payload: dict) -> set[str]:
             perm_code = perm_map.get(recipient)
             org_id = project.organization_id if project else payload.get("organization_id")
             if org_id and perm_code:
-                legacy_roles = []
-                try:
-                    from organizations.services import COMPATIBILITY_ROLE_PERMISSIONS_MAP
-
-                    for role, perms in COMPATIBILITY_ROLE_PERMISSIONS_MAP.items():
-                        if perm_code in perms:
-                            legacy_roles.append(role)
-                except ImportError:
-                    pass
-
                 matching_memberships = (
-                    OrganizationMembership.objects.filter(organization_id=org_id, is_deleted=False)
-                    .filter(
-                        models.Q(dynamic_roles__permissions__code=perm_code)
-                        | models.Q(role__in=legacy_roles)
+                    OrganizationMembership.objects.filter(
+                        organization_id=org_id,
+                        is_deleted=False,
+                        dynamic_roles__permissions__code=perm_code,
                     )
                     .values_list("user_id", flat=True)
                     .distinct()

@@ -2,6 +2,7 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from accounts.models import User
+from organizations.services import PermissionService
 
 from .models import Organization, OrganizationMembership
 
@@ -153,15 +154,7 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
             return False
         if actor.is_superuser:
             return True
-        org = membership.organization
-        if org.owner == actor:
-            return True
-        return OrganizationMembership.objects.filter(
-            user=actor,
-            organization=org,
-            role__in=[OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN],
-            is_deleted=False,
-        ).exists()
+        return PermissionService.has_permission(actor, "finance.manage", membership.organization_id)
 
     def get_salary_type(self, obj):
         if self._can_manage_salary(obj):
@@ -246,5 +239,5 @@ class InviteOrgMemberSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         allow_blank=True,
-        default=OrganizationMembership.Role.ADMIN,
+        default=OrganizationMembership.Role.EMPLOYEE,
     )

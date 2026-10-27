@@ -60,10 +60,12 @@ class CanCreateOrganization(permissions.BasePermission):
 
 
 def can_assign_org_role(actor, organization, role):
-    if actor.is_superuser:
-        return True
     if not role or role.organization_id != organization.id:
         return False
+    if role.name.casefold() == "owner" and not actor.is_superuser:
+        return False
+    if actor.is_superuser:
+        return True
     held = PermissionService.get_user_permissions(actor, organization.id)
     granted = set(role.permissions.filter(is_deleted=False).values_list("code", flat=True))
     return granted.issubset(held)
@@ -238,23 +240,33 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                     ).first()
                 if role_obj:
                     name_lower = role_obj.name.lower().replace(" ", "_")
-                    if name_lower in [c[0] for c in OrganizationMembership.Role.choices]:
-                        legacy_role = name_lower
-                    elif "admin" in name_lower:
-                        legacy_role = OrganizationMembership.Role.ADMIN
-                    else:
-                        legacy_role = None
-                elif raw_role in [c[0] for c in OrganizationMembership.Role.choices]:
+                    legacy_role = (
+                        name_lower
+                        if name_lower in (
+                            OrganizationMembership.Role.OWNER,
+                            OrganizationMembership.Role.EMPLOYEE,
+                        )
+                        else None
+                    )
+                elif raw_role in (
+                    OrganizationMembership.Role.OWNER,
+                    OrganizationMembership.Role.EMPLOYEE,
+                ):
                     legacy_role = raw_role
+                else:
+                    return Response(
+                        {"detail": "Role must belong to this organization."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
             target = (
                 OrganizationMembership._meta.get_field("user")
                 .remote_field.model.objects.filter(pk=user_id)
                 .first()
             )
-            if organization.owner_id == user_id:
+            if organization.owner_id == user_id or str(raw_role or "").casefold() == "owner":
                 return Response(
-                    {"detail": "The organization owner's role cannot be changed here."},
+                    {"detail": "The organization owner role cannot be assigned here."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
             if target and target.is_superuser and target.pk != request.user.pk:
@@ -315,7 +327,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                         if role_obj:
                             membership.dynamic_roles.set([role_obj])
                         created = True
-
+                    from organizations.services import PermissionService
+                    PermissionService.clear_user_cache(membership.user, organization.pk)
                     salary_type = serializer.validated_data.get("salary_type")
                     salary_amount = serializer.validated_data.get("salary_amount")
                     if salary_type is not None or salary_amount is not None:
@@ -440,7 +453,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         first_name = serializer.validated_data.get("first_name", "")
         last_name = serializer.validated_data.get("last_name", "")
         password = serializer.validated_data["password"]
-        role_id = serializer.validated_data.get("role_id", OrganizationMembership.Role.ADMIN)
+        role_id = serializer.validated_data.get("role_id", OrganizationMembership.Role.EMPLOYEE)
 
         from django.contrib.auth import get_user_model
 
@@ -522,14 +535,24 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
             if role_obj:
                 name_lower = role_obj.name.lower().replace(" ", "_")
-                if name_lower in [c[0] for c in OrganizationMembership.Role.choices]:
-                    legacy_role = name_lower
-                elif "admin" in name_lower:
-                    legacy_role = OrganizationMembership.Role.ADMIN
-                else:
-                    legacy_role = None
-            elif role_id in [c[0] for c in OrganizationMembership.Role.choices]:
+                legacy_role = (
+                    name_lower
+                    if name_lower in (
+                        OrganizationMembership.Role.OWNER,
+                        OrganizationMembership.Role.EMPLOYEE,
+                    )
+                    else None
+                )
+            elif role_id in (
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.EMPLOYEE,
+            ):
                 legacy_role = role_id
+            else:
+                return Response(
+                    {"detail": "Role must belong to this organization."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if user.is_superuser and user.pk != request.user.pk:
             return Response(
@@ -570,6 +593,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                     if role_obj:
                         membership.dynamic_roles.set([role_obj])
                     created_mem = True
+                from organizations.services import PermissionService
+                PermissionService.clear_user_cache(membership.user, organization.pk)
         except IntegrityError:
             return Response(
                 {"detail": "User already belongs to this organization."},

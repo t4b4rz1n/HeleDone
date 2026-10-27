@@ -179,12 +179,14 @@ class ProjectService:
 
         project = Project.objects.create(**validated_data)
 
-        # Automatically add creator and owner as active project members
+        # Automatically add the creator, project owner, and organization owner.
         members_to_add = set()
         if actor and actor.is_authenticated:
             members_to_add.add(actor)
         if project.owner and project.owner.is_authenticated:
             members_to_add.add(project.owner)
+        if project.organization and project.organization.owner_id:
+            members_to_add.add(project.organization.owner)
 
         for member_user in members_to_add:
             mem = ProjectMember.objects.filter(project=project, user=member_user).first()

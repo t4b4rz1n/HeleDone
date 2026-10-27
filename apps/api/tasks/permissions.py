@@ -16,25 +16,14 @@ def get_user_org_role(request, organization_id=None):
     if cache_key in request._user_org_roles_cache:
         return request._user_org_roles_cache[cache_key]
 
-    qs = user.org_memberships.filter(is_deleted=False)
-    if organization_id:
-        qs = qs.filter(organization_id=organization_id)
+    if not organization_id:
+        request._user_org_roles_cache[cache_key] = None
+        return None
 
-    membership = qs.first()
-    if not membership:
-        from organizations.models import Organization
-
-        if (
-            organization_id
-            and Organization.objects.filter(
-                id=organization_id, owner=user, is_deleted=False
-            ).exists()
-        ):
-            role = "owner"
-        else:
-            role = None
-    else:
-        role = (membership.role or "member").lower()
+    membership = user.org_memberships.filter(
+        organization_id=organization_id, is_deleted=False
+    ).first()
+    role = (membership.role or "member").lower() if membership else None
     request._user_org_roles_cache[cache_key] = role
     return role
 

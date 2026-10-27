@@ -373,7 +373,7 @@ def test_manager_multi_org_admin_cache_key_embeds_all_org_versions(clear_cache):
         user=admin, organization=org_a, role=OrganizationMembership.Role.OWNER
     )
     OrganizationMembershipFactory(
-        user=admin, organization=org_b, role=OrganizationMembership.Role.ADMIN
+        user=admin, organization=org_b, role=OrganizationMembership.Role.OWNER
     )
 
     tz = "UTC"

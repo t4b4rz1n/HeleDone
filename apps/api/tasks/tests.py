@@ -310,7 +310,7 @@ class TasksRBACTestCase(APITestCase):
         OrganizationMembership.objects.create(
             user=self.admin,
             organization=self.org,
-            role=OrganizationMembership.Role.ADMIN,
+            role=OrganizationMembership.Role.OWNER,
         )
 
         self.lead = User.objects.create_user("lead_user", "lead@test.com", "Pass123!")
@@ -327,17 +327,6 @@ class TasksRBACTestCase(APITestCase):
             role=OrganizationMembership.Role.EMPLOYEE,
         )
 
-        self.hr = User.objects.create_user("hr_user", "hr@test.com", "Pass123!")
-        OrganizationMembership.objects.create(
-            user=self.hr, organization=self.org, role=OrganizationMembership.Role.HR
-        )
-
-        self.accountant = User.objects.create_user("acc_user", "acc@test.com", "Pass123!")
-        OrganizationMembership.objects.create(
-            user=self.accountant,
-            organization=self.org,
-            role=OrganizationMembership.Role.ACCOUNTANT,
-        )
 
         self.project = Project.objects.create(name="RBAC Project", organization=self.org)
         self.board = Board.objects.create(
@@ -347,26 +336,14 @@ class TasksRBACTestCase(APITestCase):
             board=self.board, code="todo", name="To Do", order=1
         )
 
-    def test_hr_accountant_no_access_tasks(self):
-        """HR and Accountant roles should have no access to tasks by default."""
-        self.client.force_authenticate(user=self.hr)
-        res = self.client.get(reverse("task-list"))
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        results = res.data["results"] if isinstance(res.data, dict) else res.data
-        self.assertEqual(len(results), 0)
-
-        res = self.client.post(
+    def test_employee_roles_cannot_create_tasks_without_project_membership(self):
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.post(
             reverse("task-list"),
-            {"project": self.project.id, "title": "HR Task Attempt"},
+            {"project": self.project.id, "title": "Unauthorized task attempt"},
         )
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        self.client.force_authenticate(user=self.accountant)
-        res = self.client.post(
-            reverse("task-list"),
-            {"project": self.project.id, "title": "Accountant Task Attempt"},
-        )
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_employee_board_creation_forbidden(self):
         """Employee role cannot create new boards."""

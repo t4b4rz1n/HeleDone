@@ -2,22 +2,12 @@ from rest_framework import permissions
 
 from organizations.services import PermissionService
 
-from .models import OrganizationMembership
-
 
 def is_org_admin(user, organization):
     if not user or not user.is_authenticated or not organization:
         return False
-    if PermissionService.has_permission(
-        user, "org.manage_settings", getattr(organization, "id", organization)
-    ):
-        return True
-    return OrganizationMembership.objects.filter(
-        user=user,
-        organization=organization,
-        role__in=(OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN),
-        is_deleted=False,
-    ).exists()
+    organization_id = getattr(organization, "id", organization)
+    return PermissionService.has_permission(user, "org.manage_settings", organization_id)
 
 
 class CanManageOrganization(permissions.BasePermission):
