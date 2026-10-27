@@ -39,8 +39,10 @@ export const getErrorMessage = (
     }
 
     const response = err.response as
-      | { data?: Record<string, unknown> }
+      | { status?: number; data?: Record<string, unknown> }
       | undefined;
+
+    if (response?.status === 403) return t("You do not have permission to perform this action.");
 
     if (response?.data && typeof response.data === "object") {
       const data = response.data;

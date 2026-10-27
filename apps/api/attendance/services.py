@@ -8,6 +8,9 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from organizations.services import PermissionService
+from projects.models import Project
+
 from .models import Attendance, AttendanceSetting, Holiday, TimeLog, TimeOffRequest
 
 # Thread-local flag to prevent recursive start_timer → move_task → start_timer calls
@@ -672,24 +675,17 @@ class TimesheetService:
 
     @staticmethod
     def get_team_timesheet(manager, organization, start_date, end_date):
-        from django.db.models import Q
+        from organizations.services import PermissionService
 
-        from organizations.models import OrganizationMembership
-
-        # Check if the manager is an admin/owner or has view_all permissions for this org
-        is_org_admin = (
-            OrganizationMembership.objects.filter(
-                user=manager,
-                organization_id=organization,
-                is_deleted=False,
+        if not manager.is_superuser and not PermissionService.has_permission(
+            manager, "attendance.view_all", organization
+        ):
+            raise PermissionDenied(
+                _("You do not have permission to view timesheets in this organization.")
             )
-            .filter(
-                Q(dynamic_roles__permissions__code__in=["attendance.view_all", "report.view"])
-                | Q(role__in=[OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN])
-            )
-            .exists()
+        is_org_admin = manager.is_superuser or PermissionService.has_permission(
+            manager, "attendance.view_all", organization
         )
-
         if is_org_admin:
             # Admins see everyone in the organization
             qs = TimeLog.objects.filter(
@@ -718,10 +714,26 @@ class TimesheetService:
         )
 
     @staticmethod
-    def get_project_timesheet(project, start_date, end_date):
-        qs = TimeLog.objects.filter(project=project, date__range=(start_date, end_date))
-        return (
-            qs.values("user__username", "date")
-            .annotate(total_seconds=Sum("duration_seconds"))
-            .order_by("user__username", "date")
+    def get_project_timesheet(project, start_date, end_date, manager=None):
+        from django.shortcuts import get_object_or_404
+
+        project_obj = get_object_or_404(
+            Project.objects.select_related("organization"), pk=project, is_deleted=False
         )
+        if manager and not manager.is_superuser:
+            is_member = project_obj.members.filter(user=manager, is_deleted=False).exists()
+            can_manage = PermissionService.has_permission(
+                manager, "project.manage", project_obj.organization_id
+            ) or PermissionService.has_permission(
+                manager, "attendance.view_all", project_obj.organization_id
+            )
+            if not is_member and not can_manage:
+                raise PermissionDenied(
+                    _("You do not have permission to view this project's timesheet.")
+                )
+        qs = TimeLog.objects.filter(
+            project=project_obj, date__range=(start_date, end_date), is_deleted=False
+        )
+        return qs.values("user__username", "date").annotate(
+            total_seconds=Sum("duration_seconds")
+        ).order_by("user__username", "date")

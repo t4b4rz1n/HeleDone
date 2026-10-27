@@ -31,15 +31,24 @@ class UserMinimalSerializer(serializers.ModelSerializer):
     """Compact user representation for nested embedding."""
 
     full_name = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "full_name", "avatar")
+        fields = ("id", "username", "email", "full_name", "avatar", "avatar_url", "first_name", "last_name")
         read_only_fields = fields
 
     @staticmethod
     def get_full_name(obj) -> str:
         return obj.get_full_name()
+
+    def get_avatar_url(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.avatar.url)
+        return obj.avatar.url
 
 
 class OrganizationMinimalSerializer(serializers.ModelSerializer):

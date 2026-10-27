@@ -29,12 +29,11 @@ export const UserForm = ({
   const currentUser = useAuthStore((state) => state.user) as any;
   const canEditStaff = !!currentUser?.is_superuser;
 
-  const roleNameStr = (currentUser?.role_name || currentUser?.role?.name || "").toLowerCase();
   // Watch salary_type reactively — if backend returned a value, it won't be null after reset()
   const watchedSalaryType = useWatch({ control, name: "salary_type" });
   // canEditSalary: true if admin/staff/owner, OR if the backend already returned a salary value
   // (backend only sends salary fields to users who have permission to see them)
-  const canEditSalary = canEditStaff || roleNameStr === "owner" || roleNameStr === "admin" || watchedSalaryType != null;
+  const canEditSalary = canEditStaff || watchedSalaryType != null;
 
   return (
     <motion.div
@@ -159,10 +158,7 @@ export const UserForm = ({
                   <option value="">{t("Select a role")}</option>
                   <optgroup label={t("Built-in Roles")}>
                     <option value="owner">{t("Owner")}</option>
-                    <option value="admin">{t("Admin")}</option>
                     <option value="employee">{t("Employee")}</option>
-                    <option value="hr">{t("Human Resources")}</option>
-                    <option value="accountant">{t("Accountant")}</option>
                   </optgroup>
                   {roles.length > 0 && (
                     <optgroup label={t("Custom Roles")}>

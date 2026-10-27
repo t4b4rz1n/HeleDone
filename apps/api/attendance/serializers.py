@@ -241,34 +241,39 @@ class TimeLogWriteSerializer(serializers.ModelSerializer):
                     {"end_time": _("End time must be after start time.")}
                 )
 
-        # Task and project consistency
-        if task and project:
-            if task.project_id != project.id:
-                raise serializers.ValidationError(
-                    {"project": _("Project must match the task's project.")}
-                )
+        if task and project and task.project_id != project.pk:
+            raise serializers.ValidationError(
+                {"project": _("Project must match the task's project.")}
+            )
 
-        # If task provided but no project, infer from task
         if task and not project:
-            attrs["project"] = task.project
+            project = task.project
+            attrs["project"] = project
 
-        # Organization membership validation
-        org = None
-        if project:
-            org = project.organization
-        elif task and task.project:
-            org = task.project.organization
+        if not self.instance and not task and not project:
+            raise serializers.ValidationError(
+                {"task": _("A task or project is required for a time log.")}
+            )
 
-        if org:
-            request = self.context.get("request")
-            if request and request.user and request.user.is_authenticated:
-                is_member = request.user.org_memberships.filter(
-                    organization=org,
-                ).exists()
-                if not is_member and not request.user.is_superuser:
-                    raise serializers.ValidationError(
-                        {"organization": _("You are not a member of this organization.")}
-                    )
+        if self.instance:
+            existing_task = self.instance.task_id
+            existing_project = self.instance.project_id or (
+                self.instance.task.project_id if self.instance.task_id else None
+            )
+            if task and task.pk != existing_task:
+                raise serializers.ValidationError({"task": _("Time log task cannot be reassigned.")})
+            if project and project.pk != existing_project:
+                raise serializers.ValidationError({"project": _("Time log project cannot be reassigned.")})
+
+        org_id = project.organization_id if project else None
+        request = self.context.get("request")
+        if org_id and request and request.user and request.user.is_authenticated:
+            if not request.user.is_superuser and not request.user.org_memberships.filter(
+                organization_id=org_id, is_deleted=False
+            ).exists():
+                raise serializers.ValidationError(
+                    {"project": _("You are not a member of this organization.")}
+                )
 
         return attrs
 

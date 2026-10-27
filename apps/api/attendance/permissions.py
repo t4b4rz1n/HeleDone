@@ -1,5 +1,6 @@
 from rest_framework import permissions
 
+from organizations.models import OrganizationMembership
 from organizations.services import PermissionService
 
 
@@ -19,25 +20,13 @@ class BaseAttendancePermission(permissions.BasePermission):
         if cache_key in request._user_org_roles_cache:
             return request._user_org_roles_cache[cache_key]
 
-        qs = user.org_memberships.filter(is_deleted=False)
-        if organization_id:
-            qs = qs.filter(organization_id=organization_id)
-
-        membership = qs.first()
-        if not membership:
-            from organizations.models import Organization
-
-            if (
-                organization_id
-                and Organization.objects.filter(
-                    id=organization_id, owner=user, is_deleted=False
-                ).exists()
-            ):
-                role = "owner"
-            else:
-                role = None
+        if not organization_id:
+            role = None
         else:
-            role = (membership.role or "member").lower()
+            membership = user.org_memberships.filter(
+                organization_id=organization_id, is_deleted=False
+            ).first()
+            role = (membership.role or "member").lower() if membership else None
         request._user_org_roles_cache[cache_key] = role
         return role
 
@@ -68,12 +57,24 @@ class IsAttendanceOwnerOrAdmin(BaseAttendancePermission):
     """Attendance: only the record owner or those with 'attendance.view_all' can access."""
 
     def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
-        if obj.user == request.user:
+        if request.method in permissions.SAFE_METHODS and obj.user_id == request.user.pk:
             return True
-        return PermissionService.has_permission(
-            request.user, "attendance.view_all", obj.organization_id
+        if view.action in {"update", "partial_update"} and obj.user_id == request.user.pk:
+            return bool(
+                obj.organization_id
+                and PermissionService.has_permission(
+                    request.user, "attendance.view_all", obj.organization_id
+                )
+            )
+        return bool(
+            obj.organization_id
+            and PermissionService.has_permission(
+                request.user, "attendance.view_all", obj.organization_id
+            )
         )
 
 
@@ -81,19 +82,19 @@ class IsTimeLogOwnerOrAdmin(BaseAttendancePermission):
     """Time logs are visible to their owner or users with attendance.view_all."""
 
     def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
         if request.user.is_superuser:
             return True
-
-        # Check org from project or task
-        org_id = None
-        if obj.project:
-            org_id = obj.project.organization_id
-        elif obj.task and obj.task.project:
-            org_id = obj.task.project.organization_id
-
-        if obj.user == request.user:
-            return True
-        return PermissionService.has_permission(request.user, "attendance.view_all", org_id)
+        org_id = obj.project.organization_id if obj.project else (
+            obj.task.project.organization_id if obj.task_id and obj.task.project_id else None
+        )
+        if obj.user_id == request.user.pk:
+            return bool(org_id) or (obj.project_id is None and obj.task_id is None)
+        return bool(
+            org_id
+            and PermissionService.has_permission(request.user, "attendance.view_all", org_id)
+        )
 
 
 class IsTimeOffRequestPermission(BaseAttendancePermission):
@@ -139,12 +140,40 @@ class IsTimesheetPermission(BaseAttendancePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
+        if request.user.is_superuser:
+            return True
 
-        if view.action in ["team", "project"]:
-            # All org members can view team/project timesheets
-            org_id = self.extract_organization_id(request, view)
-            role = self.get_user_org_role(request, org_id)
-            return role is not None or request.user.is_superuser
+        if view.action == "team":
+            organization_id = request.query_params.get("organization")
+            return bool(
+                organization_id
+                and OrganizationMembership.objects.filter(
+                    user=request.user, organization_id=organization_id, is_deleted=False
+                ).exists()
+                and PermissionService.has_permission(request.user, "attendance.view_all", organization_id)
+            )
+
+        if view.action == "project":
+            project_id = request.query_params.get("project")
+            if not project_id:
+                return False
+            from projects.models import Project
+
+            project = Project.objects.filter(pk=project_id, is_deleted=False).first()
+            return bool(
+                project
+                and OrganizationMembership.objects.filter(
+                    user=request.user,
+                    organization_id=project.organization_id,
+                    is_deleted=False,
+                ).exists()
+                and (
+                    project.owner_id == request.user.pk
+                    or project.members.filter(user=request.user, is_deleted=False).exists()
+                    or PermissionService.has_permission(request.user, "project.manage", project.organization_id)
+                    or PermissionService.has_permission(request.user, "attendance.view_all", project.organization_id)
+                )
+            )
 
         # personal timesheets (daily/weekly/monthly)
         return True

@@ -118,6 +118,17 @@ class ProjectServicesTests(TestCase):
         )
         self.assertEqual(delete_act.actor, self.user)
 
+    def test_project_creation_includes_organization_owner_and_creator(self):
+        creator = User.objects.create_superuser(
+            email="project-creator@example.com", username="project-creator", password="password123"
+        )
+        project = ProjectService.create(
+            actor=creator,
+            validated_data={"name": "Shared Project", "organization": self.org},
+        )
+        member_ids = set(ProjectMember.objects.filter(project=project).values_list("user_id", flat=True))
+        self.assertEqual(member_ids, {creator.id, self.org.owner_id})
+
     def test_member_and_milestone_services(self):
         project = ProjectService.create(
             actor=self.user,
@@ -223,6 +234,25 @@ class ProjectAPITests(APITestCase):
         response = self.client.post("/api/v1/projects/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["name"], "New Web App")
+        self.assertEqual(str(response.data["owner"]["id"]), str(self.admin.id))
+
+    def test_project_creator_is_automatically_member(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            "/api/v1/projects/",
+            {
+                "name": "Creator Membership Project",
+                "organization_id": str(self.org.id),
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        project_id = response.data["id"]
+        self.assertTrue(
+            ProjectMember.objects.filter(
+                project_id=project_id, user=self.admin, is_deleted=False
+            ).exists()
+        )
 
     def test_add_duplicate_member_returns_field_error(self):
         self.client.force_authenticate(user=self.admin)
@@ -475,3 +505,33 @@ class ProjectAPITests(APITestCase):
         )
         project_names2 = [p["name"] for p in results2]
         self.assertIn("Madaar Core", project_names2)
+
+    def test_nested_project_reads_require_project_access(self):
+        member = ProjectMemberService.add(
+            project=self.project,
+            actor=self.admin,
+            validated_data={"user": self.member_user, "allocation_percentage": 100},
+        )
+        milestone = Milestone.objects.create(
+            project=self.project,
+            title="Private milestone",
+            target_date=datetime.date.today(),
+        )
+        members_url = f"/api/v1/projects/{self.project.id}/members/"
+        milestones_url = f"/api/v1/projects/{self.project.id}/milestones/"
+
+        self.client.force_authenticate(user=self.outside_user)
+        self.assertEqual(self.client.get(members_url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            self.client.get(f"{members_url}{member.id}/").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(self.client.get(milestones_url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            self.client.get(f"{milestones_url}{milestone.id}/").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.client.force_authenticate(user=self.member_user)
+        self.assertEqual(self.client.get(members_url).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.client.get(milestones_url).status_code, status.HTTP_200_OK)

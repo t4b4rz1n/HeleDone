@@ -130,7 +130,7 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
       <aside
         aria-label={t('Workspace menu')}
         className={`fixed inset-y-0 start-0 z-50 flex flex-col border-e border-base-200/90 bg-base-100 transition-transform duration-300 ease-in-out select-none w-72 max-w-[85vw] shadow-2xl lg:static lg:z-30 lg:shadow-none lg:transition-all lg:duration-200 ${
-          isWorkspaceSidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full lg:translate-x-0'
+          isWorkspaceSidebarOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full max-lg:rtl:translate-x-full'
         } ${collapsed ? 'lg:w-16' : 'lg:w-60'}`}
       >
         {/* ─── Top Project Switcher & Collapse Toggle ─── */}

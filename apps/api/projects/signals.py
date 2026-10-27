@@ -241,13 +241,19 @@ def notify_project_budget_or_status(sender, instance, created, **kwargs):
                 if instance.owner_id:
                     target_ids.append(str(instance.owner_id))
 
-                # Also notify Organization Admins
                 from organizations.models import OrganizationMembership
+                from organizations.services import PermissionService
 
-                admins = OrganizationMembership.objects.filter(
-                    organization_id=instance.organization_id, role=OrganizationMembership.Role.ADMIN
-                ).values_list("user_id", flat=True)
-                target_ids.extend([str(admin_id) for admin_id in admins])
+                memberships = OrganizationMembership.objects.filter(
+                    organization_id=instance.organization_id, is_deleted=False
+                ).select_related("user")
+                target_ids.extend(
+                    str(membership.user_id)
+                    for membership in memberships
+                    if PermissionService.has_permission(
+                        membership.user, "finance.manage", instance.organization_id
+                    )
+                )
 
                 if target_ids:
                     EventDispatcher.dispatch(

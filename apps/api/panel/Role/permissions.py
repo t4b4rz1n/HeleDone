@@ -46,7 +46,6 @@ class CanManageRoles(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-
         if user.is_superuser:
             return True
 
@@ -61,18 +60,17 @@ class CanManageRoles(permissions.BasePermission):
             org_id = self._extract_org_id(request, view)
         if not org_id:
             return False
-
+        if not user.org_memberships.filter(organization_id=org_id, is_deleted=False).exists():
+            return False
         if request.method in permissions.SAFE_METHODS:
-            return (
-                PermissionService.has_permission(user, "role.view", org_id)
-                or PermissionService.has_permission(user, "org.manage_roles", org_id)
-                or PermissionService.has_permission(user, "org.manage_settings", org_id)
-                or PermissionService.has_permission(user, "org.manage_members", org_id)
+            return any(
+                PermissionService.has_permission(user, code, org_id)
+                for code in ("role.view", "org.manage_roles", "org.manage_settings", "org.manage_members")
             )
-
-        return PermissionService.has_permission(
-            user, "org.manage_roles", org_id
-        ) or PermissionService.has_permission(user, "org.manage_settings", org_id)
+        return (
+            PermissionService.has_permission(user, "org.manage_roles", org_id)
+            or PermissionService.has_permission(user, "org.manage_settings", org_id)
+        )
 
     def has_object_permission(self, request, view, obj):
         user = request.user
@@ -82,18 +80,15 @@ class CanManageRoles(permissions.BasePermission):
         if user.is_superuser:
             return True
 
-        org_id = getattr(obj, "organization_id", None) or self._extract_org_id(request, view, obj)
-        if not org_id:
+        org_id = obj.organization_id
+        if not user.org_memberships.filter(organization_id=org_id, is_deleted=False).exists():
             return False
-
         if request.method in permissions.SAFE_METHODS:
-            return (
-                PermissionService.has_permission(user, "role.view", org_id)
-                or PermissionService.has_permission(user, "org.manage_roles", org_id)
-                or PermissionService.has_permission(user, "org.manage_settings", org_id)
-                or PermissionService.has_permission(user, "org.manage_members", org_id)
+            return any(
+                PermissionService.has_permission(user, code, org_id)
+                for code in ("role.view", "org.manage_roles", "org.manage_settings", "org.manage_members")
             )
-
-        return PermissionService.has_permission(
-            user, "org.manage_roles", org_id
-        ) or PermissionService.has_permission(user, "org.manage_settings", org_id)
+        return (
+            PermissionService.has_permission(user, "org.manage_roles", org_id)
+            or PermissionService.has_permission(user, "org.manage_settings", org_id)
+        )

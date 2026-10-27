@@ -558,7 +558,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                             }}
                           >
                             <div className="flex items-center gap-2 truncate">
-                              <ProfileAvatar src={user.avatar || user.avatar_url} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/5" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
+                              <ProfileAvatar src={user.avatar_url || user.avatar} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/5" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                               <span className="truncate flex items-center gap-1">
                                 <span className="text-xs">
                                   {user.first_name || user.last_name
@@ -684,7 +684,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                               }}
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <ProfileAvatar src={user.avatar || user.avatar_url} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
+                                <ProfileAvatar src={user.avatar_url || user.avatar} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                                 <span className="truncate">
                                   {user.first_name || user.last_name
                                     ? `${user.first_name || ""} ${user.last_name || ""}`.trim()

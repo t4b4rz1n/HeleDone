@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../../../core/utils/errorHandler";
 import { useTranslation, useLocale } from "../../../i18n/locale";
 import { getWorkflowAppearance } from "../../../core/config/designTokens";
 import { formatDisplayDate } from "../../../utils/date";
@@ -51,7 +52,17 @@ export default function CycleLeadTimeReport({
       tz: params?.tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     })
       .then((result) => { if (active) setData(result); })
-      .catch(() => { if (active) setError(t("Error loading Cycle Time data")); })
+      .catch((requestError: unknown) => {
+        if (active) {
+          const isForbidden = typeof requestError === "object" && requestError !== null &&
+            "response" in requestError &&
+            typeof requestError.response === "object" && requestError.response !== null &&
+            "status" in requestError.response && requestError.response.status === 403;
+          setError(isForbidden
+            ? t("You do not have permission to perform this action.")
+            : getErrorMessage(requestError, "Error loading Cycle Time data"));
+        }
+      })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [projectId, start, end, params, t]);
@@ -346,20 +357,13 @@ function Skeleton() {
 }
 
 function ErrorState({ message }: { message: string }) {
+  const t = useTranslation();
   useLocale();
+  const isAccessDenied = message === t("You do not have permission to perform this action.");
   return (
-    <div
-      style={{
-        ...containerStyle,
-        height: 120,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--color-error)",
-        fontSize: 14,
-      }}
-    >
-      {message}
+    <div role="alert" style={{ ...containerStyle, height: 120, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: isAccessDenied ? "var(--color-base-content)" : "var(--color-error)", fontSize: 14 }}>
+      <span>{isAccessDenied ? t("Access Denied") : message}</span>
+      {isAccessDenied && <span className="mt-2 text-heledone-ink-muted">{t("You do not have permission to view this team's performance data.")}</span>}
     </div>
   );
 }

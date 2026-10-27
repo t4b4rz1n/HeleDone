@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useProjectWizardStore } from '../../store/useProjectWizardStore';
 import { useAuthStore } from '../../../auth/store/authStore';
-import { getMembers } from '../../../organizations/api/organizationsApi';
+import { getMembers, getOrganizationDetails } from '../../../organizations/api/organizationsApi';
 import type { OrganizationMember } from '../../../organizations/types';
 import { Lock, Search, Check } from 'lucide-react';
 
@@ -24,6 +24,11 @@ export const WizardStep2Users: React.FC = () => {
     queryFn: () => getMembers(orgId!),
     enabled: !!orgId,
   });
+  const { data: organization, isLoading: isOrgLoading } = useQuery({
+    queryKey: ['organizations', orgId],
+    queryFn: () => getOrganizationDetails(orgId!),
+    enabled: !!orgId,
+  });
 
   const filtered = members.filter((m: OrganizationMember) => {
     const q = search.toLowerCase();
@@ -34,7 +39,13 @@ export const WizardStep2Users: React.FC = () => {
   });
 
   const isOwner = (m: OrganizationMember) =>
-    String(m.user_id) === String(user?.id) || m.email === user?.email;
+    !!organization?.owner && String(m.user_id) === String(organization.owner.id);
+  const isCreator = (m: OrganizationMember) =>
+    !!user && String(m.user_id) === String(user.id);
+  const autoMemberIds = [organization?.owner?.id, user?.id]
+    .filter((id) => id != null)
+    .map(String);
+  const totalSelected = new Set([...selectedUserIds.map(String), ...autoMemberIds]).size;
 
 
   return (
@@ -54,7 +65,7 @@ export const WizardStep2Users: React.FC = () => {
 
         {/* Members list */}
         <div className="flex-1 overflow-y-auto space-y-1.5 pe-1 min-h-0 max-h-72">
-          {isLoading ? (
+          {isLoading || isOrgLoading ? (
             <div className="flex items-center justify-center py-10 text-heledone-ink-muted">
               <span className="loading loading-spinner loading-sm me-2" />
               {t("Loading members...")}</div>
@@ -62,7 +73,8 @@ export const WizardStep2Users: React.FC = () => {
             <p className="text-center text-sm text-heledone-ink-muted py-8">{t("No members found")}</p>
           ) : (
             filtered.map((m: OrganizationMember) => {
-              const locked = isOwner(m);
+              const owner = isOwner(m);
+              const locked = owner || isCreator(m);
               const checked = locked || selectedUserIds.includes(m.user_id);
 
               return (
@@ -98,7 +110,9 @@ export const WizardStep2Users: React.FC = () => {
                   {/* Status indicator */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {locked && (
-                      <span className="badge badge-primary badge-xs">{t("Owner")}</span>
+                      <span className="badge badge-primary badge-xs">
+                        {owner ? t("Owner") : t("Project creator")}
+                      </span>
                     )}
                     <div
                       className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
@@ -121,7 +135,7 @@ export const WizardStep2Users: React.FC = () => {
         </div>
 
         <p className="text-xs text-heledone-ink-muted mt-3">
-          {formatUiNumber(selectedUserIds.length + 1)}  {t("member(s) will be added to this project")}</p>
+          {formatUiNumber(totalSelected)}  {t("member(s) will be added to this project")}</p>
       </div>
 
       {/* Footer */}

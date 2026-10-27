@@ -37,6 +37,9 @@ try {
   await assert.rejects(deleteStandup("test-id"), (error) => error === failure);
   const { getTodayAttendance } = await server.ssrLoadModule("/src/features/attendance/api/attendanceApi.ts");
   await assert.rejects(getTodayAttendance(), (error) => error === failure);
+  const { getErrorMessage } = await server.ssrLoadModule("/src/core/utils/errorHandler.ts");
+  assert.equal(getErrorMessage(Object.assign(new Error("Forbidden"), { response: { status: 403, data: { detail: "server-specific detail" } } })), "برای این کار دسترسی لازم رو نداری.");
+  assert.equal(getErrorMessage(Object.assign(new Error("Not Found"), { response: { status: 404, data: { detail: "Project not found" } } })), "پروژه پیدا نکردیم");
   client.defaults.adapter = async () => {
     throw Object.assign(new Error("Not checked in today."), {
       response: { status: 404, data: { status: false, message: "Not checked in today.", errors: { detail: "Not checked in today." }, data: null } },

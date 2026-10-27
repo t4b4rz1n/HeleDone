@@ -134,10 +134,7 @@ class Role(BaseModel):
 class OrganizationMembership(BaseModel):
     class Role(models.TextChoices):
         OWNER = "owner", "Owner"
-        ADMIN = "admin", "Admin"
         EMPLOYEE = "employee", "Employee"
-        HR = "hr", "Human Resources"
-        ACCOUNTANT = "accountant", "Accountant"
 
     class SalaryType(models.TextChoices):
         MONTHLY = "monthly", "Monthly"

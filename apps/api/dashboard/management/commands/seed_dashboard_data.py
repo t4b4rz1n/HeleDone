@@ -98,7 +98,7 @@ class Command(BaseCommand):
 
         # Organization memberships
         for user, role in [
-            (ali, OrganizationMembership.Role.ADMIN),
+            (ali, OrganizationMembership.Role.OWNER),
             (hamed, OrganizationMembership.Role.EMPLOYEE),
             (manager, OrganizationMembership.Role.EMPLOYEE),
         ]:

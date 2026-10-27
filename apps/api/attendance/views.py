@@ -114,8 +114,30 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             qs = qs.filter(date__lte=date_to)
         return qs.order_by("-date", "-created_at")
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        organization = serializer.validated_data["organization"]
+        if not request.user.is_superuser and not PermissionService.has_permission(
+            request.user, "attendance.view_all", str(organization.pk)
+        ):
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("You cannot create attendance records for other users.")
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         AttendanceService.save_manual_attendance(self.request.user, serializer.validated_data)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.check_object_permissions(request, instance)
+        return super().partial_update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
         AttendanceService.save_manual_attendance(
@@ -214,28 +236,35 @@ class TimeLogViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         task = serializer.validated_data.get("task")
+        project = serializer.validated_data.get("project") or (task.project if task else None)
+        if project and not self.request.user.is_superuser and not PermissionService.has_permission(
+            self.request.user, "task.create", project.organization_id
+        ):
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("You cannot log time for this project.")
         start_time = serializer.validated_data.get("start_time")
         end_time = serializer.validated_data.get("end_time")
-
-        duration = 0
-        if start_time and end_time:
-            duration = int((end_time - start_time).total_seconds())
-
+        duration = int((end_time - start_time).total_seconds()) if start_time and end_time else 0
         serializer.save(
             user=self.request.user,
-            project=task.project if task else None,
+            project=project,
             duration_seconds=duration,
             is_active=serializer.validated_data.get("is_active", not bool(end_time)),
         )
 
     def perform_update(self, serializer):
+        if "task" in serializer.validated_data and serializer.validated_data["task"] != serializer.instance.task:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({"task": "Time log task cannot be reassigned."})
+        if "project" in serializer.validated_data and serializer.validated_data["project"] != serializer.instance.project:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({"project": "Time log project cannot be reassigned."})
         start_time = serializer.validated_data.get("start_time", serializer.instance.start_time)
         end_time = serializer.validated_data.get("end_time", serializer.instance.end_time)
-
-        duration = 0
-        if start_time and end_time:
-            duration = int((end_time - start_time).total_seconds())
-
+        duration = int((end_time - start_time).total_seconds()) if start_time and end_time else 0
         serializer.save(
             duration_seconds=duration,
             is_active=serializer.validated_data.get("is_active", not bool(end_time)),
@@ -487,7 +516,9 @@ class TimesheetViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        data = TimesheetService.get_project_timesheet(project_id, start_date, end_date)
+        data = TimesheetService.get_project_timesheet(
+            project_id, start_date, end_date, manager=request.user
+        )
         return self.paginate_and_respond(data, TimesheetTeamSerializer)
 
 
