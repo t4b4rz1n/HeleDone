@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import m2m_changed, post_save, pre_save
 from django.dispatch import receiver
 
 from automations.events import EventDispatcher
@@ -29,39 +29,6 @@ _DEFAULT_ROLE_PERMISSIONS = {
         "finance.manage",
         "finance.view_reports",
         "report.view_team_lead",
-    ],
-    "Admin": [
-        "notification.view",
-        "project.view",
-        "board.view",
-        "task.view",
-        "org.manage_members",
-        "project.create",
-        "project.manage",
-        "task.create",
-        "task.manage_all",
-        "task.review",
-        "leave.approve",
-        "attendance.view_all",
-        "finance.view_reports",
-    ],
-    "Hr": [
-        "notification.view",
-        "project.view",
-        "board.view",
-        "task.view",
-        "org.manage_members",
-        "leave.approve",
-        "attendance.view_all",
-    ],
-    "Accountant": [
-        "notification.view",
-        "project.view",
-        "board.view",
-        "task.view",
-        "finance.manage",
-        "finance.view_reports",
-        "attendance.view_all",
     ],
     "Employee": [
         "notification.view",
@@ -108,10 +75,11 @@ def ensure_owner_membership(sender, instance, created, **kwargs):
             # Suppress the member added notification for the owner when the org is just created
             instance._is_new_org_creation = True
 
-        membership = OrganizationMembership.all_objects.filter(
+        owner_memberships = OrganizationMembership.all_objects.filter(
             user=instance.owner,
             organization=instance,
-        ).first()
+        )
+        membership = owner_memberships.filter(is_deleted=False).first() or owner_memberships.first()
 
         if membership:
             membership.is_deleted = False
@@ -124,9 +92,11 @@ def ensure_owner_membership(sender, instance, created, **kwargs):
                 role=OrganizationMembership.Role.OWNER,
             )
 
-        # Assign dynamic 'Owner' role if it exists (for new orgs it was just created)
-        if created and "Owner" in created_roles:
-            membership.dynamic_roles.add(created_roles["Owner"])
+        owner_role = created_roles.get("Owner") or Role.objects.filter(
+            organization=instance, name="Owner", is_deleted=False
+        ).first()
+        if owner_role and not membership.dynamic_roles.filter(pk=owner_role.pk).exists():
+            membership.dynamic_roles.set([owner_role])
 
     # Notify superusers when a new organization is created
     if created:
@@ -236,3 +206,19 @@ def sync_team_member_to_projects(sender, instance, created, **kwargs):
                         "allocation_percentage": 100,
                     },
                 )
+
+
+@receiver(m2m_changed, sender=OrganizationMembership.dynamic_roles.through)
+def clear_membership_permission_cache(sender, instance, action, **kwargs):
+    if action in {"post_add", "post_remove", "post_clear"}:
+        from organizations.services import PermissionService
+
+        PermissionService.clear_user_cache(instance.user, instance.organization_id)
+
+
+@receiver(m2m_changed, sender=Role.permissions.through)
+def invalidate_role_permission_cache(sender, instance, action, **kwargs):
+    if action in {"post_add", "post_remove", "post_clear"}:
+        from organizations.services import PermissionService
+
+        PermissionService.role_permissions_changed()

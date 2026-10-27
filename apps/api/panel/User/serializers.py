@@ -19,14 +19,13 @@ def _validate_role_grant(actor, organization, role_id):
     )
     if not role:
         raise serializers.ValidationError({"role_id": "Role not found in this organization."})
+    if role.name.casefold() == "owner" and not actor.is_superuser:
+        raise serializers.ValidationError({"role_id": "Only a platform superuser can assign Owner."})
     if actor and not actor.is_superuser:
         held = PermissionService.get_user_permissions(actor, organization.id)
         granted = set(role.permissions.filter(is_deleted=False).values_list("code", flat=True))
         if granted - held:
-            raise serializers.ValidationError(
-                {"role_id": "You can only assign permissions you hold in this organization."}
-            )
-
+            raise serializers.ValidationError({"role_id": "You can only assign permissions you hold in this organization."})
 
 def _is_uuid(value):
     import uuid
@@ -160,15 +159,7 @@ class UserListSerializer(serializers.ModelSerializer):
             return False
         if actor.is_superuser:
             return True
-        org = membership.organization
-        if org.owner == actor:
-            return True
-        return OrganizationMembership.objects.filter(
-            user=actor,
-            organization=org,
-            role__in=[OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN],
-            is_deleted=False,
-        ).exists()
+        return PermissionService.has_permission(actor, "finance.manage", membership.organization_id)
 
     def _get_salary_config(self, membership):
         from finance.services import FinanceService
@@ -246,17 +237,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if request_user and request_user.is_authenticated:
             if request_user.is_superuser:
                 return value
-            if org.owner == request_user:
-                return value
-            if OrganizationMembership.objects.filter(
-                user=request_user,
-                organization=org,
-                role__in=[
-                    OrganizationMembership.Role.OWNER,
-                    OrganizationMembership.Role.ADMIN,
-                ],
-                is_deleted=False,
-            ).exists():
+            from organizations.services import PermissionService
+
+            if PermissionService.has_permission(request_user, "org.manage_members", org.pk):
                 return value
 
         raise serializers.ValidationError(
@@ -357,15 +340,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
                     elif actor and org.owner == actor:
                         is_salary_manager = True
                     elif actor:
-                        is_salary_manager = OrganizationMembership.objects.filter(
-                            user=actor,
-                            organization=org,
-                            role__in=[
-                                OrganizationMembership.Role.OWNER,
-                                OrganizationMembership.Role.ADMIN,
-                            ],
-                            is_deleted=False,
-                        ).exists()
+                        from organizations.services import PermissionService
+
+                        is_salary_manager = PermissionService.has_permission(
+                            actor, "finance.manage", org.pk
+                        )
                     if is_salary_manager:
                         from finance.services import FinanceService
 
@@ -540,7 +519,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"role_id": "The organization owner's role cannot be changed here."}
                 )
-            _validate_role_grant(actor, org, attrs.get("role_id"))
+            role_value = attrs.get("role_id")
+            if role_value and str(role_value).casefold() == "owner":
+                raise serializers.ValidationError(
+                    {"role_id": "The organization owner role cannot be assigned here."}
+                )
+            _validate_role_grant(actor, org, role_value)
         return attrs
 
     def update(self, instance, validated_data):
@@ -570,26 +554,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                     target_org_ids = instance.org_memberships.filter(is_deleted=False).values_list(
                         "organization_id", flat=True
                     )
-                    if OrganizationMembership.objects.filter(
-                        user=actor,
-                        organization_id__in=target_org_ids,
-                        role__in=[
-                            OrganizationMembership.Role.OWNER,
-                            OrganizationMembership.Role.ADMIN,
-                        ],
-                        is_deleted=False,
-                    ).exists():
-                        can_change_password = True
-                    else:
-                        # Also check dynamic role permissions (org.manage_members)
-                        from organizations.services import PermissionService
+                    from organizations.services import PermissionService
 
-                        for org_id in target_org_ids:
-                            if PermissionService.has_permission(
-                                actor, "org.manage_members", org_id
-                            ):
-                                can_change_password = True
-                                break
+                    can_change_password = any(
+                        PermissionService.has_permission(actor, "org.manage_members", org_id)
+                        for org_id in target_org_ids
+                    )
 
             if can_change_password:
                 instance.set_password(new_password)
@@ -653,15 +623,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                         elif actor and org.owner == actor:
                             is_salary_manager = True
                         elif actor:
-                            is_salary_manager = OrganizationMembership.objects.filter(
-                                user=actor,
-                                organization=org,
-                                role__in=[
-                                    OrganizationMembership.Role.OWNER,
-                                    OrganizationMembership.Role.ADMIN,
-                                ],
-                                is_deleted=False,
-                            ).exists()
+                            from organizations.services import PermissionService
+
+                            is_salary_manager = PermissionService.has_permission(
+                                actor, "finance.manage", org.pk
+                            )
                         if is_salary_manager:
                             from finance.services import FinanceService
 

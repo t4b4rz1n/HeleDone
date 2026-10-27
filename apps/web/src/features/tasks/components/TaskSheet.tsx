@@ -935,7 +935,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           {localAssignees.slice(0, 4).map((assigneeItem: any) => (
                             <ProfileAvatar
                               key={assigneeItem.id}
-                              src={assigneeItem.avatar || assigneeItem.avatar_url}
+                              src={assigneeItem.avatar_url || assigneeItem.avatar}
                               name={`${assigneeItem.first_name || ""} ${assigneeItem.last_name || assigneeItem.username || ""}`}
                               className="size-6.5 shrink-0 overflow-hidden rounded-full ring-2 ring-base-100 shadow-2xs"
                               fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary"
@@ -974,7 +974,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                           key={u.id}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-base-content/8 bg-base-200/60 pe-2 ps-1 py-0.5 text-[11px] font-bold text-base-content shadow-2xs group"
                         >
-                          <ProfileAvatar src={u.avatar || u.avatar_url} name={name} className="size-4.5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary" />
+                          <ProfileAvatar src={u.avatar_url || u.avatar} name={name} className="size-4.5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary" />
                           <span className="truncate max-w-[110px]">{name}</span>
                           <button
                             type="button"
@@ -1078,7 +1078,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <ProfileAvatar src={u.avatar || u.avatar_url} name={displayName} className="size-6.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/10" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary" />
+                                  <ProfileAvatar src={u.avatar_url || u.avatar} name={displayName} className="size-6.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/10" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary" />
                                   <div className="flex flex-col text-start min-w-0">
                                     <span className="text-xs truncate font-bold leading-tight">{displayName}</span>
                                     {u.username && (

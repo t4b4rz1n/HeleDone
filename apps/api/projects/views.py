@@ -279,9 +279,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         User = get_user_model()
         mentioned_users = list(
-            User.objects.annotate(lower_uname=Lower("username")).filter(
-                lower_uname__in=lower_usernames, is_active=True
-            )
+            User.objects.annotate(lower_uname=Lower("username"))
+            .filter(lower_uname__in=lower_usernames, is_active=True)
+            .filter(project_memberships__project=project, project_memberships__is_deleted=False)
+            .distinct()
         )
 
         if not mentioned_users:
@@ -344,8 +345,6 @@ class ProjectMemberViewSet(NestedProjectMixin, viewsets.ModelViewSet):
     # -- Permissions -------------------------------------------------------
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
-            return [IsAuthenticated()]
         return [IsAuthenticated(), CanManageProjectMember()]
 
     # -- Queryset & serializer ---------------------------------------------
@@ -464,8 +463,6 @@ class MilestoneViewSet(NestedProjectMixin, viewsets.ModelViewSet):
     # -- Permissions -------------------------------------------------------
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
-            return [IsAuthenticated()]
         return [IsAuthenticated(), CanManageMilestone()]
 
     # -- Queryset & serializer ---------------------------------------------

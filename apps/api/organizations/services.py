@@ -13,6 +13,12 @@ User = get_user_model()
 
 
 class PermissionService:
+    _role_permissions_generation = 0
+
+    @classmethod
+    def role_permissions_changed(cls):
+        cls._role_permissions_generation += 1
+
     @classmethod
     def get_user_permissions(cls, user: User, organization_id: Union[int, str]) -> set[str]:
         """
@@ -31,7 +37,11 @@ class PermissionService:
         if not hasattr(user, "_cached_user_org_perms"):
             user._cached_user_org_perms = {}
 
-        if cache_key in user._cached_user_org_perms:
+        if (
+            cache_key in user._cached_user_org_perms
+            and getattr(user, "_cached_user_org_perms_generation", None)
+            == cls._role_permissions_generation
+        ):
             return user._cached_user_org_perms[cache_key]
 
         try:
@@ -56,7 +66,6 @@ class PermissionService:
                     if not getattr(perm, "is_deleted", False):
                         user_perms.add(perm.code)
         else:
-            # 2. Compatibility Layer (Fallback ONLY for legacy unmigrated static memberships)
             static_role = membership.role
             if static_role and static_role in COMPATIBILITY_ROLE_PERMISSIONS_MAP:
                 user_perms.update(COMPATIBILITY_ROLE_PERMISSIONS_MAP[static_role])
@@ -72,7 +81,13 @@ class PermissionService:
             user_perms.update(TEAM_LEAD_PERMISSIONS)
 
         user._cached_user_org_perms[cache_key] = user_perms
+        user._cached_user_org_perms_generation = cls._role_permissions_generation
         return user_perms
+
+    @classmethod
+    def clear_users_with_role(cls, role, organization_id=None):
+        for membership in role.memberships.select_related("user"):
+            cls.clear_user_cache(membership.user, organization_id or role.organization_id)
 
     @classmethod
     def has_permission(

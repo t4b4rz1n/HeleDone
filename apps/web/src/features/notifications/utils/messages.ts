@@ -158,7 +158,7 @@ const renderMessage = (key: string, fields: string[], values: Record<string, str
       if (!value || value === "leave") return [field, t("Time off")];
     }
     if (field === "role") {
-      const roles: Record<string, string> = { owner: "Owner", admin: "Admin", employee: "Employee", member: "Member", guest: "Guest", hr: "HR", "human resources": "HR", accountant: "Accountant" };
+      const roles: Record<string, string> = { owner: "Owner", admin: "Admin", employee: "Employee", member: "Member", guest: "Guest" };
       if (roles[value?.toLowerCase()]) return [field, t(roles[value.toLowerCase()])];
     }
     if ((!value || ["your colleague", "manager", "system admin", "someone"].includes(value)) && ["creator_name", "assigner", "assignee", "author", "remover_name"].includes(field)) {

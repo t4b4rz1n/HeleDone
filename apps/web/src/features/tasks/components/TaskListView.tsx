@@ -426,7 +426,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
                                       {assignees.slice(0, 3).map((u: any) => (
                                         <ProfileAvatar
                                           key={u.id}
-                                          src={u.avatar || u.avatar_url}
+                                          src={u.avatar_url || u.avatar}
                                           name={`${u.first_name || ""} ${u.last_name || u.username || ""}`}
                                           className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-100 shadow-2xs"
                                           fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary"

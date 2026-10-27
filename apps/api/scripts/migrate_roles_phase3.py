@@ -34,39 +34,6 @@ PERMISSIONS_DATA = [
 
 ROLE_PERMISSIONS_MAP = {
     "owner": [p["code"] for p in PERMISSIONS_DATA],  # Owner gets everything
-    "admin": [
-        "notification.view",
-        "project.view",
-        "board.view",
-        "task.view",
-        "org.manage_members",
-        "project.create",
-        "project.manage",
-        "task.create",
-        "task.manage_all",
-        "task.review",
-        "leave.approve",
-        "attendance.view_all",
-        "finance.view_reports",
-    ],
-    "hr": [
-        "notification.view",
-        "project.view",
-        "board.view",
-        "task.view",
-        "org.manage_members",
-        "leave.approve",
-        "attendance.view_all",
-    ],
-    "accountant": [
-        "notification.view",
-        "project.view",
-        "board.view",
-        "task.view",
-        "finance.manage",
-        "finance.view_reports",
-        "attendance.view_all",
-    ],
     "employee": [
         "notification.view",
         "project.view",

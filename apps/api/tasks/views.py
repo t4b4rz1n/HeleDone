@@ -638,12 +638,16 @@ class AsyncStandupViewSet(viewsets.ModelViewSet):
         )
 
         if not (user.is_superuser):
-            admin_org_ids = [
+            from organizations.services import PermissionService
+
+            reportable_org_ids = [
                 membership.organization_id
                 for membership in user.org_memberships.filter(is_deleted=False)
-                if (membership.role or "").lower() in ("owner", "admin")
+                if PermissionService.has_permission(
+                    user, "project.manage", membership.organization_id
+                )
             ]
-            qs = qs.filter(Q(user=user) | Q(project__organization_id__in=admin_org_ids))
+            qs = qs.filter(Q(user=user) | Q(project__organization_id__in=reportable_org_ids))
 
         params = self.request.query_params
 

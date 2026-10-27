@@ -72,7 +72,7 @@ class AttendanceBaseTestCase(APITestCase):
         OrganizationMembership.objects.create(
             user=cls.admin,
             organization=cls.org,
-            role=OrganizationMembership.Role.ADMIN,
+            role=OrganizationMembership.Role.OWNER,
         )
         OrganizationMembership.objects.create(
             user=cls.lead,
@@ -591,3 +591,38 @@ class TimesheetTests(AttendanceBaseTestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertTrue(len(res.data["results"]) > 0)
+
+
+class AttendanceAuthorizationRegressionTests(AttendanceBaseTestCase):
+    def test_employee_cannot_create_attendance_for_self_without_view_all(self):
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.post(
+            reverse("attendances-list"),
+            {
+                "organization": str(self.org.id),
+                "date": timezone.localdate().isoformat(),
+                "check_in": timezone.now().isoformat(),
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_other_organization_cannot_view_project_timesheet(self):
+        other_project = Project.objects.create(
+            name="Other project", organization=self.other_org, owner=self.other_employee
+        )
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.get(
+            reverse("timesheets-project"),
+            {
+                "project": str(other_project.id),
+                "start_date": "2026-01-01",
+                "end_date": "2026-12-31",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_employee_can_view_personal_timesheet(self):
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.get(reverse("timesheets-daily"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

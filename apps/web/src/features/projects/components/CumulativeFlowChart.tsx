@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../../../core/utils/errorHandler";
 import { formatNumber, useTranslation, useLocale } from "../../../i18n/locale";
 import { getWorkflowAppearance } from "../../../core/config/designTokens";
 import { formatDisplayDate } from "../../../utils/date";
@@ -60,7 +61,7 @@ export default function CumulativeFlowChart({
       tz: tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     })
       .then((result) => { if (active) setData(result); })
-      .catch(() => { if (active) setError(t("Error loading CFD data")); })
+      .catch((requestError: unknown) => { if (active) setError(getErrorMessage(requestError, "Error loading CFD data")); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [projectId, boardId, start, end, tz, t]);

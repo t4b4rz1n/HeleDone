@@ -470,13 +470,11 @@ class ManagerDashboardService:
             )
             .filter(
                 Q(
-                    dynamic_roles__permissions__code__in=[
-                        "org.manage_settings",
-                        "project.manage",
-                        "report.view",
-                    ]
+                    dynamic_roles__permissions__code__in=(
+                        "org.manage_settings", "project.manage", "report.view"
+                    )
                 )
-                | Q(role__in=[OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN])
+                | Q(role=OrganizationMembership.Role.OWNER)
             )
             .values_list("organization_id", flat=True)
             .distinct()
@@ -736,12 +734,10 @@ class ManagerDashboardService:
             .filter(
                 Q(
                     dynamic_roles__permissions__code__in=[
-                        "org.manage_settings",
-                        "project.manage",
-                        "report.view",
+                        "org.manage_settings", "project.manage", "report.view"
                     ]
                 )
-                | Q(role__in=[OrganizationMembership.Role.OWNER, OrganizationMembership.Role.ADMIN])
+                | Q(role=OrganizationMembership.Role.OWNER)
             )
             .values_list("organization_id", flat=True)
             .distinct()
@@ -1167,12 +1163,7 @@ class ExecutiveDashboardService:
                             "report.view",
                         ]
                     )
-                    | Q(
-                        role__in=[
-                            OrganizationMembership.Role.OWNER,
-                            OrganizationMembership.Role.ADMIN,
-                        ]
-                    )
+                    | Q(role=OrganizationMembership.Role.OWNER)
                 )
                 .order_by("created_at")
                 .first()
