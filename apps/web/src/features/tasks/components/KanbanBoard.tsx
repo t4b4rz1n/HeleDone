@@ -195,10 +195,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       return { previousTasks: serverTasks };
     },
     onError: (err: any, _newMove, context: any) => {
-      const errorData = err.response?.data;
-      const errorMessage = errorData?.message || errorData?.detail || errorData?.error || err.message || 'Failed to move task';
-      console.error('Move task error:', err.response?.status, errorData);
-      toast.error(translateError(errorMessage));
+      console.error('Move task error:', err.response?.status, err.response?.data);
+      toast.error(translateError(err, 'Failed to move task'));
       if (context?.previousTasks) {
         setLocalTasks(context.previousTasks);
         queryClient.setQueryData(['tasks', activeProjectId, activeBoardId], context.previousTasks);
@@ -219,7 +217,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
     onMutate: async () => {
       return { previousTasks: serverTasks };
     },
-    onError: (_err, _vars, context: any) => {
+    onError: (err: any, _vars, context: any) => {
+      toast.error(translateError(err, 'Failed to reorder tasks'));
       if (context?.previousTasks) {
         setLocalTasks(context.previousTasks);
         queryClient.setQueryData(['tasks', activeProjectId, activeBoardId], context.previousTasks);
@@ -267,7 +266,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
         queryClient.setQueryData(['tasks', activeProjectId, activeBoardId], context.previousTasks);
         setLocalTasks(context.previousTasks);
       }
-      toast.error(translateError(err.response?.data?.detail || err.message || 'Error creating task.'));
+      toast.error(translateError(err, 'Error creating task.'));
     }
   });
 
@@ -318,8 +317,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       queryClient.invalidateQueries({ queryKey: ['live-activity'] });
     },
     onError: (err: any, taskId, context: any) => {
-      const errorMessage = err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to start timer';
-      toast.error(translateError(errorMessage));
+      toast.error(translateError(err, 'Failed to start timer'));
       // Revert completely
       if (context?.previousTasks) {
         setLocalTasks(context.previousTasks);
@@ -366,8 +364,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       queryClient.invalidateQueries({ queryKey: ['live-activity'] });
     },
     onError: (err: any, taskId) => {
-      const errorMessage = err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to stop timer';
-      toast.error(translateError(errorMessage));
+      toast.error(translateError(err, 'Failed to stop timer'));
       // Revert
       setLocalTasks(tasks => tasks.map(t => sameId(t.id, taskId) ? { ...t, is_active_timer_running: true } : t));
     }
@@ -431,7 +428,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
         setLocalTasks(context.previousTasks);
         queryClient.setQueryData(['tasks', activeProjectId, activeBoardId], context.previousTasks);
       }
-      toast.error(translateError(err?.response?.data?.detail || t("ثبت وضعیت انجام‌شدن تسک ممکن نشد")));
+      toast.error(translateError(err, "ثبت وضعیت انجام‌شدن تسک ممکن نشد"));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId, activeBoardId] });
@@ -471,15 +468,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       toast.success(t("Status added successfully"));
     },
     onError: (err: any) => {
-      const errorData = err.response?.data;
-      const errorMessage =
-        errorData?.detail ||
-        errorData?.non_field_errors?.[0] ||
-        errorData?.code?.[0] ||
-        errorData?.name?.[0] ||
-        err.message ||
-        'Failed to add status';
-      toast.error(translateError(errorMessage));
+      toast.error(translateError(err, 'Failed to add status'));
     }
   });
 
@@ -495,7 +484,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       queryClient.invalidateQueries({ queryKey: ['boards', activeProjectId] });
     },
     onError: (err: any) => {
-      toast.error(translateError(err?.response?.data?.detail || err?.response?.data?.error || "Failed to reorder columns"));
+      toast.error(translateError(err, "Failed to reorder columns"));
       queryClient.invalidateQueries({ queryKey: ['boards', activeProjectId] });
     }
   });
@@ -524,7 +513,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId, activeBoardId] });
     },
     onError: (err: any, _statusId, context: any) => {
-      toast.error(translateError(err?.response?.data?.detail || err?.response?.data?.error || "Failed to delete column"));
+      toast.error(translateError(err, "Failed to delete column"));
       if (context?.previousBoards) {
         queryClient.setQueryData(['boards', activeProjectId], context.previousBoards);
       }

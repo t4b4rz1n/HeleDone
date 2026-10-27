@@ -4,8 +4,14 @@ import logging
 from typing import Any
 
 from django.db import transaction
-from django.db.models import Count, Q, QuerySet, Sum
+from django.db.models import Count, Prefetch, Q, QuerySet, Sum
 from django.utils import timezone
+
+from common.mentions import (
+    MAX_MENTIONS_PER_MESSAGE,
+    extract_mentioned_usernames,
+    get_project_mention_users,
+)
 
 from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
 
@@ -315,7 +321,19 @@ class ProjectMemberService:
 
     @staticmethod
     def get_base_queryset(project_id=None) -> QuerySet[ProjectMember]:
-        qs = ProjectMember.objects.select_related("user", "team")
+        from organizations.models import TeamMembership
+
+        qs = ProjectMember.objects.select_related("user", "team").prefetch_related(
+            Prefetch(
+                "team__memberships",
+                queryset=TeamMembership.objects.filter(
+                    is_deleted=False,
+                    user__is_deleted=False,
+                    user__is_active=True,
+                ).select_related("user"),
+                to_attr="active_memberships",
+            )
+        )
         if project_id:
             qs = qs.filter(project_id=project_id)
         return qs
@@ -770,14 +788,17 @@ class ProjectFileService:
     def update_description(
         cls, *, project_file: ProjectFile, actor, description: str
     ) -> ProjectFile:
+        previous_mentions = set(extract_mentioned_usernames(project_file.description or ""))
         project_file.description = description.strip()
         project_file.save(update_fields=["description", "updated_at"])
 
+        new_mentions = set(extract_mentioned_usernames(project_file.description)) - previous_mentions
         cls._dispatch_mentions(
             project=project_file.project,
             project_file=project_file,
             actor=actor,
             message=description,
+            usernames=new_mentions,
         )
         return project_file
 
@@ -803,29 +824,24 @@ class ProjectFileService:
 
     @staticmethod
     def _dispatch_mentions(
-        *, project: Project, project_file: ProjectFile, actor, message: str
+        *, project: Project, project_file: ProjectFile, actor, message: str, usernames=None
     ) -> None:
-        if not message or "@" not in message:
+        if not message:
             return
-
-        import re
-
-        from django.contrib.auth import get_user_model
-        from django.db.models.functions import Lower
 
         from automations.events import EventDispatcher
 
-        usernames = re.findall(r"@([\w.-]+)", message)
+        usernames = (
+            list(usernames)
+            if usernames is not None
+            else extract_mentioned_usernames(message)
+        )
         if not usernames:
             return
-
-        lower_usernames = [u.lower() for u in usernames]
-        User = get_user_model()
-        mentioned_users = list(
-            User.objects.annotate(lower_uname=Lower("username")).filter(
-                lower_uname__in=lower_usernames, is_active=True
-            )
-        )
+        if len(usernames) > MAX_MENTIONS_PER_MESSAGE:
+            logger.warning("Skipped file mentions above the per-message limit")
+            return
+        mentioned_users = get_project_mention_users(project, usernames)
         if not mentioned_users:
             return
 

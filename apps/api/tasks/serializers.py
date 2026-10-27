@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 from accounts.models import User
 from common.media import file_url
+from common.mentions import MentionLimitExceeded, validate_mention_limit
 
 from .models import (
     AsyncStandup,
@@ -20,6 +21,7 @@ from .models import (
 
 class UserMinimalSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -31,6 +33,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
             "last_name",
             "avatar",
             "avatar_url",
+            "is_active",
         )
 
     def get_avatar_url(self, obj):
@@ -143,6 +146,10 @@ class TaskCommentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         content = attrs.get("content", "")
         attached_file = attrs.get("attached_file")
+        try:
+            validate_mention_limit(content)
+        except MentionLimitExceeded as exc:
+            raise serializers.ValidationError({"content": str(exc)}) from exc
         if not content and not attached_file:
             raise serializers.ValidationError(
                 _("Comment must contain either text content or an attached file.")
@@ -305,6 +312,13 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
     def get_assignee_detail(self, obj):
         first = obj.assignees.first()
         return UserMinimalSerializer(first, context=self.context).data if first else None
+
+    def validate_description(self, value):
+        try:
+            validate_mention_limit(value)
+        except MentionLimitExceeded as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value
 
     def validate_estimated_hours(self, value):
         if value is not None and value < 0:

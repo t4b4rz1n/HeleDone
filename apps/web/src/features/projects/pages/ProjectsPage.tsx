@@ -20,6 +20,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import {
   archiveProject,
   completeProject,
@@ -357,7 +358,7 @@ export default function ProjectsPage() {
           : t("Project marked complete"),
       );
     },
-    onError: () => toast.error(t("Could not update project status.")),
+    onError: (error: unknown) => toast.error(translateError(error, "Could not update project status.")),
   });
 
   const projects = useMemo(() => {
@@ -407,7 +408,7 @@ export default function ProjectsPage() {
           toast.success(t("Project deleted successfully"));
           setDeleteModalState({ open: false, projectId: null, projectTitle: "" });
         },
-        onError: () => toast.error(t("Could not delete project.")),
+        onError: (error: unknown) => toast.error(translateError(error, "Could not delete project.")),
       });
     }
   };
@@ -471,7 +472,7 @@ export default function ProjectsPage() {
         </div>
       ) : projectsQuery.isError ? (
         <div className="border-y border-error/25 bg-error/5 p-8 text-center">
-          <p className="font-semibold text-error">{t("Projects could not be loaded.")}</p>
+          <p className="font-semibold text-error">{translateError(projectsQuery.error, "Projects could not be loaded.")}</p>
           <button
             type="button"
             onClick={() => projectsQuery.refetch()}

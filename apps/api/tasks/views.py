@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 from attendance.models import TimeLog
+from common.throttling import MentionRateThrottle
 from config.pagination import DefaultPagination
 from projects.models import Project, ProjectActivity, ProjectMember
 from projects.serializers import ProjectActivitySerializer
@@ -59,7 +60,7 @@ class BoardViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated, IsBoardPermission]
     pagination_class = None
-    throttle_classes = [UserRateThrottle, AnonRateThrottle]
+    throttle_classes = [UserRateThrottle, AnonRateThrottle, MentionRateThrottle]
 
     def get_queryset(self):
         user = self.request.user
@@ -577,7 +578,7 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
     serializer_class = TaskCommentSerializer
     permission_classes = [IsAuthenticated, IsTaskCommentPermission]
     pagination_class = DefaultPagination
-    throttle_classes = [UserRateThrottle, AnonRateThrottle]
+    throttle_classes = [UserRateThrottle, AnonRateThrottle, MentionRateThrottle]
 
     def get_queryset(self):
         user = self.request.user

@@ -19,6 +19,7 @@ import { Timer1 } from 'iconsax-reactjs';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { MentionTextarea } from '../../../components/MentionTextarea';
+import { normalizeProjectMembers } from '../../../utils/mentionUtils';
 
 
 interface TaskDetailModalProps {
@@ -79,6 +80,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
   const { data: rawProjectMembers = [] } = useProjectMembers(task.project || '');
   const users = React.useMemo(() => projectMemberUsers(rawProjectMembers), [rawProjectMembers]);
+  const mentionUsers = React.useMemo(() => normalizeProjectMembers(rawProjectMembers), [rawProjectMembers]);
 
   useEffect(() => {
     if (task.assignees_detail && task.assignees_detail.length > 0) {
@@ -130,7 +132,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       }, 800);
     },
     onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.due_date?.[0] || 'Failed to update task.'));
+      toast.error(translateError(error, 'Failed to update task.'));
       // Revert local date if it was changed
       setLocalDueDate(task.due_date ? new Date(task.due_date).toISOString() : null);
     }
@@ -148,9 +150,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
-    onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to add comment.'));
-    }
+    onError: (error: any) => toast.error(translateError(error, 'Failed to add comment.'))
   });
 
   const addChecklistMutation = useMutation({
@@ -164,7 +164,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       setIsAddingChecklist(false);
     },
     onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to add checklist item.'));
+      toast.error(translateError(error, 'Failed to add checklist item.'));
       setIsAddingChecklist(false);
     }
   });
@@ -178,7 +178,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to toggle checklist item.'));
+      toast.error(translateError(error, 'Failed to toggle checklist item.'));
     }
   });
 
@@ -190,7 +190,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       onClose();
     },
     onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to delete task.'));
+      toast.error(translateError(error, 'Failed to delete task.'));
     }
   });
 
@@ -202,9 +202,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       queryClient.invalidateQueries({ queryKey: ['taskComments', task.id] });
       queryClient.invalidateQueries({ queryKey: ['taskActivities', task.id] });
     },
-    onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to update comment.'));
-    }
+    onError: (error: any) => toast.error(translateError(error, 'Failed to update comment.'))
   });
 
   const deleteCommentMutation = useMutation({
@@ -217,7 +215,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error: any) => {
-      toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to delete comment.'));
+      toast.error(translateError(error, 'Failed to delete comment.'));
       setDeletingCommentId(null);
     }
   });
@@ -594,7 +592,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                 <MentionTextarea
                   value={commentText}
                   onChange={setCommentText}
-                  members={users}
+                  members={mentionUsers}
                   position="bottom"
                   className={`w-full bg-transparent text-[14px] text-base-content outline-none resize-none px-4 py-3 transition-all duration-200 custom-scrollbar ${isCommentInputFocused || commentText.trim() || selectedFile ? 'min-h-[80px]' : 'min-h-[44px] m-0 overflow-hidden'}`}
                   placeholder={t("دیدگاهی بنویسید… (از @ برای منشن کردن اعضای پروژه استفاده کنید)")}
@@ -676,7 +674,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                                 <MentionTextarea
                                   value={editingCommentText}
                                   onChange={setEditingCommentText}
-                                  members={users}
+                                  members={mentionUsers}
                                   position="bottom"
                                   className="w-full bg-transparent text-[14px] text-base-content outline-none resize-none p-3 pb-1"
                                   rows={2}

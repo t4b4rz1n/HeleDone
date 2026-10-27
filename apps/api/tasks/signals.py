@@ -1,11 +1,15 @@
-import re
+import logging
 
-from django.contrib.auth import get_user_model
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
 from automations.events import EventDispatcher
+from common.mentions import (
+    MAX_MENTIONS_PER_MESSAGE,
+    extract_mentioned_usernames,
+    get_project_mention_users,
+)
 
 from .models import (
     AsyncStandup,
@@ -16,7 +20,7 @@ from .models import (
     TaskStatusTransition,
 )
 
-User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=TaskChecklistItem)
@@ -198,22 +202,20 @@ def handle_task_automations(sender, instance, created, **kwargs):
 
             # 10. Mentions in task description
             new_desc = instance.description or ""
-            current_mentions = set(re.findall(r"@([\w.-]+)", new_desc))
+            current_mentions = set(extract_mentioned_usernames(new_desc))
             if not created:
                 old_desc = getattr(instance, "__original_description", "") or ""
-                old_mentions = set(re.findall(r"@([\w.-]+)", old_desc))
+                old_mentions = set(extract_mentioned_usernames(old_desc))
                 newly_mentioned = current_mentions - old_mentions
             else:
                 newly_mentioned = current_mentions
 
-            if newly_mentioned:
-                from django.db.models.functions import Lower
+            if len(newly_mentioned) > MAX_MENTIONS_PER_MESSAGE:
+                logger.warning("Skipped task description mentions above the per-message limit")
+                newly_mentioned = set()
 
-                users_to_notify = list(
-                    User.objects.annotate(uname_lower=Lower("username"))
-                    .filter(uname_lower__in=[u.lower() for u in newly_mentioned], is_active=True)
-                    .values_list("id", flat=True)
-                )
+            if newly_mentioned:
+                users_to_notify = get_project_mention_users(instance.project, newly_mentioned)
                 actor = getattr(instance, "_actor", None) or instance.reporter
                 actor_name = (actor.get_full_name() or actor.username) if actor else "A Colleague"
 
@@ -241,9 +243,6 @@ def handle_task_automations(sender, instance, created, **kwargs):
                         },
                     )
     except Exception as exc:
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.error(
             f"handle_task_automations signal failed for Task {instance.pk}: {exc}",
             exc_info=True,
@@ -276,23 +275,22 @@ def handle_task_comments(sender, instance, created, **kwargs):
         content = instance.content
 
         # Parse mentions (@username)
-        mentioned_usernames = set(re.findall(r"@([\w.-]+)", content))
+        mentioned_usernames = set(extract_mentioned_usernames(content))
 
         if not created:
             old_content = getattr(instance, "__original_content", "") or ""
-            old_mentions = set(re.findall(r"@([\w.-]+)", old_content))
+            old_mentions = set(extract_mentioned_usernames(old_content))
             # Only notify newly added mentions
             mentioned_usernames = mentioned_usernames - old_mentions
 
         mentioned_users = []
+        if len(mentioned_usernames) > MAX_MENTIONS_PER_MESSAGE:
+            logger.warning("Skipped task comment mentions above the per-message limit")
+            mentioned_usernames = set()
         if mentioned_usernames:
-            from django.db.models.functions import Lower
-
-            mentioned_users = list(
-                User.objects.annotate(uname_lower=Lower("username"))
-                .filter(uname_lower__in=[u.lower() for u in mentioned_usernames], is_active=True)
-                .values_list("id", flat=True)
-            )
+            mentioned_users = [
+                user.id for user in get_project_mention_users(task.project, mentioned_usernames)
+            ]
 
             for uid in mentioned_users:
                 EventDispatcher.dispatch(
@@ -343,9 +341,6 @@ def handle_task_comments(sender, instance, created, **kwargs):
                 )
 
     except Exception as exc:
-        import logging
-
-        logger = logging.getLogger(__name__)
         logger.error(
             f"handle_task_comments signal failed for Comment {instance.pk}: {exc}",
             exc_info=True,

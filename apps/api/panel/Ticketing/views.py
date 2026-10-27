@@ -6,7 +6,9 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
+from common.throttling import MentionRateThrottle
 from common.utils.mixins import FieldFilterOverviewMixin
 from organizations.services import PermissionService
 from panel.Ticketing.models import Message, Ticket, TicketType
@@ -122,6 +124,7 @@ class StaffTicketTypeViewSet(viewsets.ModelViewSet):
 
 class StaffMessageListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, CanManageTickets]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle, MentionRateThrottle]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = MessageFilter

@@ -19,7 +19,8 @@ from rest_framework import serializers
 
 from accounts.models import User
 from common.media import file_url
-from organizations.models import Organization, OrganizationMembership, Team
+from common.mentions import MentionLimitExceeded, validate_mention_limit
+from organizations.models import Organization, OrganizationMembership, Team, TeamMembership
 
 from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
 
@@ -33,10 +34,11 @@ class UserMinimalSerializer(serializers.ModelSerializer):
 
     full_name = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "full_name", "avatar", "avatar_url", "first_name", "last_name")
+        fields = ("id", "username", "email", "full_name", "avatar", "avatar_url", "first_name", "last_name", "is_active")
         read_only_fields = fields
 
     @staticmethod
@@ -55,10 +57,24 @@ class OrganizationMinimalSerializer(serializers.ModelSerializer):
 
 
 class TeamMinimalSerializer(serializers.ModelSerializer):
+    members = serializers.SerializerMethodField()
+
     class Meta:
         model = Team
-        fields = ("id", "name")
+        fields = ("id", "name", "members")
         read_only_fields = fields
+
+    def get_members(self, obj):
+        memberships = getattr(obj, "active_memberships", None)
+        if memberships is None:
+            memberships = TeamMembership.objects.filter(
+                team=obj,
+                is_deleted=False,
+                user__is_deleted=False,
+                user__is_active=True,
+            ).select_related("user")
+        users = [membership.user for membership in memberships]
+        return UserMinimalSerializer(users, many=True, context=self.context).data
 
 
 # ---------------------------------------------------------------------------
@@ -643,6 +659,13 @@ class ProjectFileSerializer(serializers.ModelSerializer):
     def get_file_url(self, obj) -> str | None:
         return file_url(obj.file, self.context.get("request"))
 
+    def validate_description(self, value):
+        try:
+            validate_mention_limit(value)
+        except MentionLimitExceeded as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value
+
 
 class ProjectFileUploadSerializer(serializers.ModelSerializer):
     """Upload serializer for creating project files with metadata & description."""
@@ -659,3 +682,10 @@ class ProjectFileUploadSerializer(serializers.ModelSerializer):
             "name",
             "description",
         )
+
+    def validate_description(self, value):
+        try:
+            validate_mention_limit(value)
+        except MentionLimitExceeded as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value

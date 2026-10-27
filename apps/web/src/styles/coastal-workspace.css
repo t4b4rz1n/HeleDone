@@ -148,6 +148,10 @@
   border-top: 1px solid var(--color-heledone-border);
   background: var(--color-base-200);
 }
+/* Keep header menus above the following action strip's stacking context. */
+.heledone-workspace .project-details-heading > :first-child {
+  z-index: 2;
+}
 .heledone-workspace .heledone-page-heading h1 {
   font-size: 1.375rem;
   font-weight: 800;

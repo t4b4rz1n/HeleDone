@@ -100,9 +100,7 @@ export const WorkspaceView: React.FC = () => {
       setIsModalOpen(false);
       toast.success(t("Board created successfully"));
     },
-    onError: (err: any) => {
-      toast.error(translateError(err?.response?.data?.detail || err?.response?.data?.error || t("ساخت کانبان ممکن نشد")));
-    },
+    onError: (err: any) => toast.error(translateError(err, "ساخت کانبان ممکن نشد")),
   });
 
   const updateBoardMutation = useMutation({
@@ -116,9 +114,7 @@ export const WorkspaceView: React.FC = () => {
       setEditingBoard(null);
       toast.success(t("Board updated successfully"));
     },
-    onError: (err: any) => {
-      toast.error(translateError(err?.response?.data?.detail || 'Failed to update board'));
-    },
+    onError: (err: any) => toast.error(translateError(err, 'Failed to update board')),
   });
 
   const deleteBoardMutation = useMutation({
@@ -128,9 +124,7 @@ export const WorkspaceView: React.FC = () => {
       setDeletingBoard(null);
       toast.success(t("Board deleted"));
     },
-    onError: (err: any) => {
-      toast.error(translateError(err?.response?.data?.detail || 'Failed to delete board'));
-    },
+    onError: (err: any) => toast.error(translateError(err, 'Failed to delete board')),
   });
 
   const openEditModal = (board: Board, e: React.MouseEvent) => {

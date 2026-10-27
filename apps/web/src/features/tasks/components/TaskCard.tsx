@@ -109,8 +109,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success(t("تسک حذف شد"));
     },
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || "Could not delete task.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not delete task.")),
   });
 
   const updateMutation = useMutation({
@@ -141,8 +140,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["taskActivities", task.id] });
     },
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || "Could not update task.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not update task.")),
   });
 
   const storeProjectId = useTaskStore((state) => state.activeProjectId);

@@ -298,6 +298,7 @@ REST_FRAMEWORK = {
         "anon": env("THROTTLE_RATE_ANON", default="60/minute"),
         "user": env("THROTTLE_RATE_USER", default="300/minute"),
         "login": env("THROTTLE_RATE_LOGIN", default="5/minute"),
+        "mention": env("THROTTLE_RATE_MENTION", default="30/hour"),
     },
 }
 

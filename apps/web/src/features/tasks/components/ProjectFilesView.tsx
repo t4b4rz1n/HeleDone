@@ -19,15 +19,16 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getErrorMessage as translateError } from '../../../core/utils/errorHandler';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../i18n/locale';
 import type { Task } from '../types';
 import { MentionTextarea } from '../../../components/MentionTextarea';
 import { MentionText } from '../../../components/MentionText';
+import { normalizeProjectMembers } from '../../../utils/mentionUtils';
 import {
   getProjectFiles,
   uploadProjectFile,
-  updateProjectFile,
   deleteProjectFile,
   mentionFile,
 } from '../../projects/api/projectsApi';
@@ -84,25 +85,17 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
 
   // Formatted active project members for MentionTextarea
   const formattedMembers = useMemo(() => {
-    return (members || [])
-      .map((m: any) => {
-        const u = m.user || m;
-        return {
-          id: u.id,
-          username: u.username,
-          name:
-            u.first_name || u.last_name
-              ? `${u.first_name || ''} ${u.last_name || ''}`.trim()
-              : u.name || u.username,
-          avatar: u.avatar_url || u.avatar,
-          is_active: u.is_active !== false,
-        };
-      })
-      .filter((m: any) => m.is_active && m.username);
+    return normalizeProjectMembers(members).map((user) => ({
+      id: user.id,
+      username: user.username,
+      name: user.displayName,
+      avatar: user.avatar,
+      is_active: true,
+    }));
   }, [members]);
 
   // Fetch direct project files from PostgreSQL & MinIO
-  const { data: serverFiles = [] } = useQuery({
+  const { data: serverFiles = [], isError: filesQueryFailed, error: filesQueryError } = useQuery({
     queryKey: ['project-files', activeProjectId],
     queryFn: () => (activeProjectId ? getProjectFiles(activeProjectId) : Promise.resolve([])),
     enabled: !!activeProjectId,
@@ -198,8 +191,10 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
     try {
       setIsSubmittingMention(true);
       if (mentionTargetFile.isDirectProjectFile) {
-        await updateProjectFile(activeProjectId, mentionTargetFile.id, {
-          description: mentionMessage.trim(),
+        await mentionFile(activeProjectId, {
+          file_id: mentionTargetFile.id,
+          file_name: mentionTargetFile.name,
+          message: mentionMessage.trim(),
         });
         await queryClient.invalidateQueries({ queryKey: ['project-files', activeProjectId] });
       } else {
@@ -225,7 +220,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
       setMentionMessage('');
     } catch (err: any) {
       console.error('Failed to send file mention:', err);
-      toast.error(err?.response?.data?.error || t('خطا در ارسال منشن روی فایل'));
+      toast.error(translateError(err, 'خطا در ارسال منشن روی فایل'));
     } finally {
       setIsSubmittingMention(false);
     }
@@ -281,7 +276,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
       setUploadPreviewUrl(null);
     } catch (err: any) {
       console.error('Upload error:', err);
-      toast.error(err?.response?.data?.error || t('خطا در ذخیره فایل'));
+      toast.error(translateError(err, 'خطا در ذخیره فایل'));
     } finally {
       setIsUploading(false);
     }
@@ -302,7 +297,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
       setFileToDelete(null);
     } catch (err: any) {
       console.error('Delete error:', err);
-      toast.error(err?.response?.data?.error || t('خطا در حذف فایل'));
+      toast.error(translateError(err, 'خطا در حذف فایل'));
     } finally {
       setIsDeleting(false);
     }
@@ -384,7 +379,19 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
 
       {/* ─── Files Grid ─── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6">
-        {filteredFiles.length === 0 ? (
+        {filesQueryFailed ? (
+          <div role="alert" className="mx-auto flex min-h-64 max-w-lg flex-col items-center justify-center gap-3 text-center">
+            <AlertTriangle size={28} className="text-error" />
+            <p className="text-sm font-bold text-base-content">{translateError(filesQueryError, "Could not load project files.")}</p>
+            <button
+              type="button"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['project-files', activeProjectId] })}
+              className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-content"
+            >
+              {t('تلاش دوباره')}
+            </button>
+          </div>
+        ) : filteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <div className="w-16 h-16 rounded-2xl bg-base-200 grid place-items-center text-heledone-ink-muted mb-3">
               <FolderOpen size={32} />
@@ -737,7 +744,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-200 hover:bg-primary/10 hover:text-primary text-[11px] font-bold text-base-content transition-all cursor-pointer"
                       >
                         <span className="text-primary font-black">@</span>
-                        <span>{m.name || m.username}</span>
+                        <span>{m.username}</span>
                       </button>
                     ))}
                   </div>
@@ -912,7 +919,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-200 hover:bg-primary/10 hover:text-primary text-[11px] font-bold text-base-content transition-all cursor-pointer"
                       >
                         <span className="text-primary font-black">@</span>
-                        <span>{m.name || m.username}</span>
+                        <span>{m.username}</span>
                       </button>
                     ))}
                   </div>

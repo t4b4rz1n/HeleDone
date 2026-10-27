@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from common.mentions import MAX_MENTIONS_PER_MESSAGE, extract_mentioned_usernames
 from common.models import BaseModel
 from common.validators import validate_file_magic_bytes
 
@@ -128,9 +129,9 @@ class Message(BaseModel):
             ticket.save()
 
             # Parse mentions (@username) in ticket messages
-            import re
-
-            mentioned_usernames = set(re.findall(r"@([\w.-]+)", self.text or ""))
+            mentioned_usernames = extract_mentioned_usernames(self.text or "")
+            if len(mentioned_usernames) > MAX_MENTIONS_PER_MESSAGE:
+                mentioned_usernames = []
             if mentioned_usernames:
                 try:
                     from django.contrib.auth import get_user_model

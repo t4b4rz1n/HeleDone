@@ -97,10 +97,7 @@ export const MentionTextarea = React.forwardRef<
       const q = mentionQuery.toLowerCase().trim();
       if (!q) return normalizedMembers;
       return normalizedMembers.filter(
-        (m) =>
-          m.username.toLowerCase().includes(q) ||
-          m.displayName.toLowerCase().includes(q) ||
-          (m.email && m.email.toLowerCase().includes(q))
+        (m) => m.username.toLowerCase().includes(q)
       );
     }, [isMentionOpen, mentionQuery, normalizedMembers]);
 

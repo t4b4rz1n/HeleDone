@@ -248,21 +248,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   });
 
   const allAvailableMembers = useMemo(() => {
-    const list: any[] = [];
-    if (Array.isArray(projectMembers)) {
-      list.push(...projectMembers);
-    }
-    if (task?.assignees_detail && Array.isArray(task.assignees_detail)) {
-      list.push(...task.assignees_detail);
-    }
-    if (task?.assignee_detail) {
-      list.push(task.assignee_detail);
-    }
-    if (task?.reporter_detail) {
-      list.push(task.reporter_detail);
-    }
-    return list;
-  }, [projectMembers, task]);
+    return Array.isArray(projectMembers) ? projectMembers : [];
+  }, [projectMembers]);
 
   const { data: projectMilestones = [] } = useQuery({
     queryKey: ["projects", "detail", String(effectiveProjectId), "milestones"],
@@ -280,8 +267,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       setEditingCommentText("");
       toast.success(t("دیدگاه با موفقیت ویرایش شد"));
     },
-    onError: () => {
-      toast.error(t("خطا در ویرایش دیدگاه"));
+    onError: (error: any) => {
+      toast.error(translateError(error, "خطا در ویرایش دیدگاه"));
     },
   });
 
@@ -292,8 +279,8 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       queryClient.invalidateQueries({ queryKey: ["taskActivities", taskId] });
       toast.success(t("دیدگاه با موفقیت حذف شد"));
     },
-    onError: () => {
-      toast.error(t("خطا در حذف دیدگاه"));
+    onError: (error: any) => {
+      toast.error(translateError(error, "خطا در حذف دیدگاه"));
     },
   });
 
@@ -326,14 +313,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       setManualHours("0");
       setManualMinutes("0");
     },
-    onError: (error: any) =>
-      toast.error(
-        translateError(
-          error.response?.data?.detail ||
-          error.response?.data?.error ||
-          "Failed to log manual time"
-        )
-      ),
+    onError: (error: any) => toast.error(translateError(error, "Failed to log manual time")),
   });
 
   useEffect(() => {
@@ -519,8 +499,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
   const updateMutation = useMutation({
     mutationFn: (patch: Partial<Task>) => updateTask(task!.id, patch),
     onSuccess: invalidateTaskDetails,
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || error.message || "Could not update task.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not update task.")),
   });
 
   const blockerMutation = useMutation({
@@ -529,7 +508,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     onSuccess: invalidateTaskDetails,
     onError: (error: any, blocked) => {
       onPatch(task!.id, { is_blocked: !blocked });
-      toast.error(translateError(error.response?.data?.detail || error.message || "Could not update blocker state."));
+      toast.error(translateError(error, "Could not update blocker state."));
     },
   });
 
@@ -541,8 +520,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       invalidateTaskDetails();
       toast.success(t("Comment added"));
     },
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || error.message || "Could not add comment.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not add comment.")),
   });
 
   const checklistAddMutation = useMutation({
@@ -551,23 +529,20 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       setChecklistText("");
       invalidateTaskDetails();
     },
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || error.message || "Could not add checklist item.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not add checklist item.")),
   });
 
   const checklistToggleMutation = useMutation({
     mutationFn: ({ id }: { id: string | number; completed: boolean }) =>
       toggleChecklistItem(id),
     onSuccess: invalidateTaskDetails,
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || error.message || "Could not update checklist item.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not update checklist item.")),
   });
 
   const checklistDeleteMutation = useMutation({
     mutationFn: (id: string | number) => deleteChecklistItem(id),
     onSuccess: invalidateTaskDetails,
-    onError: (error: any) =>
-      toast.error(translateError(error.response?.data?.detail || error.message || "Could not delete checklist item.")),
+    onError: (error: any) => toast.error(translateError(error, "Could not delete checklist item.")),
   });
 
   const save = (patch: Partial<Task>) => {

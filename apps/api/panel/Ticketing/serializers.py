@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from common.mentions import MentionLimitExceeded, validate_mention_limit
 from panel.Ticketing.models import Attachment, Message, Ticket, TicketType
 from panel.Ticketing.validators import validate_attachment_extension
 
@@ -77,6 +78,13 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["id", "text", "attachments"]
         ref_name = "message_panel"
+
+    def validate_text(self, value):
+        try:
+            validate_mention_limit(value)
+        except MentionLimitExceeded as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value
 
     def validate_attachments(self, files):
         if len(files) > MAX_ATTACHMENTS_PER_MESSAGE:

@@ -47,7 +47,11 @@
   align-items: center;
   gap: 16px;
   padding: 14px 28px;
-  background: linear-gradient(to bottom, #FFF8EE 0%, #FFFDF9 100%);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-heledone-surface) 88%, var(--color-heledone-brand-soft)),
+    var(--color-heledone-surface)
+  );
   border-bottom: 1px solid var(--color-heledone-border);
   overflow: hidden;
 }
@@ -61,7 +65,7 @@
   max-height: var(--heledone-header-height, 160px);
   object-fit: cover;
   object-position: center 30%;
-  opacity: 0.14;
+  opacity: 0.12;
   mix-blend-mode: multiply;
   mask-image: linear-gradient(to left, black 0%, transparent 60%);
   -webkit-mask-image: linear-gradient(to left, black 0%, transparent 60%);
@@ -586,7 +590,11 @@
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-heledone-border));
   border-radius: 18px;
-  background: linear-gradient(145deg, var(--color-heledone-brand-soft) 0%, #FFFDF9 100%);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-heledone-brand-soft) 72%, var(--color-heledone-surface)) 0%,
+    var(--color-heledone-surface) 100%
+  );
   box-shadow: 0 4px 16px rgb(8 127 131 / 6%);
 }
 
@@ -639,7 +647,7 @@
   width: 100%;
   min-height: 40px;
   border-radius: 12px;
-  background: linear-gradient(to bottom, var(--color-primary) 0%, #006D73 100%);
+  background: var(--color-primary);
   color: var(--color-primary-content);
   font-size: 13px;
   font-weight: 750;
@@ -649,20 +657,25 @@
 }
 
 .task-sheet-timer-button:hover {
-  background: linear-gradient(to bottom, #006D73 0%, #005B60 100%);
+  background: var(--heledone-primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgb(8 127 131 / 32%);
 }
 
 .task-sheet-timer-button.is-running {
-  background: #FFF0F0;
+  background: color-mix(in srgb, var(--color-error) 12%, var(--color-heledone-surface));
   color: var(--color-error);
   border: 1px solid color-mix(in srgb, var(--color-error) 35%, transparent);
   box-shadow: 0 4px 14px rgb(179 52 59 / 15%);
 }
 
 .task-sheet-timer-button.is-running:hover {
-  background: #FFE4E4;
+  background: color-mix(in srgb, var(--color-error) 18%, var(--color-heledone-surface));
+}
+
+[data-theme="dark"] .task-sheet-header-art {
+  opacity: 0.07;
+  mix-blend-mode: screen;
 }
 
 .task-sheet-timer-button:disabled {
