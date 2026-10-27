@@ -536,6 +536,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"organization_id": "User is not a member of this organization."}
                 )
+            if "role_id" in attrs and org.owner_id == self.instance.pk:
+                raise serializers.ValidationError(
+                    {"role_id": "The organization owner's role cannot be changed here."}
+                )
             _validate_role_grant(actor, org, attrs.get("role_id"))
         return attrs
 

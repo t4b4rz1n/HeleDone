@@ -5,6 +5,16 @@ from .models import User, WorkStyleProfile
 
 
 class CustomUserAdmin(UserAdmin):
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.is_superuser and obj.pk != request.user.pk:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.is_superuser and obj.pk != request.user.pk:
+            return False
+        return super().has_delete_permission(request, obj)
+
     fieldsets = (
         *UserAdmin.fieldsets,
         (

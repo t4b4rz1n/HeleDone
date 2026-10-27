@@ -222,14 +222,20 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             role_obj = None
             legacy_role = None
             if raw_role:
-                role_obj = (
-                    Role.objects.filter(
-                        id=raw_role, organization=organization, is_deleted=False
+                import uuid
+
+                try:
+                    role_uuid = uuid.UUID(str(raw_role))
+                except (ValueError, TypeError):
+                    role_uuid = None
+                if role_uuid:
+                    role_obj = Role.objects.filter(
+                        id=role_uuid, organization=organization, is_deleted=False
                     ).first()
-                    or Role.objects.filter(
+                if not role_obj:
+                    role_obj = Role.objects.filter(
                         name__iexact=str(raw_role), organization=organization, is_deleted=False
                     ).first()
-                )
                 if role_obj:
                     name_lower = role_obj.name.lower().replace(" ", "_")
                     if name_lower in [c[0] for c in OrganizationMembership.Role.choices]:
@@ -246,6 +252,11 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 .remote_field.model.objects.filter(pk=user_id)
                 .first()
             )
+            if organization.owner_id == user_id:
+                return Response(
+                    {"detail": "The organization owner's role cannot be changed here."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             if target and target.is_superuser and target.pk != request.user.pk:
                 return Response(
                     {"detail": "Another superuser cannot be changed."},
@@ -290,31 +301,32 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                         membership.invited_by = (
                             request.user if request.user.is_authenticated else None
                         )
-                        # Update salary if provided
-                        salary_type = serializer.validated_data.get("salary_type")
-                        salary_amount = serializer.validated_data.get("salary_amount")
-                        if salary_type is not None:
-                            membership.salary_type = salary_type
-                        if salary_amount is not None:
-                            membership.salary_amount = salary_amount
                         membership.save()
                         if role_obj:
                             membership.dynamic_roles.set([role_obj])
                         created = False
                     else:
-                        salary_type = serializer.validated_data.get("salary_type")
-                        salary_amount = serializer.validated_data.get("salary_amount")
                         membership = OrganizationMembership.objects.create(
                             user_id=user_id,
                             organization=organization,
                             role=legacy_role,
                             invited_by=request.user if request.user.is_authenticated else None,
-                            salary_type=salary_type,
-                            salary_amount=salary_amount,
                         )
                         if role_obj:
                             membership.dynamic_roles.set([role_obj])
                         created = True
+
+                    salary_type = serializer.validated_data.get("salary_type")
+                    salary_amount = serializer.validated_data.get("salary_amount")
+                    if salary_type is not None or salary_amount is not None:
+                        from finance.services import FinanceService
+
+                        FinanceService.set_org_salary(
+                            user=membership.user,
+                            organization=organization,
+                            payment_type=salary_type,
+                            rate=salary_amount,
+                        )
             except IntegrityError:
                 return Response(
                     {"detail": "User already belongs to another active organization."},
@@ -356,9 +368,14 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         )
 
         if membership and membership.user.is_superuser and membership.user_id != request.user.pk:
-            return Response({"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN
+            )
         if membership and membership.user_id == organization.owner_id:
-            return Response({"detail": "Cannot remove the organization owner."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Cannot remove the organization owner."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if membership:
             membership.is_deleted = True
@@ -454,6 +471,11 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         # Check if user exists
         user = User.objects.filter(email=email).first()
+        if user and organization.owner_id == user.pk:
+            return Response(
+                {"detail": "The organization owner's role cannot be changed here."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if user and user.is_superuser and user.pk != request.user.pk:
             return Response(
                 {"detail": "Another superuser cannot be changed."}, status=status.HTTP_403_FORBIDDEN

@@ -166,3 +166,42 @@ class RoleGrantTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_member_assignment_stays_in_organization(self):
+        target = User.objects.create_user(
+            username="member-target", email="member-target@test.com", password="pass123"
+        )
+        other_role = Role.objects.get(organization=self.other_org, name="Employee")
+        member_url = f"/api/v1/organizations/{self.org.id}/members/"
+        denied = self.client.post(
+            member_url, {"user_id": str(target.id), "role_id": str(other_role.id)}, format="json"
+        )
+        self.assertEqual(denied.status_code, 400)
+        self.assertFalse(
+            OrganizationMembership.objects.filter(user=target, organization=self.org).exists()
+        )
+
+        allowed = self.client.post(member_url, {"user_id": str(target.id)}, format="json")
+        self.assertEqual(allowed.status_code, 201)
+        membership = OrganizationMembership.objects.get(user=target, organization=self.org)
+        self.assertTrue(
+            membership.dynamic_roles.filter(organization=self.org, name="Employee").exists()
+        )
+
+    def test_owner_cannot_demote_own_membership(self):
+        employee_role = Role.objects.get(organization=self.org, name="Employee")
+        response = self.client.patch(
+            f"/api/v1/panel/users/{self.owner.id}/?organization_id={self.org.id}",
+            {"role_id": str(employee_role.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        membership = OrganizationMembership.objects.get(user=self.owner, organization=self.org)
+        self.assertTrue(membership.dynamic_roles.filter(name="Owner").exists())
+
+        response = self.client.post(
+            f"/api/v1/organizations/{self.org.id}/members/",
+            {"user_id": str(self.owner.id), "role_id": str(employee_role.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
