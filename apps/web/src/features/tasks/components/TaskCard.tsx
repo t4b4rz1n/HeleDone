@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { deleteTask, getProjectMembers, updateTask } from "../api/tasksApi";
 import { useTaskStore } from "../store/useTaskStore";
-import type { Task } from "../types";
+import type { Task, User } from "../types";
 import type { TimeLog } from "../../attendance/types";
 import { LiveActivityIndicator } from "./LiveActivityIndicator";
 
@@ -149,28 +149,27 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const { data: users = [] } = useQuery({
     queryKey: ["projects", "detail", String(effectiveProjectId), "members"],
     queryFn: async () => {
-      if (!effectiveProjectId) return [];
-      const members = await getProjectMembers(effectiveProjectId.toString());
-      return (members || []).filter((user) => Boolean(user?.id));
+      const projectId = effectiveProjectId;
+      if (!projectId) return [];
+      return getProjectMembers(projectId.toString());
     },
     enabled: Boolean(effectiveProjectId),
     staleTime: 0,
   });
-
-  const resolveCardAssignees = (t: Task, memberUsers: any[]): any[] => {
+  const resolveCardAssignees = (t: Task, memberUsers: User[]): User[] => {
     if (t.assignees_detail && t.assignees_detail.length > 0) {
       return t.assignees_detail;
     }
     if (t.assignees && t.assignees.length > 0) {
       const fromUsers = t.assignees
-        .map((id: any) => memberUsers.find((u: any) => String(u.id) === String(id)))
-        .filter(Boolean);
+        .map((id) => memberUsers.find((user) => String(user.id) === String(id)))
+        .filter((user): user is User => Boolean(user));
       if (fromUsers.length > 0) return fromUsers;
     }
     if (t.assignee_detail) return [t.assignee_detail];
     if (t.assignee) {
-      const u = memberUsers.find((usr: any) => String(usr.id) === String(t.assignee));
-      if (u) return [u];
+      const user = memberUsers.find((member) => String(member.id) === String(t.assignee));
+      if (user) return [user];
     }
     return [];
   };
