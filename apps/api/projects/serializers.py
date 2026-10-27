@@ -320,7 +320,7 @@ class ProjectMemberReadSerializer(serializers.ModelSerializer):
         if not request or not request.user or not request.user.is_authenticated:
             return False
         actor = request.user
-        if actor.is_superuser or actor.is_staff:
+        if actor.is_superuser:
             return True
 
         if getattr(obj.project, "owner_id", None) == actor.id:

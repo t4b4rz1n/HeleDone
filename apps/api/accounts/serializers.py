@@ -97,14 +97,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                     (
                         m
                         for m in memberships
-                        if any(not r.is_deleted for r in m.dynamic_roles.all())
+                        if any(not r.is_deleted and r.organization_id == m.organization_id for r in m.dynamic_roles.all())
                     ),
                     None,
                 )
                 membership = membership_with_dynamic_role or memberships[0]
 
             if membership:
-                dynamic_roles = [r for r in membership.dynamic_roles.all() if not r.is_deleted]
+                dynamic_roles = [r for r in membership.dynamic_roles.all() if not r.is_deleted and r.organization_id == membership.organization_id]
                 if dynamic_roles:
                     first_role = dynamic_roles[0]
                     user_role_id = str(first_role.id)
@@ -131,14 +131,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             pass
 
         can_manage_automations = bool(
-            instance.is_staff
-            or instance.is_superuser
+            instance.is_superuser
             or "automation.manage" in user_permissions
             or "org.manage_settings" in user_permissions
         )
 
         ret["id"] = instance.id
         ret["is_staff"] = instance.is_staff
+        ret["is_superuser"] = instance.is_superuser
         ret["telegram_connected"] = telegram_connected
         ret["notify_via_email"] = notify_via_email
         ret["notify_via_telegram"] = notify_via_telegram

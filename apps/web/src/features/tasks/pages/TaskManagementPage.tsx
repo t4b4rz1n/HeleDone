@@ -94,7 +94,7 @@ export const TaskManagementPage: React.FC = () => {
   });
 
   const { data: members = [] } = useQuery({
-    queryKey: ['project-members', activeProjectId],
+    queryKey: ['projects', 'detail', String(activeProjectId), 'members'],
     queryFn: () => getProjectMembers(activeProjectId!),
     enabled: Boolean(activeProjectId),
   });

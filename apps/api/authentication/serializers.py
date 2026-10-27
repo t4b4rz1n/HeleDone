@@ -137,7 +137,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                     (
                         m
                         for m in memberships
-                        if any(not r.is_deleted for r in m.dynamic_roles.all())
+                        if any(not r.is_deleted and r.organization_id == m.organization_id for r in m.dynamic_roles.all())
                     ),
                     None,
                 )
@@ -149,7 +149,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                     DEFAULT_ORG_PERMISSIONS,
                 )
 
-                dynamic_roles = [r for r in membership.dynamic_roles.all() if not r.is_deleted]
+                dynamic_roles = [r for r in membership.dynamic_roles.all() if not r.is_deleted and r.organization_id == membership.organization_id]
                 if dynamic_roles:
                     first_role = dynamic_roles[0]
                     user_role_id = str(first_role.id)
@@ -168,8 +168,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             pass
 
         can_manage_automations = bool(
-            self.user.is_staff
-            or self.user.is_superuser
+            self.user.is_superuser
             or "automation.manage" in user_permissions
             or "org.manage_settings" in user_permissions
         )
@@ -181,6 +180,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             "first_name": self.user.first_name,
             "last_name": self.user.last_name,
             "is_staff": self.user.is_staff,
+            "is_superuser": self.user.is_superuser,
             "avatar_url": self.user.avatar.url if self.user.avatar else None,
             "telegram_connected": telegram_connected,
             "notify_via_email": notify_via_email,

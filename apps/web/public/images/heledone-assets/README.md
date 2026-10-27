@@ -2,7 +2,6 @@
 
 Generated with the built-in ImageGen tool for the Heledone southern-Iran visual system.
 
-- `avatar-01.png` … `avatar-10.png`: selectable default profile portraits. The profile page converts a selected portrait to the existing profile upload payload, so the choice persists through the normal account API.
 - `coastal-welcome.png`: dashboard welcome panorama.
 - `palm-corner.png`, `palm-sunset.png`: palm and sunset compositions for navigation, empty states and landing sections.
 - `boat-lenj.png`: traditional Persian Gulf boat cutout.
@@ -48,4 +47,4 @@ All new panoramas use the built-in ImageGen tool, not the CLI. Their scenes fill
 
 Shared empty-state artwork also uses this new collection; existing user avatars are unchanged. The exact final prompt set is recorded in [coastal-prompts.md](./coastal-prompts.md).
 
-Home uses `home-welcome-v2.png` again, with `home-sidebar-coast.png` in the sidebar and `coastal-welcome.png` in the personal workspace. All generated images are retained in the project regardless of current usage. Ten earlier compositions are preserved under [variants/](./variants/README.md), alongside the nineteen final panoramas in this directory. Do not remove unused illustrations during asset cleanup.
+Home uses `home-welcome-v2.png` again, with `home-sidebar-coast.png` in the sidebar and `coastal-welcome.png` in the personal workspace. All remaining generated assets are retained in the project regardless of current usage. Ten earlier compositions are preserved under [variants/](./variants/README.md), alongside the nineteen final panoramas in this directory. Do not remove unused illustrations during asset cleanup.

@@ -95,6 +95,8 @@ export const CreateOrgMemberModal = ({
       queryClient.invalidateQueries({ queryKey: ["organization-members", orgId] });
       queryClient.invalidateQueries({ queryKey: ["organization-members"] });
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["organizations-list"] });
+      queryClient.invalidateQueries({ queryKey: ["user-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["organizations", orgId] });
       queryClient.invalidateQueries({ queryKey: ["users", "unassigned"] });
@@ -205,6 +207,8 @@ export const CreateOrgMemberModal = ({
       onSuccess: (response: any) => {
         queryClient.invalidateQueries({ queryKey: ["organizations"] });
         queryClient.invalidateQueries({ queryKey: ["organizations", orgId] });
+        queryClient.invalidateQueries({ queryKey: ["organizations-list"] });
+        queryClient.invalidateQueries({ queryKey: ["user-organizations"] });
         queryClient.invalidateQueries({ queryKey: ["organization-members", orgId] });
         resetForm();
         if (onSuccess) {

@@ -9,8 +9,8 @@ import type { Role } from "../types";
 
 const RolesListPage = () => {
   const t = useTranslation();
-  const { hasAnyPermission, isStaff } = usePermissions();
-  const canManageRoles = hasAnyPermission(["org.manage_roles", "org.manage_settings"]) || isStaff;
+  const { hasAnyPermission } = usePermissions();
+  const canManageRoles = hasAnyPermission(["org.manage_roles", "org.manage_settings"]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null);

@@ -279,13 +279,7 @@ class TaskService:
         is_finished=False,
     ):
         # Validate that reporter is a project member (unless staff/superuser or org owner)
-        if (
-            project
-            and reporter
-            and not (
-                getattr(reporter, "is_staff", False) or getattr(reporter, "is_superuser", False)
-            )
-        ):
+        if project and reporter and not (getattr(reporter, "is_superuser", False)):
             from organizations.models import OrganizationMembership
             from organizations.services import PermissionService
             from projects.models import ProjectMember
@@ -512,7 +506,7 @@ class TaskService:
         from django.db.models import F
 
         # Permission check for moving tasks
-        if not actor.is_staff and not actor.is_superuser:
+        if not actor.is_superuser:
             org_id = str(task.project.organization_id) if task.project else None
             from organizations.services import PermissionService
 

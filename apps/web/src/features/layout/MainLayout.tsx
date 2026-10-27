@@ -23,7 +23,7 @@ export const MainLayout = () => {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
   const { hasAllPermissions, hasAnyPermission } = usePermissions();
-  const isStaff = user?.is_staff === true;
+  const isStaff = user?.is_superuser === true;
   const { pathname } = useLocation();
   const [isCommandMenuOpen, setCommandMenuOpen] = useState(false);
 

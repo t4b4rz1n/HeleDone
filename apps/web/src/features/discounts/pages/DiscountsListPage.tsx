@@ -26,7 +26,7 @@ type ViewMode = "grid" | "table";
 
 const DiscountsListPage = () => {
   const t = useTranslation();
-  const canManageDiscounts = useAuthStore((state) => state.user?.is_staff === true);
+  const canManageDiscounts = useAuthStore((state) => state.user?.is_superuser === true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [modalState, setModalState] = useState<{
     open: boolean;

@@ -342,8 +342,6 @@ const messages = {
   "Network Error": "ارتباط با سرور قطع شد. اینترنتت رو چک کن و دوباره امتحان کن.",
   "Request timed out. Please try again.": "پاسخ سرور طول کشید. دوباره امتحان کن.",
   "Token refresh returned no access token": "نشستت تمدید نشد. دوباره وارد حسابت شو.",
-  "Choose a Heledone avatar": "انتخاب آواتار هله‌دان",
-  "Choose avatar {number}": "انتخاب آواتار {number}",
   "Profile image could not be loaded.": "نتونستیم تصویر پروفایل رو بگیریم. دوباره امتحان کن.",
   "هله‌دان": "هله‌دان",
   "heledone": "heledone",

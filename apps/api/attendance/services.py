@@ -178,7 +178,7 @@ class TimeLogService:
             task.assignees.filter(id=user.id).exists()
             or getattr(task, "reporter", None) == user
             or getattr(user, "is_superuser", False)
-            or getattr(user, "is_staff", False)
+            or getattr(user, "is_superuser", False)
         ):
             can_start = True
         elif task.project:
@@ -209,7 +209,7 @@ class TimeLogService:
 
         # Org isolation check
         if task.project and task.project.organization_id:
-            if not user.is_staff and not user.is_superuser:
+            if not user.is_superuser:
                 is_member = user.org_memberships.filter(
                     organization_id=task.project.organization_id
                 ).exists()
@@ -571,7 +571,7 @@ class TimeOffRequestService:
         req = get_object_or_404(TimeOffRequest, id=request_id)
 
         # Check permissions explicitly in service using PermissionService
-        if not manager.is_staff and not manager.is_superuser:
+        if not manager.is_superuser:
             from organizations.services import PermissionService
 
             if not PermissionService.has_permission(
@@ -594,7 +594,7 @@ class TimeOffRequestService:
         req = get_object_or_404(TimeOffRequest, id=request_id)
 
         # Check permissions explicitly in service using PermissionService
-        if not manager.is_staff and not manager.is_superuser:
+        if not manager.is_superuser:
             from organizations.services import PermissionService
 
             if not PermissionService.has_permission(

@@ -275,6 +275,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       updateComment(id, content),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["taskComments", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["taskActivities", taskId] });
       setEditingCommentId(null);
       setEditingCommentText("");
       toast.success(t("دیدگاه با موفقیت ویرایش شد"));
@@ -288,6 +289,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
     mutationFn: (id: string | number) => deleteComment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["taskComments", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["taskActivities", taskId] });
       toast.success(t("دیدگاه با موفقیت حذف شد"));
     },
     onError: () => {
@@ -313,6 +315,13 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["standup-grid"] });
+      queryClient.invalidateQueries({ queryKey: ["attendanceTasks"] });
+      queryClient.invalidateQueries({ queryKey: ["myWeeklyTimesheet"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["home-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["executive-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-dashboard"] });
       setIsManualTimeOpen(false);
       setManualHours("0");
       setManualMinutes("0");

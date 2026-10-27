@@ -79,7 +79,12 @@ class CookieJWTAuthentication(JWTAuthentication):
     """Accept legacy Bearer headers or JWTs in HttpOnly cookies with CSRF checks."""
 
     def authenticate(self, request):
-        if uses_cookie_transport(request) and request.method not in ("GET", "HEAD", "OPTIONS", "TRACE"):
+        if uses_cookie_transport(request) and request.method not in (
+            "GET",
+            "HEAD",
+            "OPTIONS",
+            "TRACE",
+        ):
             enforce_csrf(request)
         return super().authenticate(request)
 

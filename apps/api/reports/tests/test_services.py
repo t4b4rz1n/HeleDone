@@ -270,7 +270,9 @@ def test_manager_admin_org_cache_invalidates_on_subordinate_task_change(clear_ca
 
 
 @pytest.mark.django_db
-def test_manager_team_lead_cache_unaffected_by_org_version_key(clear_cache, users, org_data):
+def test_manager_team_membership_change_bumps_org_version_without_changing_team_key(
+    clear_cache, users, org_data
+):
     """Team-scoped manager dashboards must keep using team_{id} version keys only."""
     from reports.services import ManagerDashboardService
 
@@ -299,17 +301,9 @@ def test_manager_team_lead_cache_unaffected_by_org_version_key(clear_cache, user
     team_version_after = cache.get(team_version_key, 1)
     org_version_after = cache.get(org_version_key, 1)
 
-    # Measured on 2026-08-13: org_data fixture leaves team_a at version 5;
-    # one TeamMembership save bumps team_a by 2 (5→7), not 1.  Cause: the
-    # TeamMembership signal calls _invalidate_manager(user_id=…) AND
-    # _invalidate_manager(team_id=…); the user_id path bumps every team the
-    # member belongs to (here team_b + team_a) and the team_id path bumps
-    # team_a again.  This double-bump predates the org-level cache fix and
-    # only affects performance (extra cache miss), not data correctness.
+    # Team membership changes invalidate org aggregate dashboards too.
     assert team_version_after - team_version_before == 2
-    assert org_version_after == org_version_before, (
-        "Team membership changes must not bump org-level manager cache versions."
-    )
+    assert org_version_after == org_version_before + 1
 
     dashboard2 = ManagerDashboardService.get_dashboard(user=lead, team_id=team.id, tz_name=tz)
     assert dashboard2["team_member_count"] == 3

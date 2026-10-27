@@ -48,7 +48,7 @@ class CanManageTickets(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
         return self._is_manager_in_any_org(user)
 
@@ -65,7 +65,7 @@ class CanManageTicketTypes(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         if request.method in permissions.SAFE_METHODS:

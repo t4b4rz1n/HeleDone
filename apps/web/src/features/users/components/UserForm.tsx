@@ -27,7 +27,7 @@ export const UserForm = ({
   const roles = rolesData?.results || [];
 
   const currentUser = useAuthStore((state) => state.user) as any;
-  const canEditStaff = !!currentUser?.is_staff;
+  const canEditStaff = !!currentUser?.is_superuser;
 
   const roleNameStr = (currentUser?.role_name || currentUser?.role?.name || "").toLowerCase();
   // Watch salary_type reactively — if backend returned a value, it won't be null after reset()

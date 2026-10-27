@@ -213,7 +213,8 @@ export default function OrganizationsPage() {
   const saveMutation = useMutation({
     mutationFn: ({ organization, payload }: { organization: Organization | null; payload: OrganizationPayload }) => organization ? updateOrganization(organization.id, payload) : createOrganization(payload),
     onSuccess: (_organization, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["organizations-list"] });
+      queryClient.invalidateQueries({ queryKey: ["user-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["project-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setModalOrganization(undefined);
@@ -225,7 +226,8 @@ export default function OrganizationsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteOrganization,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["organizations-list"] });
+      queryClient.invalidateQueries({ queryKey: ["user-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["project-organizations"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["teams"] });

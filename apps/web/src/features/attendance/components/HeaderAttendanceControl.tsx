@@ -10,8 +10,8 @@ export const HeaderAttendanceControl = () => {
   const t = useTranslation();
   const queryClient = useQueryClient();
   const [elapsed, setElapsed] = useState(0);
-  const { data: attendance } = useQuery({
-    queryKey: ['myTodayAttendance'],
+  const { data: attendance, isLoading: isAttendanceLoading } = useQuery({
+    queryKey: ['today-attendance'],
     queryFn: getTodayAttendance,
     refetchInterval: 30_000,
   });
@@ -41,16 +41,19 @@ export const HeaderAttendanceControl = () => {
       return checkIn(organizationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myTodayAttendance'] });
-      toast.success(t('ورود شما با موفقیت ثبت شد'));
+      queryClient.invalidateQueries({ queryKey: ['today-attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['home-dashboard'] });
     },
     onError: (error: any) => toast.error(translateError(error.response?.data?.detail || t('ثبت ورود ممکن نشد'))),
   });
   const checkOutMutation = useMutation({
     mutationFn: checkOut,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myTodayAttendance'] });
+      queryClient.invalidateQueries({ queryKey: ['today-attendance'] });
       toast.success(t('خروج شما با موفقیت ثبت شد'));
+      queryClient.invalidateQueries({ queryKey: ['employee-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['home-dashboard'] });
     },
     onError: (error: any) => toast.error(translateError(error.response?.data?.detail || t('ثبت خروج ممکن نشد'))),
   });
@@ -77,7 +80,7 @@ export const HeaderAttendanceControl = () => {
     <button
       type="button"
       onClick={() => checkInMutation.mutate()}
-      disabled={checkInMutation.isPending || organizations.length === 0}
+      disabled={isAttendanceLoading || checkInMutation.isPending || organizations.length === 0}
       className="hidden items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary transition hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-45 sm:inline-flex"
       title={t('کلیک برای ثبت ورود')}
     >

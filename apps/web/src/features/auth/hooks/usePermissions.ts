@@ -4,14 +4,14 @@ export const usePermissions = () => {
   const user = useAuthStore((state) => state.user);
 
   const hasPermission = (permission: string): boolean => {
-    if (user?.is_staff) {
+    if (user?.is_superuser) {
       return true;
     }
     return user?.role?.permissions?.includes(permission) ?? false;
   };
 
   const hasAnyPermission = (permissions: string[]): boolean => {
-    if (user?.is_staff) {
+    if (user?.is_superuser) {
       return true;
     }
 
@@ -23,7 +23,7 @@ export const usePermissions = () => {
   };
 
   const hasAllPermissions = (permissions: string[]): boolean => {
-    if (user?.is_staff) {
+    if (user?.is_superuser) {
       return true;
     }
 
@@ -39,6 +39,8 @@ export const usePermissions = () => {
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
-    isStaff: !!user?.is_staff,
+    // Kept for existing permission-gated UI callers; only superusers bypass the checks.
+    isStaff: !!user?.is_superuser,
+    isSuperuser: !!user?.is_superuser,
   };
 };

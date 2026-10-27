@@ -142,6 +142,7 @@ def invalidate_on_team_membership_change(sender, instance, **kwargs):
     _invalidate_employee(instance.user_id)
     _invalidate_manager(user_id=instance.user_id)
     _invalidate_manager(team_id=instance.team_id)
+    _invalidate_manager_org(instance.team.organization_id)
 
 
 @receiver([post_save, post_delete], sender=Milestone)

@@ -129,6 +129,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       // This is necessary because signals (e.g. Telegram notifications) may run synchronously
       // in EAGER mode and delay the DB commit of the activity log.
       queryClient.invalidateQueries({ queryKey: ['taskActivities', task.id] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-history'] });
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['taskActivities', task.id] });
       }, 800);
@@ -147,6 +149,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       setSelectedFile(null);
       queryClient.invalidateQueries({ queryKey: ['taskComments', task.id] });
       queryClient.invalidateQueries({ queryKey: ['taskActivities', task.id] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-history'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
@@ -200,8 +204,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     mutationFn: ({ id, text }: { id: number, text: string }) => updateComment(id, text),
     onSuccess: () => {
       setEditingCommentId(null);
-      setEditingCommentText('');
+      setEditingCommentText("");
       queryClient.invalidateQueries({ queryKey: ['taskComments', task.id] });
+      queryClient.invalidateQueries({ queryKey: ['taskActivities', task.id] });
     },
     onError: (error: any) => {
       toast.error(translateError(error.message || error.response?.data?.detail || 'Failed to update comment.'));
@@ -213,6 +218,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     onSuccess: () => {
       setDeletingCommentId(null);
       queryClient.invalidateQueries({ queryKey: ['taskComments', task.id] });
+      queryClient.invalidateQueries({ queryKey: ['taskActivities', task.id] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },

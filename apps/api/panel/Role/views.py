@@ -9,7 +9,7 @@ from organizations.constants import (
     SYSTEM_PERMISSIONS,
 )
 from organizations.models import Organization, OrganizationAuditLog, Permission, Role
-from organizations.services import AuditService
+from organizations.services import AuditService, PermissionService
 from panel.Role.permissions import CanManageRoles
 from panel.Role.serializers import (
     PermissionSerializer,
@@ -45,7 +45,7 @@ class RoleViewSet(viewsets.ViewSet):
             or request.headers.get("X-Organization-Id")
         )
         if raw_org_id:
-            if user.is_staff or user.is_superuser:
+            if user.is_superuser:
                 return Organization.objects.filter(id=raw_org_id, is_deleted=False).first()
             mem = user.org_memberships.filter(organization_id=raw_org_id, is_deleted=False).first()
             if mem and mem.organization:
@@ -58,7 +58,7 @@ class RoleViewSet(viewsets.ViewSet):
             if mem and mem.organization:
                 return mem.organization
 
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser:
             return Organization.objects.filter(is_deleted=False).first()
 
         return None
@@ -215,7 +215,7 @@ class RoleViewSet(viewsets.ViewSet):
             )
             .filter(pk=pk, is_deleted=False)
         )
-        if org and not (request.user.is_superuser or request.user.is_staff):
+        if org and not request.user.is_superuser:
             qs = qs.filter(organization=org)
         role = qs.first()
         if not role:
@@ -227,7 +227,7 @@ class RoleViewSet(viewsets.ViewSet):
     def update(self, request, pk=None):
         org = self._get_org(request)
         qs = Role.objects.filter(pk=pk, is_deleted=False)
-        if org and not (request.user.is_superuser or request.user.is_staff):
+        if org and not request.user.is_superuser:
             qs = qs.filter(organization=org)
         role = qs.first()
         if not role:
@@ -264,7 +264,7 @@ class RoleViewSet(viewsets.ViewSet):
     def partial_update(self, request, pk=None):
         org = self._get_org(request)
         qs = Role.objects.filter(pk=pk, is_deleted=False)
-        if org and not (request.user.is_superuser or request.user.is_staff):
+        if org and not request.user.is_superuser:
             qs = qs.filter(organization=org)
         role = qs.first()
         if not role:
@@ -302,7 +302,7 @@ class RoleViewSet(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         org = self._get_org(request)
         qs = Role.objects.filter(pk=pk, is_deleted=False)
-        if org and not (request.user.is_superuser or request.user.is_staff):
+        if org and not request.user.is_superuser:
             qs = qs.filter(organization=org)
         role = qs.first()
         if not role:
@@ -339,6 +339,13 @@ class RoleViewSet(viewsets.ViewSet):
         GET /panel/roles/permissions/
         """
         all_perms = Permission.objects.filter(is_deleted=False).order_by("module", "code")
+        if not request.user.is_superuser:
+            org = self._get_org(request)
+            if not org:
+                all_perms = all_perms.none()
+            else:
+                allowed = PermissionService.get_user_permissions(request.user, org.id)
+                all_perms = all_perms.filter(code__in=allowed)
 
         data = {
             "permissions": PermissionSerializer(all_perms, many=True).data,

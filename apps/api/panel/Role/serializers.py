@@ -1,6 +1,21 @@
 from rest_framework import serializers
 
 from organizations.models import Permission, Role
+from organizations.services import PermissionService
+
+
+def validate_role_permissions(codes, request, organization_id, existing_codes=()):
+    available = set(Permission.objects.filter(is_deleted=False).values_list("code", flat=True))
+    requested = set(codes)
+    if len(codes) != len(requested) or requested - available:
+        raise serializers.ValidationError("Invalid permission codes.")
+    if request and not request.user.is_superuser:
+        grantable = PermissionService.get_user_permissions(request.user, organization_id)
+        if (requested - set(existing_codes)) - grantable:
+            raise serializers.ValidationError(
+                "You can only grant permissions you hold in this organization."
+            )
+    return codes
 
 
 class PermissionSerializer(serializers.ModelSerializer):
@@ -47,6 +62,26 @@ class RoleCreateSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
         return value.strip()
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        org_id = attrs.get("organization_id") or (
+            request.data.get("organization_id") if request else None
+        )
+        if not org_id and request:
+            org_id = request.query_params.get("organization_id") or request.headers.get(
+                "X-Organization-Id"
+            )
+        if not org_id and request and not request.user.is_superuser:
+            membership = request.user.org_memberships.filter(is_deleted=False).first()
+            org_id = membership.organization_id if membership else None
+        if not org_id and not (request and request.user.is_superuser):
+            raise serializers.ValidationError(
+                {"organization_id": "Organization context is required."}
+            )
+        if "permissions" in attrs:
+            validate_role_permissions(attrs["permissions"], request, org_id)
+        return attrs
+
     def create(self, validated_data):
         permission_codes = validated_data.pop("permissions", [])
         org_id = validated_data.pop("organization_id", None)
@@ -63,12 +98,7 @@ class RoleCreateSerializer(serializers.ModelSerializer):
                 if mem:
                     org_id = mem.organization_id
 
-        if (
-            not org_id
-            and request
-            and request.user
-            and (request.user.is_superuser or request.user.is_staff)
-        ):
+        if not org_id and request and request.user and request.user.is_superuser:
             from organizations.models import Organization
 
             first_org = Organization.objects.filter(is_deleted=False).first()
@@ -96,6 +126,14 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ["name", "description", "permissions"]
+
+    def validate_permissions(self, value):
+        return validate_role_permissions(
+            value,
+            self.context.get("request"),
+            self.instance.organization_id,
+            self.instance.permissions.values_list("code", flat=True),
+        )
 
     def update(self, instance, validated_data):
         permission_codes = validated_data.pop("permissions", None)

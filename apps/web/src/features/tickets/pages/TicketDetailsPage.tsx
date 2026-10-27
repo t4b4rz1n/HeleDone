@@ -32,7 +32,7 @@ export default function TicketDetailsPage() {
   const t = useTranslation();
   const { id } = useParams<{ id: string }>();
   const ticketId = id || "";
-  const isStaff = useAuthStore((state) => state.user?.is_staff === true);
+  const isStaff = useAuthStore((state) => state.user?.is_superuser === true);
 
   const { data: ticket, isLoading: isLoadingTicket, isError: isErrorTicket } = useTicket(ticketId);
   const { data: messagesResponse, isLoading: isLoadingMessages } = useTicketMessages(

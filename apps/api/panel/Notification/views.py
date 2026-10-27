@@ -26,7 +26,7 @@ class CanSendBroadcastNotification(permissions.BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         # Allow users with org.manage_settings in any of their organizations

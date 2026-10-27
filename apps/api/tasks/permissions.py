@@ -6,7 +6,7 @@ def get_user_org_role(request, organization_id=None):
     user = request.user
     if not user or not user.is_authenticated:
         return None
-    if user.is_staff or user.is_superuser:
+    if user.is_superuser:
         return "owner"
 
     if not hasattr(request, "_user_org_roles_cache"):
@@ -186,7 +186,7 @@ def is_user_project_member(request, project_id):
     user = request.user
     if not user or not user.is_authenticated:
         return False
-    if user.is_staff or user.is_superuser:
+    if user.is_superuser:
         return True
     if not project_id:
         return False
@@ -227,7 +227,7 @@ class BaseMadaarPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
 
         # Allow detail routes/actions to pass through to check_object_permission
@@ -251,7 +251,7 @@ class BaseMadaarPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
 
         org_id = extract_organization_id(obj)
@@ -539,7 +539,7 @@ class IsAsyncStandupPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
 
         if getattr(view, "action", None) in ("update", "partial_update", "destroy"):
@@ -572,7 +572,7 @@ class IsAsyncStandupPermission(permissions.BasePermission):
 
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
         if getattr(obj, "user_id", None) == user.id:
             return True

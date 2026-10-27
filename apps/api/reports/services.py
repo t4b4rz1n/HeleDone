@@ -720,7 +720,7 @@ class ManagerDashboardService:
             return cls._get_team_member_user_ids(team_id)
 
         # Staff/superusers see everyone if no team_id is specified
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return list(
                 OrganizationMembership.objects.filter(is_deleted=False)
                 .values_list("user_id", flat=True)
@@ -801,7 +801,7 @@ class ManagerDashboardService:
         if team_id:
             managed_team_count = 1
             admin_org_ids_for_tasks = None
-        elif user.is_staff or user.is_superuser:
+        elif user.is_superuser:
             from organizations.models import Organization, Team
 
             managed_team_count = Team.objects.filter(is_deleted=False).count()

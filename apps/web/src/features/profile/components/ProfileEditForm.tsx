@@ -36,24 +36,6 @@ export const ProfileEditForm = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-  const [loadingAvatar, setLoadingAvatar] = useState(false);
-  const defaultAvatars = Array.from({ length: 10 }, (_, index) => `/images/heledone-assets/avatar-${String(index + 1).padStart(2, "0")}.png`);
-
-  const selectDefaultAvatar = async (url: string) => {
-    setLoadingAvatar(true);
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Avatar unavailable");
-      const blob = await response.blob();
-      const file = new File([blob], url.split("/").pop() || "heledone-avatar.png", { type: blob.type || "image/png" });
-      setProfileImage(file);
-      setProfileImagePreview(url);
-    } catch {
-      toast.error(t("Profile image could not be loaded."));
-    } finally {
-      setLoadingAvatar(false);
-    }
-  };
 
   const {
     control,
@@ -202,25 +184,6 @@ export const ProfileEditForm = () => {
             </button>
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" onChange={handleProfileImageChange} className="hidden" />
 
-            <div className="w-full border-t border-base-content/8 pt-4" >
-              <p className="mb-3 text-start text-xs font-bold text-heledone-ink-muted" >{t("Choose a Heledone avatar")}</p>
-              <div className="grid grid-cols-5 gap-2">
-                {defaultAvatars.map((url, index) => (
-                  <button key={url} type="button" disabled={loadingAvatar} onClick={() => void selectDefaultAvatar(url)} aria-label={t("Choose avatar {number}", { number: index + 1 })} aria-pressed={profileImagePreview === url} className={`overflow-hidden rounded-full border-2 transition hover:scale-105 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${profileImagePreview === url ? "border-primary ring-2 ring-primary/20" : "border-transparent"}`}>
-                    <img src={url} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-              {profileImage && (
-                <button
-                  type="submit"
-                  disabled={loadingAvatar || updateMutation.isPending}
-                  className="btn btn-sm btn-primary mt-3"
-                >
-                  {updateMutation.isPending ? t("Saving...") : t("Save Changes")}
-                </button>
-              )}
-            </div>
 
             <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-sm btn-outline rounded-lg bg-base-100 mb-4">
               {t("Update Photo")}</button>
@@ -417,7 +380,7 @@ export const ProfileEditForm = () => {
         <button
           type="submit"
           className="btn btn-neutral rounded-xl px-6 text-xs font-bold min-h-0 h-10"
-          disabled={loadingAvatar || updateMutation.isPending || (!isDirty && !profileImage)}
+          disabled={updateMutation.isPending || (!isDirty && !profileImage)}
         >
           {updateMutation.isPending ? (
             <span className="loading loading-spinner loading-xs"></span>

@@ -147,16 +147,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const effectiveProjectId = task.project || storeProjectId;
 
   const { data: users = [] } = useQuery({
-    queryKey: ["projectUsers", effectiveProjectId],
+    queryKey: ["projects", "detail", String(effectiveProjectId), "members"],
     queryFn: async () => {
       if (!effectiveProjectId) return [];
       const members = await getProjectMembers(effectiveProjectId.toString());
-      return (members || [])
-        .map((member: any) => member?.user)
-        .filter((u: any) => Boolean(u && u.id));
+      return (members || []).filter((user) => Boolean(user?.id));
     },
     enabled: Boolean(effectiveProjectId),
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const resolveCardAssignees = (t: Task, memberUsers: any[]): any[] => {

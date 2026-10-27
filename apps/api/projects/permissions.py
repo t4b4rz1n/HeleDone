@@ -108,7 +108,7 @@ class IsProjectOwnerOrOrgAdmin(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         user = request.user
-        if user.is_staff:
+        if user.is_superuser:
             return True
         if _is_project_owner(user, obj):
             return True
@@ -133,7 +133,7 @@ class CanCreateProject(permissions.BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff:
+        if user.is_superuser:
             return True
 
         # Extract the target organisation from the request payload
@@ -164,7 +164,7 @@ class CanManageProjectMember(_ProjectFromKwargsMixin):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff:
+        if user.is_superuser:
             return True
         project = self._get_project(view)
         if project is None:
@@ -192,7 +192,7 @@ class CanManageMilestone(_ProjectFromKwargsMixin):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff:
+        if user.is_superuser:
             return True
         project = self._get_project(view)
         if project is None:
@@ -222,7 +222,7 @@ class CanViewProjectActivity(_ProjectFromKwargsMixin):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_staff:
+        if user.is_superuser:
             return True
         project = self._get_project(view)
         if project is None:
@@ -245,7 +245,7 @@ class CanManageProjectFile(_ProjectFromKwargsMixin):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        if getattr(user, "is_superuser", False):
             return True
         project = self._get_project(view)
         if project is None:
@@ -264,7 +264,7 @@ class CanManageProjectFile(_ProjectFromKwargsMixin):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        if getattr(user, "is_superuser", False):
             return True
         if request.method in permissions.SAFE_METHODS:
             return True

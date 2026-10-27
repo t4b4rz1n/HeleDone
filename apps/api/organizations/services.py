@@ -22,7 +22,7 @@ class PermissionService:
         if not user or not user.is_authenticated or not organization_id:
             return set()
 
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser:
             from organizations.models import Permission
 
             return set(Permission.objects.filter(is_deleted=False).values_list("code", flat=True))
@@ -45,7 +45,8 @@ class PermissionService:
         user_perms = set()
 
         dynamic_roles = [
-            r for r in membership.dynamic_roles.all() if not getattr(r, "is_deleted", False)
+            r for r in membership.dynamic_roles.all()
+            if not getattr(r, "is_deleted", False) and r.organization_id == membership.organization_id
         ]
 
         if dynamic_roles:
@@ -84,7 +85,7 @@ class PermissionService:
         if not user or not user.is_authenticated:
             return False
 
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser:
             return True
 
         if not organization_id:

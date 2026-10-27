@@ -308,6 +308,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['activeTimers'] });
       queryClient.invalidateQueries({ queryKey: ['employee-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['myWeeklyTimesheet'] });
+      queryClient.invalidateQueries({ queryKey: ['home-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['executive-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['manager-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       queryClient.invalidateQueries({ queryKey: ['active-timer'] });
       queryClient.invalidateQueries({ queryKey: ['attendanceTasks'] });
       queryClient.invalidateQueries({ queryKey: ['live-activity'] });
@@ -350,6 +355,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['activeTimers'] });
       queryClient.invalidateQueries({ queryKey: ['employee-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['myWeeklyTimesheet'] });
+      queryClient.invalidateQueries({ queryKey: ['home-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['executive-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['manager-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       queryClient.invalidateQueries({ queryKey: ['active-timer'] });
       queryClient.invalidateQueries({ queryKey: ['standup-grid'] });
       queryClient.invalidateQueries({ queryKey: ['attendanceTasks'] });
