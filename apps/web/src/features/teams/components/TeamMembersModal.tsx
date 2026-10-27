@@ -183,7 +183,7 @@ export const TeamMembersModal = ({ team, isOpen, onClose }: TeamMembersModalProp
                       className="group flex items-center gap-3 rounded-2xl border border-base-content/10 bg-base-200/20 p-3.5 transition-colors duration-200 hover:border-base-content/15 hover:bg-base-200/60 sm:gap-4 sm:p-4"
                     >
                       <ProfileAvatar
-                        src={member.user_details?.avatar}
+                        src={member.user_details?.avatar_url || member.user_details?.avatar}
                         name={member.user_details?.username || `${member.user_details?.first_name || ""} ${member.user_details?.last_name || ""}`.trim() || member.user_details?.email}
                         className="size-10 shrink-0 overflow-hidden rounded-full"
                         fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary"

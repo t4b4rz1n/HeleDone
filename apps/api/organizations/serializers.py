@@ -2,6 +2,7 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from accounts.models import User
+from common.media import file_url
 from organizations.services import PermissionService
 
 from .models import Organization, OrganizationMembership
@@ -9,14 +10,18 @@ from .models import Organization, OrganizationMembership
 
 class OrganizationOwnerSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "full_name", "avatar")
+        fields = ("id", "username", "email", "full_name", "avatar", "avatar_url")
         read_only_fields = fields
 
     def get_full_name(self, obj):
         return obj.get_full_name()
+
+    def get_avatar_url(self, obj):
+        return file_url(obj.avatar, self.context.get("request"))
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -92,6 +97,7 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     avatar = serializers.ImageField(source="user.avatar", read_only=True)
+    avatar_url = serializers.SerializerMethodField(read_only=True)
     role_id = serializers.SerializerMethodField()
     role_name = serializers.SerializerMethodField()
     role_display = serializers.SerializerMethodField()
@@ -107,6 +113,7 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
             "email",
             "username",
             "avatar",
+            "avatar_url",
             "role",
             "role_id",
             "role_name",
@@ -128,6 +135,9 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return obj.user.get_full_name() if obj.user else ""
+
+    def get_avatar_url(self, obj):
+        return file_url(obj.user.avatar if obj.user else None, self.context.get("request"))
 
     def get_role_id(self, obj):
         dyn_role = self._get_dynamic_role(obj)

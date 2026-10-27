@@ -7,7 +7,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Task } from '../types';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { updateTask, getTaskComments, addComment, updateComment, deleteComment, getTaskChecklists, addChecklistItem, toggleChecklistItem, deleteTask, getTaskActivities, getProjectMembers } from '../api/tasksApi';
+import { updateTask, getTaskComments, addComment, updateComment, deleteComment, getTaskChecklists, addChecklistItem, toggleChecklistItem, deleteTask, getTaskActivities } from '../api/tasksApi';
+import { useProjectMembers } from '../../projects/hooks/useProjects';
+import { projectMemberUsers } from '../utils/projectMemberUsers';
 import { CloseSquare, TextalignLeft, Activity, Tag, TaskSquare, Paperclip2 } from 'iconsax-reactjs';
 import { getProjectMilestones } from '../../projects/api/projectsApi';
 
@@ -75,16 +77,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     queryFn: () => getTaskChecklists(task.id),
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['projects', 'detail', String(task.project), 'members'],
-    queryFn: async () => {
-      if (!task.project) return [];
-      const members = await getProjectMembers(task.project.toString());
-      // map { user: {...} } to just the user object
-      return members.map((m: any) => m.user).filter(Boolean);
-    },
-    enabled: !!task.project,
-  });
+  const { data: rawProjectMembers = [] } = useProjectMembers(task.project || '');
+  const users = React.useMemo(() => projectMemberUsers(rawProjectMembers), [rawProjectMembers]);
 
   useEffect(() => {
     if (task.assignees_detail && task.assignees_detail.length > 0) {
@@ -727,7 +721,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
                                   {typeof item.attached_file_url === 'string' && (
                                     <div className="mt-4 pt-3 border-t border-base-content/10">
-                                      {item.attached_file_url.match(/\.(jpeg|jpg|gif|png)$/i) != null ? (
+                                      {/\.(jpeg|jpg|gif|png|webp)(?:[?#]|$)/i.test(item.attached_file_url) ? (
                                         <a href={item.attached_file_url} target="_blank" rel="noreferrer" className="block w-48 h-32 rounded-lg overflow-hidden border border-base-content/10 hover:border-primary/50 transition-colors">
                                           <img src={item.attached_file_url} alt={t("Attachment")} className="w-full h-full object-cover" />
                                         </a>

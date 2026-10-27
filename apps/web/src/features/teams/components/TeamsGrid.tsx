@@ -116,7 +116,7 @@ export const TeamsGrid = ({
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {team.leader_details ? (
                     <ProfileAvatar
-                      src={team.leader_details.avatar}
+                      src={team.leader_details.avatar_url || team.leader_details.avatar}
                       name={team.leader_details.username || `${team.leader_details.first_name} ${team.leader_details.last_name}`}
                       className="size-7 shrink-0 overflow-hidden rounded-full"
                       fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"

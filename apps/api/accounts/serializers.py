@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
+from common.media import file_url
 from organizations.constants import TEAM_LEAD_PERMISSIONS
 from organizations.models import OrganizationMembership, Team
 from organizations.services import (
@@ -41,12 +42,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ("username", "email", "telegram_connected")
 
     def get_avatar_url(self, obj):
-        if not obj.avatar:
-            return None
-
-        request = self.context.get("request")
-        image_url = obj.avatar.url
-        return request.build_absolute_uri(image_url) if request else image_url
+        return file_url(obj.avatar, self.context.get("request"))
 
     def get_telegram_connected(self, obj):
         try:

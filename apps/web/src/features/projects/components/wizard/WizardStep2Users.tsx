@@ -91,7 +91,7 @@ export const WizardStep2Users: React.FC = () => {
                   } ${locked ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <ProfileAvatar
-                    src={m.avatar}
+                    src={m.avatar_url || m.avatar}
                     name={m.full_name || m.email}
                     className="size-9 shrink-0 overflow-hidden rounded-full"
                     fallbackClassName={`flex size-full items-center justify-center rounded-full text-xs font-bold text-white ${locked ? "bg-[#087F83]" : "bg-[#52666C]"}`}

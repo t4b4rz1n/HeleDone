@@ -335,7 +335,7 @@ function MemberDetails({
       </button>
       <div className="flex items-center gap-3 pe-9">
         <ProfileAvatar
-          src={member.user?.avatar}
+          src={member.user?.avatar_url || member.user?.avatar}
           name={name}
           className="size-12 shrink-0 overflow-hidden rounded-2xl shadow-lg shadow-secondary/20"
           fallbackClassName="flex size-full items-center justify-center rounded-2xl bg-secondary text-sm font-black text-secondary-content"
@@ -454,7 +454,7 @@ function ClusterDetails({
             >
               {member.user ? (
                 <ProfileAvatar
-                  src={member.user.avatar}
+                  src={member.user?.avatar_url || member.user?.avatar}
                   name={name}
                   className="size-9 shrink-0 overflow-hidden rounded-xl"
                   fallbackClassName="flex size-full items-center justify-center rounded-xl bg-secondary text-[13px] font-black text-secondary-content"
@@ -1084,7 +1084,7 @@ export function OrbitView({
                               >
                                 {member.user ? (
                                   <ProfileAvatar
-                                    src={member.user.avatar}
+                                    src={member.user?.avatar_url || member.user?.avatar}
                                     name={name}
                                     className="size-full overflow-hidden rounded-[inherit]"
                                     fallbackClassName="flex size-full items-center justify-center rounded-[inherit] bg-secondary text-[10px] font-black text-secondary-content"

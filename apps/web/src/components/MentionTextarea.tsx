@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "../i18n/locale";
 import { getHeledoneAvatar } from "../utils/avatarUtils";
+import ProfileAvatar from "./ProfileAvatar";
 import { normalizeProjectMembers, type MentionUser } from "../utils/mentionUtils";
 import {
   computeMentionPopupPosition,
@@ -397,10 +398,10 @@ export const MentionTextarea = React.forwardRef<
                               : "text-base-content hover:bg-base-200/60"
                           }`}
                         >
-                          <img
+                          <ProfileAvatar
                             src={avatarSrc}
-                            alt={member.username}
-                            className="size-7 shrink-0 rounded-full object-cover ring-1 ring-base-content/10"
+                            name={member.displayName || member.username}
+                            className="size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/10"
                           />
                           <div className="flex flex-col min-w-0 flex-1">
                             <span className="truncate text-xs font-bold leading-tight">

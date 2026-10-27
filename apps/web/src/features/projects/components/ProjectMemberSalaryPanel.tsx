@@ -197,7 +197,7 @@ export const ProjectMemberSalaryPanel = ({
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <ProfileAvatar
-                        src={member.user?.avatar}
+                        src={member.user?.avatar_url || member.user?.avatar}
                         name={displayName}
                         className="size-10 shrink-0 overflow-hidden rounded-full ring-2 ring-base-content/10"
                         fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary"

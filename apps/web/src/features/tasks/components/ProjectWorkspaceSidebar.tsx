@@ -364,51 +364,54 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
           </div>
 
           {/* 3. Team Members Section */}
-          {!collapsed && (
-            <div>
-              <div className="mb-1.5 flex items-center justify-between px-1">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-heledone-ink-muted">
-                  <Users size={13} className="text-secondary" />
-                  <span>{t('اعضای تیم')}</span>
-                </span>
-                <span className="text-[10px] font-bold text-heledone-ink-muted">
-                  {formatUiNumber(members.length)}
-                </span>
-              </div>
-              <div className="space-y-1">
-                {members.slice(0, 6).map((member) => {
-                  const user = member.user || (member as any).user_details;
-                  const name =
-                    user?.full_name ||
-                    (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '') ||
-                    user?.username ||
-                    member.team?.name ||
-                    t('User');
-                  const avatar = user?.avatar || (user as any)?.avatar_url || (user as any)?.profile_image_url;
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-base-200/50 transition-colors"
-                      title={name}
-                    >
-                      {user ? (
-                        <ProfileAvatar src={avatar} name={name} className="size-6 shrink-0 overflow-hidden rounded-full border border-base-200" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary" />
-                      ) : (
-                        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-heledone-ink-muted"><Users size={12} /></span>
-                      )}
-                      <span className="truncate text-xs font-semibold text-base-content/90">{name}</span>
-                    </div>
-                  );
-                })}
+          {!collapsed && (() => {
+            const validMembers = members.filter((member: any) => Boolean(member.user || member.team || member.username || member.first_name));
+            return (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between px-1">
+                  <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-heledone-ink-muted">
+                    <Users size={13} className="text-secondary" />
+                    <span>{t('اعضای تیم')}</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-heledone-ink-muted">
+                    {formatUiNumber(validMembers.length)}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {validMembers.slice(0, 10).map((member: any) => {
+                    const user = member.user || (member.username || member.email ? member : (member as any).user_details);
+                    const name =
+                      user?.full_name ||
+                      (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '') ||
+                      user?.username ||
+                      member.team?.name ||
+                      t('User');
+                    const avatar = user?.avatar_url || user?.avatar || (user as any)?.profile_image_url;
+                    return (
+                      <div
+                        key={member.id || user?.id}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-base-200/50 transition-colors"
+                        title={name}
+                      >
+                        {user ? (
+                          <ProfileAvatar src={avatar} name={name} className="size-6 shrink-0 overflow-hidden rounded-full border border-base-200" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary" />
+                        ) : (
+                          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-base-200 text-[10px] font-bold text-heledone-ink-muted"><Users size={12} /></span>
+                        )}
+                        <span className="truncate text-xs font-semibold text-base-content/90">{name}</span>
+                      </div>
+                    );
+                  })}
 
-                {members.length === 0 && (
-                  <div className="px-2 py-2 text-[11px] text-heledone-ink-muted">
-                    {t('عضوی در این پروژه ثبت نشده است')}
-                  </div>
-                )}
+                  {validMembers.length === 0 && (
+                    <div className="px-2 py-2 text-[11px] text-heledone-ink-muted">
+                      {t('عضوی در این پروژه ثبت نشده است')}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* ─── Bottom Project Settings ─── */}

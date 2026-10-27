@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from common.media import file_url
 from panel.Notification.models import Notification
 
 
@@ -22,5 +23,4 @@ class NotificationSerializer(serializers.ModelSerializer):
         sender = get_user_model().objects.filter(id=sender_id).only("avatar").first()
         if not sender or not sender.avatar:
             return None
-        request = self.context.get("request")
-        return request.build_absolute_uri(sender.avatar.url) if request else sender.avatar.url
+        return file_url(sender.avatar, self.context.get("request"))

@@ -1,13 +1,19 @@
 from rest_framework import serializers
 
 from accounts.models import User
+from common.media import file_url
 from organizations.models import Organization, Team, TeamMembership
 
 
 class LeaderDetailsSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ("id", "username", "first_name", "last_name", "email", "avatar")
+        fields = ("id", "username", "first_name", "last_name", "email", "avatar", "avatar_url")
+
+    def get_avatar_url(self, obj):
+        return file_url(obj.avatar, self.context.get("request"))
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -47,7 +53,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def get_leader_details(self, obj):
         if obj.leader:
-            return LeaderDetailsSerializer(obj.leader).data
+            return LeaderDetailsSerializer(obj.leader, context=self.context).data
         return None
 
     def create(self, validated_data):

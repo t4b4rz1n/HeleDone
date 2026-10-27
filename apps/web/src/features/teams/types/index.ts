@@ -6,6 +6,7 @@ export interface UserBasicInfo {
   username?: string;
   email?: string;
   avatar?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface Team {
@@ -35,6 +36,7 @@ export interface TeamMemberUser {
   username?: string;
   email: string;
   avatar: string | null;
+  avatar_url?: string | null;
 }
 
 export interface TeamMember {

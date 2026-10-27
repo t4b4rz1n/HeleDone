@@ -284,7 +284,7 @@ export default function OrganizationDetailPage() {
                   }}
                   className={`heledone-surface group relative flex items-center gap-4 rounded-2xl border border-base-content/10 bg-base-200/25 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-base-100 hover:shadow-heledone-raised ${hasPermission("org.manage_members") ? "cursor-pointer" : ""}`}
                 >
-                  <ProfileAvatar src={member.avatar} name={getUserDisplayName(member)} className="size-10 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary" />
+                  <ProfileAvatar src={member.avatar_url || member.avatar} name={getUserDisplayName(member)} className="size-10 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {getUserDisplayName(member)}

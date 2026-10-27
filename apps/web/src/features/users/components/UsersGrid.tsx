@@ -1,4 +1,5 @@
 import { useTranslation } from "../../../i18n/locale";
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { CoastalEmptyState } from "../../../components/CoastalEmptyState";
 import { motion } from "motion/react";
 import {
@@ -7,7 +8,6 @@ import {
   Edit,
   Message,
   Trash,
-  User as UserIcon,
   Verify,
 } from "iconsax-reactjs";
 import { useState } from "react";
@@ -128,18 +128,11 @@ export const UsersGrid = ({
               <div className="flex items-center gap-4 mb-5">
                 <div className="relative shrink-0">
                   <div className="w-14 h-14 rounded-full overflow-hidden bg-primary/5 flex items-center justify-center border border-base-content/10 shadow-sm ring-2 ring-base-content/5">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.username}
-                        className="w-full h-full object-cover"
+                    <ProfileAvatar
+                      src={user.avatar_url || user.avatar}
+                      name={[user.first_name, user.last_name].filter(Boolean).join(' ') || user.username}
+                      className="size-full overflow-hidden rounded-full"
                     />
-                  ) : (
-                    <UserIcon
-                      className="w-7 h-7 text-primary"
-                      variant="Bold"
-                    />
-                  )}
                   </div>
                   <span className="absolute -bottom-0.5 -end-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-base-100 bg-success" />
                 </div>

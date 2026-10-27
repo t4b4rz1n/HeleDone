@@ -12,6 +12,7 @@ export interface User {
   role_id: string | null;  // UUID
   role_name?: string | null;
   avatar: string | null;
+  avatar_url?: string | null;
   organization?: { id: string; name: string } | null;
   salary_type?: 'monthly' | 'hourly' | null;
   salary_amount?: string | null;
