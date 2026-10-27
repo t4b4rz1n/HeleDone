@@ -11,6 +11,8 @@ import type {
   User,
   PaginatedResponse,
 } from '../types';
+import type { ProjectMember } from '../../projects/types';
+
 
 // Helper to extract data from various response shapes (DRF vs Custom ApiResponse)
 const extractData = <T>(res: any): T[] => {
@@ -43,8 +45,18 @@ export const deleteBoard = async (boardId: string): Promise<void> => {
 };
 
 export const getProjectMembers = async (projectId: string): Promise<User[]> => {
-  const res = await ApiService.get<PaginatedResponse<User> | User[]>(`/projects/${projectId}/members/`);
-  return extractData<User>(res);
+  const res = await ApiService.get<PaginatedResponse<ProjectMember> | ProjectMember[]>(`/projects/${projectId}/members/`);
+  return extractData<ProjectMember>(res)
+    .map((member) => member.user)
+    .filter((user): user is NonNullable<ProjectMember['user']> => Boolean(user))
+    .map((user) => ({
+      id: Number(user.id),
+      username: user.username ?? '',
+      email: user.email ?? '',
+      first_name: user.first_name ?? '',
+      last_name: user.last_name ?? '',
+      avatar: user.avatar ?? undefined,
+    }));
 };
 
 export const getTasks = async (projectId?: string, boardId?: string, pageSize = 100): Promise<Task[]> => {
