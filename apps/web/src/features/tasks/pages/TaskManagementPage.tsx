@@ -73,7 +73,12 @@ export const TaskManagementPage: React.FC = () => {
   }, [searchParams, setActiveProject, setActiveBoard, setSelectedTaskId, setViewMode, setSearchParams]);
 
   // Queries
-  const { data: projects = [] } = useProjects();
+  const {
+    data: projects = [],
+    isError: projectsFailed,
+    error: projectsError,
+    refetch: refetchProjects,
+  } = useProjects();
 
   // Auto-select first project if none selected
   useEffect(() => {
@@ -82,20 +87,25 @@ export const TaskManagementPage: React.FC = () => {
     }
   }, [activeProjectId, projects, setActiveProject]);
 
-  const { data: boards = [] } = useQuery({
+  const { data: boards = [], isError: boardsFailed, error: boardsError, refetch: refetchBoards } = useQuery({
     queryKey: ['boards', activeProjectId],
     queryFn: () => getBoards(activeProjectId!),
     enabled: Boolean(activeProjectId),
   });
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], isError: tasksFailed, error: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', activeProjectId, activeBoardId],
     queryFn: () => getTasks(activeProjectId || undefined, activeBoardId || undefined),
     enabled: Boolean(activeProjectId),
   });
 
 
-  const { data: projectMembers = [] } = useProjectMembers(activeProjectId || '');
+  const {
+    data: projectMembers = [],
+    isError: membersFailed,
+    error: membersError,
+    refetch: refetchMembers,
+  } = useProjectMembers(activeProjectId || '');
   const members = useMemo(() => projectMemberUsers(projectMembers), [projectMembers]);
 
   // Auto-select board
@@ -124,9 +134,7 @@ export const TaskManagementPage: React.FC = () => {
       setIsCreateBoardOpen(false);
       toast.success(t('کانبان ساخته شد'));
     },
-    onError: (error: any) => {
-      toast.error(translateError(error?.response?.data?.detail || t('ساخت کانبان ممکن نشد')));
-    },
+    onError: (error: any) => toast.error(translateError(error, 'ساخت کانبان ممکن نشد')),
   });
 
   return (
@@ -149,6 +157,23 @@ export const TaskManagementPage: React.FC = () => {
 
       {/* ─── 2. Main Workspace Canvas ─── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-base-100">
+        {(projectsFailed || boardsFailed || tasksFailed || membersFailed) && (
+          <div role="alert" className="flex shrink-0 items-center justify-between gap-3 border-b border-error/20 bg-error/5 px-4 py-2.5 text-xs text-error">
+            <span>{translateError(projectsError || boardsError || tasksError || membersError, "Could not load project workspace.")}</span>
+            <button
+              type="button"
+              onClick={() => {
+                void refetchBoards();
+                void refetchTasks();
+                void refetchMembers();
+                void refetchProjects();
+              }}
+              className="shrink-0 rounded-lg px-2.5 py-1 font-bold hover:bg-error/10"
+            >
+              {t("تلاش دوباره")}
+            </button>
+          </div>
+        )}
         {/* Workspace View Area */}
         <div className="flex-1 overflow-hidden relative bg-base-200/50">
           {!activeBoardId && boards.length === 0 ? (
@@ -173,7 +198,7 @@ export const TaskManagementPage: React.FC = () => {
             <ProjectFilesView
               tasks={tasks}
               activeProjectId={activeProjectId}
-              members={members}
+              members={projectMembers}
               targetFileId={targetFileId}
               onSelectTask={(task) => setSelectedTaskId(String(task.id))}
             />

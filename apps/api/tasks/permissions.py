@@ -180,6 +180,8 @@ def is_user_project_member(request, project_id):
     if not project_id:
         return False
 
+    from django.db.models import Q
+
     from organizations.services import PermissionService
     from projects.models import Project, ProjectMember
 
@@ -201,9 +203,19 @@ def is_user_project_member(request, project_id):
 
     if not hasattr(request, "_user_project_memberships_cache"):
         p_ids = set(
-            ProjectMember.objects.filter(user=user, is_active=True, is_deleted=False).values_list(
-                "project_id", flat=True
+            ProjectMember.objects.filter(is_active=True, is_deleted=False)
+            .filter(
+                Q(user_id=user.id)
+                | Q(
+                    team__memberships__user_id=user.id,
+                    team__is_deleted=False,
+                    team__memberships__is_deleted=False,
+                    team__memberships__user__is_active=True,
+                    team__memberships__user__is_deleted=False,
+                )
             )
+            .values_list("project_id", flat=True)
+            .distinct()
         )
         request._user_project_memberships_cache = {str(pid) for pid in p_ids}
 

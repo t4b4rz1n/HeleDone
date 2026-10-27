@@ -141,20 +141,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         setSpecialty("");
         setAllocation(100);
       },
-      onError: (err: any) => {
-        const responseData = err?.response?.data || err?.data || err;
-        let errorMsg = t("Could not add member to project.");
-        if (typeof responseData === "object" && responseData !== null) {
-          errorMsg =
-            responseData.message ||
-            responseData.detail ||
-            responseData.user_id?.[0] ||
-            responseData.team_id?.[0] ||
-            responseData.non_field_errors?.[0] ||
-            errorMsg;
-        }
-        toast.error(translateError(String(errorMsg)));
-      },
+      onError: (error: unknown) =>
+        toast.error(translateError(error, "Could not add member to project.")),
     });
   };
 
@@ -465,8 +453,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   queryClient.invalidateQueries({ queryKey: ["projects"] });
                   onClose();
                 },
-                onError: () => {
-                  toast.warning(t("User created but could not be added to project automatically"));
+                onError: (error: unknown) => {
+                  toast.warning(translateError(error, "User created but could not be added to project automatically"));
                   queryClient.invalidateQueries({ queryKey: ["users-list"] });
                 },
               }

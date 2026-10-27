@@ -16,6 +16,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getErrorMessage as translateError } from '../../../core/utils/errorHandler';
 import { useTranslation, formatNumber as formatUiNumber } from '../../../i18n/locale';
 import { updateTask, deleteTask, createTask } from '../api/tasksApi';
 import { usePermissions } from '../../auth/hooks/usePermissions';
@@ -66,8 +67,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast.success(t('تسک به‌روزرسانی شد'));
     },
-    onError: () => {
-      toast.error(t('خطا در به‌روزرسانی تسک'));
+    onError: (error: unknown) => {
+      toast.error(translateError(error, 'خطا در به‌روزرسانی تسک'));
     },
   });
 
@@ -83,8 +84,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       setQuickAddTitle('');
       toast.success(t('تسک اضافه شد'));
     },
-    onError: () => {
-      toast.error(t('خطا در ثبت تسک'));
+    onError: (error: unknown) => {
+      toast.error(translateError(error, 'خطا در ثبت تسک'));
     },
   });
 
@@ -100,8 +101,8 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       setSelectedTaskIds(new Set());
       toast.success(t('تسک‌های انتخاب‌شده حذف شدند'));
     },
-    onError: () => {
-      toast.error(t('خطا در حذف گروهی تسک‌ها'));
+    onError: (error: unknown) => {
+      toast.error(translateError(error, 'خطا در حذف گروهی تسک‌ها'));
     },
   });
 

@@ -1,6 +1,7 @@
 import ProfileAvatar from "../../../components/ProfileAvatar";
 import { formatNumber as formatUiNumber } from "../../../i18n/locale";
 import { getIntlLocale, t as translate, useTranslation, useLocale } from "../../../i18n/locale";
+import { getErrorMessage as translateError } from "../../../core/utils/errorHandler";
 import { formatDisplayDate } from "../../../utils/date";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -46,6 +47,8 @@ import { getUnlinkedTasks, getTask, getMilestoneTasks } from "../../tasks/api/ta
 import { TaskSheet } from "../../tasks/components/TaskSheet";
 import { ViewSwitcher } from "../../../components/ViewSwitcher";
 import { OrbitView } from "../components/OrbitView";
+import { CreateEditProjectModal } from "../components/CreateEditProjectModal";
+import { MoreHorizontal, Pencil } from "lucide-react";
 
 type TabType = "overview" | "members" | "milestones" | "activity" | "analytics" | "reports" | "salaries" | "billing";
 
@@ -596,6 +599,8 @@ export default function ProjectDetailsPage() {
     }
   }, [searchParams, activeTab, setSelectedTaskId, setSearchParams]);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [isProjectActionsOpen, setIsProjectActionsOpen] = useState(false);
   const [isCreateMilestoneOpen, setIsCreateMilestoneOpen] = useState(false);
   const [deleteModalState, setDeleteModalState] = useState<{
     open: boolean;
@@ -606,11 +611,19 @@ export default function ProjectDetailsPage() {
   const {
     data: project,
     isLoading: isProjectLoading,
+    isError: isProjectError,
+    error: projectError,
     refetch: refetchProject,
   } = useProject(id || "");
-  const { data: members = [], refetch: refetchMembers } = useProjectMembers(id || "");
-  const { data: milestones = [], refetch: refetchMilestones } = useProjectMilestones(id || "");
-  const { data: activities = [], refetch: refetchActivities } = useProjectActivities(id || "");
+  const {
+    data: members = [], isError: membersFailed, error: membersError, refetch: refetchMembers,
+  } = useProjectMembers(id || "");
+  const {
+    data: milestones = [], isError: milestonesFailed, error: milestonesError, refetch: refetchMilestones,
+  } = useProjectMilestones(id || "");
+  const {
+    data: activities = [], isError: activitiesFailed, error: activitiesError, refetch: refetchActivities,
+  } = useProjectActivities(id || "");
 
   const removeMemberMutation = useRemoveProjectMember(id || "");
 
@@ -639,8 +652,8 @@ export default function ProjectDetailsPage() {
           refetchMembers();
           refetchProject();
         },
-        onError: () => {
-          toast.error(t("Could not remove member."));
+        onError: (error: unknown) => {
+          toast.error(translateError(error, "Could not remove member."));
         },
       });
     }
@@ -650,6 +663,21 @@ export default function ProjectDetailsPage() {
     return (
       <div className="flex min-h-[300px] items-center justify-center">
         <span className="loading loading-spinner loading-md text-primary"></span>
+      </div>
+    );
+  }
+
+  if (isProjectError) {
+    return (
+      <div role="alert" className="mx-auto mt-10 flex max-w-xl flex-col items-center gap-3 rounded-2xl border border-error/25 bg-error/5 p-8 text-center">
+        <p className="text-sm font-semibold text-error">{translateError(projectError, "Could not load project.")}</p>
+        <button
+          type="button"
+          onClick={() => refetchProject()}
+          className="inline-flex h-9 items-center rounded-xl bg-primary px-4 text-xs font-bold text-primary-content"
+        >
+          {t("Try again")}
+        </button>
       </div>
     );
   }
@@ -704,7 +732,7 @@ export default function ProjectDetailsPage() {
   return (
     <div key={id} className="space-y-5 pb-10">
       {/* Top Header */}
-      <div className="heledone-page-heading flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="heledone-page-heading flex flex-col justify-between gap-4 min-[520px]:flex-row min-[520px]:items-center">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             onClick={() => navigate("/projects")}
@@ -727,17 +755,43 @@ export default function ProjectDetailsPage() {
                 {project.name}
               </h1>
               {canManageProject ? (
-                <StatusDropdown
-                  currentStatus={project.status}
-                  onChange={(s) => {
-                    if (!project) return;
-                    updateProjectMutation.mutate({ id: project.id, data: { status: s } }, {
-                      onSuccess: () => toast.success(t("Project status updated.")),
-                      onError: () => toast.error(t("Failed to update status."))
-                    });
-                  }}
-                  disabled={updateProjectMutation.isPending}
-                />
+                <div className="relative flex items-center gap-1.5">
+                  <StatusDropdown
+                    currentStatus={project.status}
+                    onChange={(s) => {
+                      if (!project) return;
+                      updateProjectMutation.mutate({ id: project.id, data: { status: s } }, {
+                        onSuccess: () => toast.success(t("Project status updated.")),
+                        onError: (error: unknown) => toast.error(translateError(error, "Failed to update status."))
+                      });
+                    }}
+                    disabled={updateProjectMutation.isPending}
+                  />
+                  <button
+                    type="button"
+                    aria-label={t("Edit project")}
+                    aria-expanded={isProjectActionsOpen}
+                    onClick={() => setIsProjectActionsOpen((open) => !open)}
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-base-content/10 bg-base-100 text-heledone-ink-muted transition hover:bg-base-200 hover:text-base-content"
+                  >
+                    <MoreHorizontal size={17} />
+                  </button>
+                  {isProjectActionsOpen && (
+                    <div className="absolute end-0 top-full z-30 mt-1 min-w-40 rounded-xl border border-base-content/10 bg-base-100 p-1 shadow-lg">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProjectActionsOpen(false);
+                          setIsEditProjectOpen(true);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-start text-xs font-semibold text-base-content hover:bg-base-200"
+                      >
+                        <Pencil size={14} />
+                        {t("Edit project")}
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
@@ -756,15 +810,34 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenTasksBoard}
-          className="inline-flex h-9 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-white shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all self-start sm:self-auto shrink-0"
-        >
-          <TaskSquare size={16} />
-          <span>{t("Open Tasks Board")}</span>
-        </button>
+        <div className="project-details-header-actions ms-auto flex items-center">
+          <button
+            type="button"
+            onClick={handleOpenTasksBoard}
+            className="motion-interactive inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-bold text-primary-content shadow-md shadow-primary/15 transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <TaskSquare size={16} />
+            <span>{t("Open Tasks Board")}</span>
+          </button>
+        </div>
       </div>
+
+      {(membersFailed || milestonesFailed || activitiesFailed) && (
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-error/20 bg-error/5 px-4 py-3 text-xs text-error">
+          <span>{translateError(membersError || milestonesError || activitiesError, "Could not load project details.")}</span>
+          <button
+            type="button"
+            onClick={() => {
+              void refetchMembers();
+              void refetchMilestones();
+              void refetchActivities();
+            }}
+            className="shrink-0 rounded-lg px-2.5 py-1 font-bold hover:bg-error/10"
+          >
+            {t("Try again")}
+          </button>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-base-content/8 bg-base-100 p-1">
@@ -1179,6 +1252,11 @@ export default function ProjectDetailsPage() {
             )
             : undefined
         }
+      />
+      <CreateEditProjectModal
+        isOpen={isEditProjectOpen}
+        onClose={() => setIsEditProjectOpen(false)}
+        project={project ?? null}
       />
       <CreateMilestoneModal
         isOpen={isCreateMilestoneOpen}

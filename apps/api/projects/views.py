@@ -30,6 +30,16 @@ from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+
+from common.mentions import (
+    MAX_MENTIONS_PER_MESSAGE,
+    USERNAME_REGEX,
+    MentionLimitExceeded,
+    get_project_mention_users,
+    validate_mention_limit,
+)
+from common.throttling import MentionRateThrottle
 
 from .filters import (
     MilestoneFilter,
@@ -122,6 +132,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name", "status", "deadline", "created_at", "updated_at"]
     ordering = ["-updated_at"]
     pagination_class = None
+    throttle_classes = [AnonRateThrottle, UserRateThrottle, MentionRateThrottle]
 
     # -- Permissions -------------------------------------------------------
 
@@ -259,11 +270,42 @@ class ProjectViewSet(viewsets.ModelViewSet):
         message = request.data.get("message", "")
         usernames = request.data.get("usernames", [])
 
-        # If usernames are not explicitly supplied, extract from message
-        if not usernames and message:
-            import re
+        if not isinstance(message, str):
+            return Response(
+                {"error": "Message must be a string."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            usernames = re.findall(r"@([\w.-]+)", message)
+        # The message text is authoritative whenever supplied. This prevents a
+        # client from notifying arbitrary users through a forged usernames list.
+        if message:
+            try:
+                usernames = validate_mention_limit(message)
+            except MentionLimitExceeded as exc:
+                return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if isinstance(usernames, str):
+            usernames = [usernames]
+        elif not isinstance(usernames, (list, tuple, set)):
+            return Response(
+                {"error": "Usernames must be provided as a list of usernames."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        normalized_usernames = []
+        for username in usernames:
+            normalized = str(username).strip().removeprefix("@").casefold()
+            if USERNAME_REGEX.fullmatch(normalized):
+                normalized_usernames.append(normalized)
+        usernames = list(dict.fromkeys(normalized_usernames))
+        if len(usernames) > MAX_MENTIONS_PER_MESSAGE:
+            return Response(
+                {"error": f"You can mention at most {MAX_MENTIONS_PER_MESSAGE} users in one message."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            usernames = validate_mention_limit(" ".join(f"@{name}" for name in usernames))
+        except MentionLimitExceeded as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not usernames:
             return Response(
@@ -271,25 +313,40 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        lower_usernames = [u.lower() for u in usernames]
-        from django.contrib.auth import get_user_model
-        from django.db.models.functions import Lower
-
         from automations.events import EventDispatcher
 
-        User = get_user_model()
-        mentioned_users = list(
-            User.objects.annotate(lower_uname=Lower("username"))
-            .filter(lower_uname__in=lower_usernames, is_active=True)
-            .filter(project_memberships__project=project, project_memberships__is_deleted=False)
-            .distinct()
-        )
+        mentioned_users = get_project_mention_users(project, usernames)
 
         if not mentioned_users:
             return Response(
                 {"error": "No matching active users found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        # Direct project files persist the note through this POST action. This
+        # lets project members send mentions without requiring file-edit access
+        # or issuing a PATCH against the file resource.
+        if file_id:
+            try:
+                project_file = ProjectFile.objects.filter(
+                    pk=file_id, project=project, is_deleted=False
+                ).first()
+            except (TypeError, ValueError):
+                project_file = None
+            if project_file:
+                ProjectFileService.update_description(
+                    project_file=project_file,
+                    actor=request.user,
+                    description=message,
+                )
+                return Response(
+                    {
+                        "status": "success",
+                        "message": "Mention notification sent.",
+                        "mentioned_count": len(mentioned_users),
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         EventDispatcher.dispatch(
             event_type="user_mentioned",
@@ -583,6 +640,7 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "description"]
     ordering_fields = ["created_at", "name", "file_size"]
     ordering = ["-created_at"]
+    throttle_classes = [AnonRateThrottle, UserRateThrottle, MentionRateThrottle]
 
     def get_permissions(self):
         return [IsAuthenticated(), CanManageProjectFile()]
@@ -615,7 +673,9 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         project_file = self.get_object()
-        description = request.data.get("description")
+        serializer = self.get_serializer(project_file, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        description = serializer.validated_data.get("description")
         if description is not None:
             project_file = ProjectFileService.update_description(
                 project_file=project_file,

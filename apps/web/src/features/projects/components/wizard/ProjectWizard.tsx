@@ -124,7 +124,7 @@ export const ProjectWizard: React.FC = () => {
       // Navigate cleanly (no query params needed)
       navigate('/tasks');
     } catch (err: any) {
-      toast.error(translateError(err?.response?.data?.detail || 'Failed to create project'));
+      toast.error(translateError(err, 'Failed to create project'));
     } finally {
       setIsSubmitting(false);
     }

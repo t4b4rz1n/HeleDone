@@ -56,15 +56,7 @@ export const CreateMilestoneModal: React.FC<CreateMilestoneModalProps> = ({
           setTargetDate("");
           setWeight(1);
         },
-        onError: (err: any) => {
-          const errorData = err?.data || err?.response?.data;
-          const msg =
-            errorData?.target_date?.[0] ||
-            errorData?.start_date?.[0] ||
-            errorData?.detail ||
-            "Could not create milestone.";
-          toast.error(translateError(msg));
-        },
+        onError: (error: unknown) => toast.error(translateError(error, "Could not create milestone.")),
       }
     );
   };

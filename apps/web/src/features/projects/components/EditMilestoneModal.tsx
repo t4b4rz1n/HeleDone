@@ -69,15 +69,7 @@ export const EditMilestoneModal: React.FC<EditMilestoneModalProps> = ({
           toast.success(t("Milestone updated successfully!"));
           onClose();
         },
-        onError: (err: any) => {
-          const errorData = err?.data || err?.response?.data;
-          const msg =
-            errorData?.target_date?.[0] ||
-            errorData?.start_date?.[0] ||
-            errorData?.detail ||
-            "Could not update milestone.";
-          toast.error(translateError(msg));
-        },
+        onError: (error: unknown) => toast.error(translateError(error, "Could not update milestone.")),
       }
     );
   };
