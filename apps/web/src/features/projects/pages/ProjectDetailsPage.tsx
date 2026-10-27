@@ -936,7 +936,7 @@ export default function ProjectDetailsPage() {
 
                         <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 p-2.5">
                           <ProfileAvatar
-                            src={project.owner?.avatar}
+                            src={project.owner?.avatar_url || project.owner?.avatar}
                             name={ownerName}
                             className="size-7 shrink-0 overflow-hidden rounded-lg"
                             fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-content"
@@ -954,7 +954,7 @@ export default function ProjectDetailsPage() {
                                 key={m.id}
                                 className="flex items-center gap-2 rounded-xl border border-base-content/6 bg-base-200/40 p-2 text-xs"
                               >
-                                <ProfileAvatar src={m.user?.avatar} name={getUserDisplayName(m)} className="size-6 shrink-0 overflow-hidden rounded-md" fallbackClassName="flex size-full items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary" />
+                                <ProfileAvatar src={m.user?.avatar_url || m.user?.avatar} name={getUserDisplayName(m)} className="size-6 shrink-0 overflow-hidden rounded-md" fallbackClassName="flex size-full items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary" />
                                 <span className="font-semibold text-base-content truncate text-[13px]">
                                   {getUserDisplayName(m)}
                                 </span>
@@ -972,7 +972,7 @@ export default function ProjectDetailsPage() {
 
           {/* ── MEMBERS TAB ── */}
           {activeTab === "members" && (() => {
-            const individualMembers = members.filter((m: ProjectMember) => !m.team && !isOwnerMember(m));
+            const individualMembers = members.filter((m: ProjectMember) => !m.team && Boolean(m.user) && !isOwnerMember(m));
             const teamMembers = members.filter((m: ProjectMember) => !!m.team);
 
             return (
@@ -1001,7 +1001,7 @@ export default function ProjectDetailsPage() {
                     <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <ProfileAvatar
-                          src={project.owner?.avatar}
+                          src={project.owner?.avatar_url || project.owner?.avatar}
                           name={ownerName}
                           className="size-8 shrink-0 overflow-hidden rounded-lg"
                           fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-content"
@@ -1020,7 +1020,7 @@ export default function ProjectDetailsPage() {
                         className="flex items-center justify-between rounded-xl border border-base-content/8 bg-base-200/40 p-3"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <ProfileAvatar src={m.user?.avatar} name={getUserDisplayName(m)} className="size-8 shrink-0 overflow-hidden rounded-lg" fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary" />
+                          <ProfileAvatar src={m.user?.avatar_url || m.user?.avatar} name={getUserDisplayName(m)} className="size-8 shrink-0 overflow-hidden rounded-lg" fallbackClassName="flex size-full items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary" />
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-base-content truncate">
                               {getUserDisplayName(m)}

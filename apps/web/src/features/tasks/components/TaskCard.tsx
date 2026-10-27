@@ -6,7 +6,7 @@ import { getWorkflowAppearance } from "../../../core/config/designTokens";
 import { formatDisplayDate } from "../../../utils/date";
 import { createPortal } from "react-dom";
 import { useEffect, useState, useRef, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar1, Flag,
   CloseCircle,
@@ -21,7 +21,9 @@ import {
 } from "iconsax-reactjs";
 import { toast } from "sonner";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
-import { deleteTask, getProjectMembers, updateTask } from "../api/tasksApi";
+import { deleteTask, updateTask } from "../api/tasksApi";
+import { useProjectMembers } from "../../projects/hooks/useProjects";
+import { projectMemberUsers } from "../utils/projectMemberUsers";
 import { useTaskStore } from "../store/useTaskStore";
 import type { Task, User } from "../types";
 import type { TimeLog } from "../../attendance/types";
@@ -146,16 +148,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const storeProjectId = useTaskStore((state) => state.activeProjectId);
   const effectiveProjectId = task.project || storeProjectId;
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["projects", "detail", String(effectiveProjectId), "members"],
-    queryFn: async () => {
-      const projectId = effectiveProjectId;
-      if (!projectId) return [];
-      return getProjectMembers(projectId.toString());
-    },
-    enabled: Boolean(effectiveProjectId),
-    staleTime: 0,
-  });
+  const { data: rawProjectMembers = [] } = useProjectMembers(effectiveProjectId || "");
+  const users: User[] = useMemo(() => projectMemberUsers(rawProjectMembers), [rawProjectMembers]);
   const resolveCardAssignees = (t: Task, memberUsers: User[]): User[] => {
     if (t.assignees_detail && t.assignees_detail.length > 0) {
       return t.assignees_detail;
@@ -529,8 +523,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                       </button>
 
                       {/* Filtered Users List */}
-                      {filteredUsers.map((user: any) => {
+                      {filteredUsers.map((item: any) => {
+                        const user = item.user || item;
                         const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                        const displayName = user.full_name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email || t("Unknown Member");
+                        const avatarSrc = user.avatar_url || user.avatar;
                         return (
                           <button
                             type="button"
@@ -558,12 +555,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                             }}
                           >
                             <div className="flex items-center gap-2 truncate">
-                              <ProfileAvatar src={user.avatar_url || user.avatar} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/5" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
+                              <ProfileAvatar src={avatarSrc} name={displayName} className="size-5.5 shrink-0 overflow-hidden rounded-full ring-1 ring-base-content/5" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                               <span className="truncate flex items-center gap-1">
                                 <span className="text-xs">
-                                  {user.first_name || user.last_name
-                                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                                    : user.full_name || user.username || user.email || t("Unknown Member")}
+                                  {displayName}
                                 </span>
                                 {user.username && (
                                   <span className="text-[11px] text-heledone-ink-muted font-normal truncate">
@@ -657,8 +652,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                         >
                           <Profile2User size={15} />  {t("بدون مسئول")}
                         </button>
-                        {users.map((user: any) => {
+                        {users.map((item: any) => {
+                          const user = item.user || item;
                           const isSelected = currentAssigneeIds.some((id: any) => String(id) === String(user.id));
+                          const displayName = user.full_name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email || t("Unknown Member");
+                          const avatarSrc = user.avatar_url || user.avatar;
                           return (
                             <button
                               type="button"
@@ -684,11 +682,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                               }}
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <ProfileAvatar src={user.avatar_url || user.avatar} name={user.full_name || `${user.first_name || ""} ${user.last_name || user.username || ""}`} className="size-5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
+                                <ProfileAvatar src={avatarSrc} name={displayName} className="size-5 shrink-0 overflow-hidden rounded-full" fallbackClassName="flex size-full items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary" />
                                 <span className="truncate">
-                                  {user.first_name || user.last_name
-                                    ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                                    : user.full_name || user.username || user.email || t("Unknown Member")}
+                                  {displayName}
                                 </span>
                               </div>
                               {isSelected && <span className="text-primary text-xs shrink-0">✓</span>}

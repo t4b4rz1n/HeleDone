@@ -5,6 +5,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from common.media import file_url
+
 from .cookie_auth import uses_cookie_transport
 
 User = get_user_model()
@@ -181,7 +183,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             "last_name": self.user.last_name,
             "is_staff": self.user.is_staff,
             "is_superuser": self.user.is_superuser,
-            "avatar_url": self.user.avatar.url if self.user.avatar else None,
+            "avatar_url": file_url(self.user.avatar, self.context.get("request")),
             "telegram_connected": telegram_connected,
             "notify_via_email": notify_via_email,
             "notify_via_telegram": notify_via_telegram,

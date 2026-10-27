@@ -126,9 +126,8 @@ export const useProjectMembers = (projectId: string | number) => {
     queryKey: projectKeys.members(projectId),
     queryFn: () => getProjectMembers(projectId),
     enabled: Boolean(projectId),
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
     refetchOnWindowFocus: true, // Refresh when window gets focus
-    staleTime: 0, // Consider data stale immediately
+    staleTime: 30_000,
   });
 };
 

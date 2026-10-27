@@ -8,10 +8,8 @@ import type {
   AsyncStandup,
   StandupGridData,
   MyStandupGridData,
-  User,
   PaginatedResponse,
 } from '../types';
-import type { ProjectMember } from '../../projects/types';
 
 
 // Helper to extract data from various response shapes (DRF vs Custom ApiResponse)
@@ -42,21 +40,6 @@ export const updateBoard = async (boardId: string, payload: { title?: string; ba
 
 export const deleteBoard = async (boardId: string): Promise<void> => {
   await ApiService.delete(`/tasks/boards/${boardId}/`);
-};
-
-export const getProjectMembers = async (projectId: string): Promise<User[]> => {
-  const res = await ApiService.get<PaginatedResponse<ProjectMember> | ProjectMember[]>(`/projects/${projectId}/members/`);
-  return extractData<ProjectMember>(res)
-    .map((member) => member.user)
-    .filter((user): user is NonNullable<ProjectMember['user']> => Boolean(user))
-    .map((user) => ({
-      id: Number(user.id),
-      username: user.username ?? '',
-      email: user.email ?? '',
-      first_name: user.first_name ?? '',
-      last_name: user.last_name ?? '',
-      avatar: user.avatar ?? undefined,
-    }));
 };
 
 export const getTasks = async (projectId?: string, boardId?: string, pageSize = 100): Promise<Task[]> => {

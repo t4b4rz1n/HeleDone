@@ -39,7 +39,16 @@ def _is_org_admin(user, organization) -> bool:
 
 
 def _is_project_member(user, project) -> bool:
-    return project.members.filter(user=user, is_deleted=False).exists()
+    if not user or not user.is_authenticated:
+        return False
+    if project.members.filter(user=user, is_active=True, is_deleted=False).exists():
+        return True
+    from organizations.models import TeamMembership
+
+    user_team_ids = TeamMembership.objects.filter(
+        user=user, team__organization=project.organization, is_deleted=False
+    ).values_list("team_id", flat=True)
+    return project.members.filter(team_id__in=user_team_ids, is_active=True, is_deleted=False).exists()
 
 
 def _is_project_owner(user, project) -> bool:

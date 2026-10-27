@@ -535,3 +535,22 @@ class ProjectAPITests(APITestCase):
         self.client.force_authenticate(user=self.member_user)
         self.assertEqual(self.client.get(members_url).status_code, status.HTTP_200_OK)
         self.assertEqual(self.client.get(milestones_url).status_code, status.HTTP_200_OK)
+
+    def test_org_member_cannot_read_other_project_members(self):
+        self.client.force_authenticate(user=self.member_user)
+        response = self.client.get(f"/api/v1/projects/{self.project.id}/members/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_project_member_response_has_browser_usable_avatar_url(self):
+        self.admin.avatar.name = "avatars/admin-test.jpg"
+        self.admin.save(update_fields=["avatar"])
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.get(f"/api/v1/projects/{self.project.id}/members/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        members = response.data.get("results", response.data) if isinstance(response.data, dict) else response.data
+        owner = next(member for member in members if str(member["user"]["id"]) == str(self.admin.id))
+        avatar_url = self.admin.avatar.url
+        expected_url = avatar_url if avatar_url.startswith(("http://", "https://")) else f"http://testserver{avatar_url}"
+        self.assertEqual(owner["user"]["avatar_url"], expected_url)

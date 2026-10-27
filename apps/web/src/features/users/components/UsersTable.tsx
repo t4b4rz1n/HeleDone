@@ -1,4 +1,5 @@
 import { useTranslation } from "../../../i18n/locale";
+import ProfileAvatar from "../../../components/ProfileAvatar";
 import { CoastalEmptyState } from "../../../components/CoastalEmptyState";
 import { motion } from "motion/react";
 import {
@@ -8,7 +9,6 @@ import {
   Message,
   TickCircle,
   Trash,
-  User as UserIcon,
   Verify,
 } from "iconsax-reactjs";
 import { useState } from "react";
@@ -129,18 +129,11 @@ export const UsersTable = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/5 shrink-0 flex items-center justify-center border border-base-content/10">
-                          {user.avatar ? (
-                            <img
-                              src={user.avatar}
-                              alt={user.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <UserIcon
-                              className="w-5 h-5 text-primary"
-                              variant="Bold"
-                            />
-                          )}
+                          <ProfileAvatar
+                            src={user.avatar_url || user.avatar}
+                            name={[user.first_name, user.last_name].filter(Boolean).join(' ') || user.username}
+                            className="size-full overflow-hidden rounded-full"
+                          />
                         </div>
                         <div>
                           <div>

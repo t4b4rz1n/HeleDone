@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import User
+from common.media import file_url
 
 from .models import Attendance, Holiday, TimeLog, TimeOffRequest
 
@@ -26,12 +27,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
         )
 
     def get_avatar_url(self, obj):
-        if not obj.avatar:
-            return None
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.avatar.url)
-        return obj.avatar.url
+        return file_url(obj.avatar, self.context.get("request"))
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

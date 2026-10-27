@@ -1956,7 +1956,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
                   )}
 
                   {comments.map((comment) => {
-                    const authorAvatar = comment.author_detail?.avatar || comment.author_detail?.avatar_url;
+                    const authorAvatar = comment.author_detail?.avatar_url || comment.author_detail?.avatar;
                     const isAuthor =
                       currentUser &&
                       (String(comment.author) === String(currentUser.id) ||
@@ -2068,7 +2068,7 @@ export const TaskSheet: React.FC<TaskSheetProps> = ({
 
                         {comment.attached_file_url && (
                           <div className="mt-2 pt-2 border-t border-base-content/8">
-                            {comment.attached_file_url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                            {/\.(jpeg|jpg|gif|png|webp)(?:[?#]|$)/i.test(comment.attached_file_url) ? (
                               <a
                                 href={comment.attached_file_url}
                                 target="_blank"

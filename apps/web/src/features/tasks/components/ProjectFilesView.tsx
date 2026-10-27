@@ -94,7 +94,7 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
             u.first_name || u.last_name
               ? `${u.first_name || ''} ${u.last_name || ''}`.trim()
               : u.name || u.username,
-          avatar: u.avatar || u.avatar_url,
+          avatar: u.avatar_url || u.avatar,
           is_active: u.is_active !== false,
         };
       })

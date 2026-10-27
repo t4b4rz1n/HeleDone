@@ -1,4 +1,4 @@
-import React, { lazy, useState, useEffect } from 'react';
+import React, { lazy, useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -13,8 +13,9 @@ import { ProjectFilesView } from '../components/ProjectFilesView';
 import { CreateBoardModal } from '../components/CreateBoardModal';
 import { TaskSheet } from '../components/TaskSheet';
 import { useTaskStore } from '../store/useTaskStore';
-import { getBoards, createBoard, getTasks, getProjectMembers, updateTask } from '../api/tasksApi';
-import { useProjects } from '../../projects/hooks/useProjects';
+import { getBoards, createBoard, getTasks, updateTask } from '../api/tasksApi';
+import { useProjectMembers, useProjects } from '../../projects/hooks/useProjects';
+import { projectMemberUsers } from '../utils/projectMemberUsers';
 
 const AttendancePage = lazy(() => import('../../attendance/pages/AttendancePage'));
 
@@ -93,11 +94,9 @@ export const TaskManagementPage: React.FC = () => {
     enabled: Boolean(activeProjectId),
   });
 
-  const { data: members = [] } = useQuery({
-    queryKey: ['projects', 'detail', String(activeProjectId), 'members'],
-    queryFn: () => getProjectMembers(activeProjectId!),
-    enabled: Boolean(activeProjectId),
-  });
+
+  const { data: projectMembers = [] } = useProjectMembers(activeProjectId || '');
+  const members = useMemo(() => projectMemberUsers(projectMembers), [projectMembers]);
 
   // Auto-select board
   useEffect(() => {

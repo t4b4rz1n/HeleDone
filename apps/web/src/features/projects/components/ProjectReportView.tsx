@@ -65,7 +65,7 @@ export function ProjectReportView({ projectId }: ProjectReportViewProps) {
       userId,
       name,
       email: member.user?.email || "",
-      avatar: member.user?.avatar || undefined,
+      avatar: member.user?.avatar_url || member.user?.avatar || undefined,
       totalTasks: 0,
       completedTasks: 0,
       spentHours: 0
@@ -94,7 +94,7 @@ export function ProjectReportView({ projectId }: ProjectReportViewProps) {
           userId: assigneeId,
           name,
           email: assigneeUser.email || "",
-          avatar: assigneeUser.avatar || undefined,
+          avatar: assigneeUser.avatar_url || assigneeUser.avatar || undefined,
           totalTasks: 0,
           completedTasks: 0,
           spentHours: 0

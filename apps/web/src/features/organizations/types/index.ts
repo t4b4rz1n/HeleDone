@@ -40,6 +40,7 @@ export interface OrganizationMember {
   email: string;
   username: string;
   avatar: string | null;
+  avatar_url?: string | null;
   role?: string;
   role_name?: string;
   role_display?: string;

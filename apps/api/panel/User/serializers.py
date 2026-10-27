@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import User
+from common.media import file_url
 from organizations.models import Organization, OrganizationMembership
 from organizations.services import PermissionService
 
@@ -64,6 +65,7 @@ class UserListSerializer(serializers.ModelSerializer):
     organization = serializers.SerializerMethodField()
     salary_type = serializers.SerializerMethodField()
     salary_amount = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -76,6 +78,7 @@ class UserListSerializer(serializers.ModelSerializer):
             "is_active",
             "is_staff",
             "avatar",
+            "avatar_url",
             "role_id",
             "role_name",
             "organization",
@@ -84,6 +87,9 @@ class UserListSerializer(serializers.ModelSerializer):
             "calendar_preference",
         ]
         ref_name = "users_panel"
+
+    def get_avatar_url(self, obj):
+        return file_url(obj.avatar, self.context.get("request"))
 
     def _get_active_membership_and_role(self, obj):
         request = self.context.get("request")

@@ -33,7 +33,7 @@ export const normalizeProjectMembers = (members: any[]): MentionUser[] => {
         id: u.id,
         username: rawUsername,
         displayName,
-        avatar: u.avatar || u.avatar_url || null,
+        avatar: u.avatar_url || u.avatar || null,
         email: u.email || null,
       });
     }

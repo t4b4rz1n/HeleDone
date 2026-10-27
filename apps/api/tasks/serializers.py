@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import User
+from common.media import file_url
 
 from .models import (
     AsyncStandup,
@@ -33,12 +34,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
         )
 
     def get_avatar_url(self, obj):
-        if not obj.avatar:
-            return None
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.avatar.url)
-        return obj.avatar.url
+        return file_url(obj.avatar, self.context.get("request"))
 
 
 class BoardMinimalSerializer(serializers.Serializer):
@@ -142,12 +138,7 @@ class TaskCommentSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "author", "created_at")
 
     def get_attached_file_url(self, obj):
-        if not obj.attached_file:
-            return None
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.attached_file.url)
-        return obj.attached_file.url
+        return file_url(obj.attached_file, self.context.get("request"))
 
     def validate(self, attrs):
         content = attrs.get("content", "")

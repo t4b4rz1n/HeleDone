@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import User
+from common.media import file_url
 from organizations.models import Organization, OrganizationMembership, Team
 
 from .models import Milestone, Project, ProjectActivity, ProjectFile, ProjectMember
@@ -43,12 +44,7 @@ class UserMinimalSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
     def get_avatar_url(self, obj):
-        if not obj.avatar:
-            return None
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.avatar.url)
-        return obj.avatar.url
+        return file_url(obj.avatar, self.context.get("request"))
 
 
 class OrganizationMinimalSerializer(serializers.ModelSerializer):
@@ -645,12 +641,7 @@ class ProjectFileSerializer(serializers.ModelSerializer):
         )
 
     def get_file_url(self, obj) -> str | None:
-        if not obj.file:
-            return None
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.file.url)
-        return obj.file.url
+        return file_url(obj.file, self.context.get("request"))
 
 
 class ProjectFileUploadSerializer(serializers.ModelSerializer):

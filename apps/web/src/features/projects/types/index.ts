@@ -32,6 +32,7 @@ export interface ProjectOwner {
   last_name?: string;
   full_name?: string;
   avatar?: string | null;
+  avatar_url?: string | null;
 }
 
 // 3. Main Project Entity
