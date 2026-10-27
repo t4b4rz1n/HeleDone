@@ -257,9 +257,9 @@ def test_manager_admin_org_cache_invalidates_on_subordinate_task_change(clear_ca
     TaskFactory(project=project, assignee=emp, status=status_todo)
 
     version_after = cache.get(org_version_key, 1)
-    assert (
-        version_after == version_before + 1
-    ), "Org-level manager cache version must bump when a subordinate task is created."
+    assert version_after == version_before + 1, (
+        "Org-level manager cache version must bump when a subordinate task is created."
+    )
 
     dashboard_after = ManagerDashboardService.get_dashboard(user=admin, team_id=None, tz_name=tz)
     stats_after = sum(item["count"] for item in dashboard_after["task_stats"])
@@ -288,9 +288,9 @@ def test_manager_team_membership_change_bumps_org_version_without_changing_team_
 
     ManagerDashboardService.get_dashboard(user=lead, team_id=team.id, tz_name=tz)
     cache_key = ManagerDashboardService._build_manager_cache_key(lead, team.id, tz)
-    assert (
-        "orgs_" not in cache_key
-    ), "Team-scoped cache keys must not embed org-level version segments."
+    assert "orgs_" not in cache_key, (
+        "Team-scoped cache keys must not embed org-level version segments."
+    )
     assert cache_key.startswith(f"reports:mgr:team_{team.id}:v")
 
     team_version_before = cache.get(team_version_key, 1)
@@ -347,9 +347,9 @@ def test_manager_admin_org_cache_invalidates_on_project_soft_delete(clear_cache)
     project.save()
 
     version_after = cache.get(org_version_key, 1)
-    assert (
-        version_after == version_before + 1
-    ), "Org-level manager cache version must bump when a project is soft-deleted."
+    assert version_after == version_before + 1, (
+        "Org-level manager cache version must bump when a project is soft-deleted."
+    )
 
     dashboard_after = ManagerDashboardService.get_dashboard(user=admin, team_id=None, tz_name=tz)
     assert len(dashboard_after["project_summary"]) == 0
@@ -467,9 +467,9 @@ def test_version_bump_uses_no_expiry(users, org_data):
         # kwargs.get("timeout") is None would pass for BOTH — so we check
         # that "timeout" is actually present as a keyword or positional arg.
         if "timeout" in kwargs:
-            assert (
-                kwargs["timeout"] is None
-            ), "timeout must be exactly None to prevent silent staleness"
+            assert kwargs["timeout"] is None, (
+                "timeout must be exactly None to prevent silent staleness"
+            )
         elif len(_args) >= 3:
             assert _args[2] is None, "timeout must be exactly None to prevent silent staleness"
         else:
@@ -1197,12 +1197,12 @@ class TestProjectSummaryInflation:
         )
 
         # Also verify Count fields are not inflated
-        assert (
-            our_project["total_tasks"] == 2
-        ), f"total_tasks inflated: expected=2, got={our_project['total_tasks']}"
-        assert (
-            our_project["active_member_count"] == 2
-        ), f"active_member_count inflated: expected=2, got={our_project['active_member_count']}"
+        assert our_project["total_tasks"] == 2, (
+            f"total_tasks inflated: expected=2, got={our_project['total_tasks']}"
+        )
+        assert our_project["active_member_count"] == 2, (
+            f"active_member_count inflated: expected=2, got={our_project['active_member_count']}"
+        )
 
 
 @pytest.mark.django_db
@@ -1239,9 +1239,9 @@ class TestInProgressMetric:
         tasks = dashboard["company_overview"]["tasks"]
 
         assert tasks["total"] == 3
-        assert (
-            tasks["in_progress"] == 0
-        ), f"todo tasks incorrectly counted as in_progress: {tasks['in_progress']}"
+        assert tasks["in_progress"] == 0, (
+            f"todo tasks incorrectly counted as in_progress: {tasks['in_progress']}"
+        )
 
     def test_doing_and_review_counted_as_in_progress(self):
         """doing and review tasks MUST appear in in_progress metric."""
@@ -1263,9 +1263,9 @@ class TestInProgressMetric:
 
         assert tasks["total"] == 4
         assert tasks["done"] == 1
-        assert (
-            tasks["in_progress"] == 2
-        ), f"Expected 2 in_progress (doing+review), got {tasks['in_progress']}"
+        assert tasks["in_progress"] == 2, (
+            f"Expected 2 in_progress (doing+review), got {tasks['in_progress']}"
+        )
 
 
 @pytest.mark.django_db
@@ -1396,7 +1396,7 @@ class TestManagerDashboardAdminAccess:
         member_ids = ManagerDashboardService._resolve_member_ids(lead, team_id=None)
 
         # Should only include the team's members (lead + emp_in), not emp_out
-        assert (
-            emp_out.id not in member_ids
-        ), "Non-admin team lead must NOT see org-wide members without team_id."
+        assert emp_out.id not in member_ids, (
+            "Non-admin team lead must NOT see org-wide members without team_id."
+        )
         assert emp_in.id in member_ids
