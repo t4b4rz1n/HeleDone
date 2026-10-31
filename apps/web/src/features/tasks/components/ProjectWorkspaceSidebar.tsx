@@ -132,7 +132,7 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
                 <button
                   type="button"
                   onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-                  className="w-full flex items-center justify-between gap-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2 transition-all text-start hover:border-primary/40 hover:bg-base-200/40 group"
+                  className="project-workspace-select w-full flex items-center justify-between gap-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2 transition-all text-start hover:border-primary/40 hover:bg-base-200/40 group"
                   title={activeProject?.name || t('انتخاب پروژه')}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -154,7 +154,7 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
                       className="fixed inset-0 z-40"
                       onClick={() => setIsProjectDropdownOpen(false)}
                     />
-                    <div className="absolute top-full start-0 mt-1 w-64 max-h-64 overflow-y-auto rounded-2xl bg-base-100 p-1.5 shadow-xl border border-base-200 z-50 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
+                    <div className="project-workspace-menu absolute top-full start-0 mt-1 w-64 max-h-64 overflow-y-auto rounded-2xl bg-base-100 p-1.5 shadow-xl border border-base-200 z-50 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar">
                       <div className="px-2 py-1 text-[11px] font-bold text-heledone-ink-muted uppercase">
                         {t('پروژه‌ها')}
                       </div>

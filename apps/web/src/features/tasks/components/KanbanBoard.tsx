@@ -834,7 +834,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
                     aria-label={t("بستن منو")}
                     onClick={() => setIsBoardMenuOpen(false)}
                   />
-                  <div className="absolute end-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-base-300 bg-base-100 p-1.5 shadow-xl" role="menu">
+                  <div className="board-switcher-menu absolute end-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-base-300 bg-base-100 p-1.5 shadow-xl" role="menu">
                     <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-heledone-ink-muted">
                       {t("Select board")}
                     </div>
@@ -1006,7 +1006,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
           activeTimer={activeTimers?.[0]}
         />
       ) : (
-        <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden bg-base-200/30">
+        <div className="tasks-kanban-content relative flex-1 flex flex-col min-h-0 overflow-hidden bg-base-200/30">
           {/* Left Edge Gradient & Floating Back Navigation Button */}
           {canScrollLeft && (
             <>

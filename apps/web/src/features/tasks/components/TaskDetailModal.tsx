@@ -405,7 +405,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     <>
                       <div className="fixed inset-0 z-[110]" onClick={() => setIsMembersMenuOpen(false)} />
                       <div
-                        className="fixed z-[120] bg-base-100 border border-base-content/10 rounded-lg shadow-2xl py-1.5 w-52 text-[13px] text-base-content flex flex-col max-h-64 overflow-y-auto custom-scrollbar"
+                        className="task-detail-action-menu fixed z-[120] bg-base-100 border border-base-content/10 rounded-lg shadow-2xl py-1.5 w-52 text-[13px] text-base-content flex flex-col max-h-64 overflow-y-auto custom-scrollbar"
                         style={{
                           top: membersButtonRef.current.getBoundingClientRect().bottom + 4,
                           left: membersButtonRef.current.getBoundingClientRect().left,

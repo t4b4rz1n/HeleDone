@@ -117,9 +117,9 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
   }, [currentYear, currentMonth, firstDayOfMonth, daysInMonth]);
 
   return (
-    <div className="flex flex-col h-full bg-base-100 overflow-hidden">
+    <div className="task-calendar-view flex flex-col h-full bg-base-100 overflow-hidden">
       {/* ─── Calendar Header ─── */}
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-base-300/80 bg-base-100 shrink-0">
+      <div className="task-calendar-toolbar flex items-center justify-between px-6 py-3.5 border-b border-base-300/80 bg-base-100 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <CalendarIcon size={18} className="text-primary" />
@@ -157,7 +157,7 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
       </div>
 
       {/* ─── Days of Week Row ─── */}
-      <div className="grid grid-cols-7 border-b border-base-300/80 bg-base-200/40 text-center font-bold text-xs py-2 text-heledone-ink-muted shrink-0">
+      <div className="task-calendar-weekdays grid grid-cols-7 border-b border-base-300/80 bg-base-200/40 text-center font-bold text-xs py-2 text-heledone-ink-muted shrink-0">
         {weekDayNames.map((name) => (
           <div key={name} className="truncate">
             {name}
@@ -166,14 +166,14 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
       </div>
 
       {/* ─── Calendar Grid ─── */}
-      <div className="flex-1 grid grid-cols-7 auto-rows-fr overflow-y-auto custom-scrollbar border-b border-base-300/40">
+      <div className="task-calendar-grid flex-1 grid grid-cols-7 auto-rows-fr overflow-y-auto custom-scrollbar border-b border-base-300/40">
         {calendarCells.map((cell, idx) => {
           const dayTasks = tasksByDate[cell.dateStr] || [];
 
           return (
             <div
               key={`${cell.dateStr}_${idx}`}
-              className={`min-h-[90px] p-2 border-b border-e border-base-300/60 flex flex-col transition-colors ${
+              className={`task-calendar-day min-h-[90px] p-2 border-b border-e border-base-300/60 flex flex-col transition-colors ${
                 !cell.isCurrentMonth
                   ? 'bg-base-200/20 text-heledone-ink-muted/40'
                   : cell.isToday

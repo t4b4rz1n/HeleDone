@@ -5,6 +5,7 @@ import { getAdminDrawerItems } from "../features/layout/DrawerItems";
 import { useAuthStore } from "../features/auth/store/authStore";
 import { usePermissions } from "../features/auth/hooks/usePermissions";
 import { LanguagePicker } from "../components/LanguagePicker";
+import { BackgroundThemePicker } from "../components/BackgroundThemePicker";
 import { PageHeading } from "../components/PageHeading";
 import { CoastalArtwork, CoastalDivider } from "../components/CoastalEmptyState";
 
@@ -20,6 +21,8 @@ const SettingsPage: React.FC = () => {
       <PageHeading title={t("Settings & Administration")} description={t("Manage organization settings, user roles, team structures, and system configurations.")} illustration="palm-sunset" />
 
       <LanguagePicker />
+
+      <BackgroundThemePicker />
 
       <CoastalDivider />
 

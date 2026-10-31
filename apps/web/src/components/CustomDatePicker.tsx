@@ -243,7 +243,7 @@ export const CustomDatePicker = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+              className="heledone-glass-dialog bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
               onClick={(e) => e.stopPropagation()}
               dir={getDirection()}
             >

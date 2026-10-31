@@ -182,9 +182,9 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-base-100 overflow-hidden">
+    <div className="task-list-view flex flex-col h-full bg-base-100 overflow-hidden">
       {/* ─── List View Toolbar ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-b border-base-300/80 bg-base-100 shrink-0">
+      <div className="task-list-toolbar flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-b border-base-300/80 bg-base-100 shrink-0">
         <div className="flex items-center gap-3">
           {/* Search Input */}
           <div className="relative">
@@ -265,7 +265,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
           const isCollapsed = collapsedSections[status.id];
 
           return (
-            <div key={status.id} className="rounded-2xl border border-base-300/80 bg-base-100 overflow-hidden shadow-2xs">
+            <div key={status.id} className="task-list-section rounded-2xl border border-base-300/80 bg-base-100 overflow-hidden shadow-2xs">
               {/* Section Header */}
               <div
                 onClick={() => toggleSection(status.id)}

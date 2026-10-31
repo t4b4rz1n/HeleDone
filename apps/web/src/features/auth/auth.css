@@ -35,7 +35,17 @@
   min-width: 0;
   padding: 40px 24px;
 }
-.heledone-auth-body { width: min(100%, 420px); min-width: 0; }
+.heledone-auth-body {
+  width: min(100%, 480px);
+  min-width: 0;
+  padding: clamp(24px, 3.2vw, 38px);
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--glass-surface-dialog);
+  box-shadow: 0 24px 64px rgb(14 43 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 72%);
+  -webkit-backdrop-filter: blur(24px) saturate(125%);
+  backdrop-filter: blur(24px) saturate(125%);
+}
 .heledone-auth-content--illustrated { padding-inline-end: calc(24px + 10%); }
 .heledone-auth-background { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .heledone-auth-background img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 75%; }
@@ -56,18 +66,22 @@
   padding-inline: 14px;
   border: 1px solid var(--heledone-control-border);
   border-radius: 8px;
-  background: var(--color-base-100);
+  background: var(--glass-surface-control);
   color: var(--color-base-content);
   font-size: 15px;
-  box-shadow: none;
-  transition: border-color 150ms ease;
+  box-shadow: inset 0 1px 2px rgb(14 43 58 / 5%);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 .heledone-auth-input[dir="ltr"] { direction: ltr; text-align: left; }
 .heledone-auth-input.has-password-toggle { padding-inline-end: 48px; }
 .heledone-auth-input.has-password-toggle[dir="ltr"] { padding-right: 48px; }
 [dir="rtl"] .heledone-auth-input.has-password-toggle[dir="ltr"] { padding-left: 48px; padding-right: 14px; }
 .heledone-auth-input:hover,
-.heledone-auth-input:focus { border-color: var(--color-primary); }
+.heledone-auth-input:focus {
+  border-color: var(--color-primary);
+  background: rgb(247 251 253 / 52%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
 .heledone-auth-input[aria-invalid="true"] { border-color: var(--color-error); }
 .heledone-auth-password-toggle {
   position: absolute;
@@ -115,6 +129,7 @@
   .heledone-auth-preferences .select { max-width: 6rem; }
   .heledone-auth-content { padding: 32px 20px; }
   .heledone-auth-content--illustrated { padding-top: 184px; }
+  .heledone-auth-body { padding: 24px 20px; border-radius: 22px; }
   .heledone-auth-form-heading h1 { font-size: 26px; }
 }
 @media (prefers-reduced-motion: reduce) {

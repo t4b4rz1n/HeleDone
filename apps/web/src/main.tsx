@@ -9,6 +9,7 @@ import "./index.css";
 import "./styles/coastal-workspace.css";
 import { applyDocumentLanguage, useLocaleStore } from "./i18n/locale";
 import { LocaleApplication } from "./core/LocaleApplication";
+import { applyBackgroundTheme, getBackgroundTheme } from "./core/config/backgroundThemes";
 
 // Text fields match :focus-visible even after a click, so track Tab separately.
 document.documentElement.dataset.focusModality = "pointer";
@@ -44,6 +45,7 @@ enableMocking().finally(() => {
   };
 
   document.documentElement.setAttribute("data-theme", getPreferredTheme());
+  applyBackgroundTheme(getBackgroundTheme());
   applyDocumentLanguage(useLocaleStore.getState().locale);
 
   ReactDOM.createRoot(document.getElementById("root")!).render(

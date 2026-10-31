@@ -319,9 +319,9 @@ export const ProjectFilesView: React.FC<ProjectFilesViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-base-100 overflow-hidden">
+    <div className="project-files-view flex flex-col h-full bg-base-100 overflow-hidden">
       {/* ─── Toolbar ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-base-300/80 bg-base-100 shrink-0">
+      <div className="project-files-toolbar flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-base-300/80 bg-base-100 shrink-0">
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative">
