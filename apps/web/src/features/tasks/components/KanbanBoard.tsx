@@ -37,6 +37,7 @@ import { Add, More, SearchNormal1, TickCircle, Category, Activity, User, Danger,
 import { toast } from 'sonner';
 
 import { usePermissions } from '../../auth/hooks/usePermissions';
+import { useProject, useProjectMilestones } from '../../projects/hooks/useProjects';
 
 interface KanbanBoardProps {
   onCreateBoard?: () => void;
@@ -47,11 +48,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
   const { activeProjectId, activeBoardId, selectedTaskId, setSelectedTaskId, setActiveBoard, setWorkspaceSidebarOpen } = useTaskStore();
   const currentUser = useAuthStore((state) => state.user);
   const { hasPermission, isStaff } = usePermissions();
-
-  const canCreateTask = hasPermission('task.create') || hasPermission('task.manage_all') || isStaff;
-  const canManageBoard = hasPermission('board.manage') || hasPermission('project.manage') || hasPermission('org.manage_settings') || isStaff;
-  const canEditTask = hasPermission('task.manage_all') || hasPermission('task.create') || isStaff;
-
+  const isTeamLead = hasPermission('report.view_team_lead');
+  const canCreateTask = hasPermission('task.create') || hasPermission('task.manage_all') || isTeamLead || isStaff;
+  const canManageBoard = hasPermission('board.manage') || hasPermission('project.manage') || hasPermission('org.manage_settings') || isTeamLead || isStaff;
+  const canEditTask = hasPermission('task.manage_all') || hasPermission('task.create') || isTeamLead || isStaff;
   const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [activeColumn, setActiveColumn] = useState<any | null>(null);
@@ -94,6 +94,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
     queryFn: () => getBoards(activeProjectId!),
     enabled: !!activeProjectId,
   });
+
+  const { data: project } = useProject(activeProjectId || '');
+  const { data: milestones = [] } = useProjectMilestones(activeProjectId || '');
+  const milestone = milestones.find((item) => item.status !== 'completed' && item.status !== 'cancelled') || milestones[0];
+  const milestoneProgress = milestone
+    ? milestone.status === 'completed'
+      ? 100
+      : milestone.status === 'cancelled'
+        ? 0
+        : milestone.task_count
+          ? Math.round(((milestone.completed_task_count ?? 0) / milestone.task_count) * 100)
+          : milestone.progress_percentage ?? 0
+    : 0;
+  const projectProgress = Math.min(100, Math.max(0, Math.round(project?.progress_percentage ?? milestoneProgress)));
 
   const { data: serverTasks } = useQuery({
     queryKey: ['tasks', activeProjectId, activeBoardId],
@@ -152,14 +166,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
     const delta = direction === 'left' ? -scrollAmount : scrollAmount;
     el.scrollBy({ left: delta, behavior: 'smooth' });
     setTimeout(updateScrollIndicators, 350);
-  };
-
-  const scrollToStatus = (statusId: string | number) => {
-    const target = document.getElementById(`col-${statusId}`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      setTimeout(updateScrollIndicators, 350);
-    }
   };
 
   useEffect(() => {
@@ -770,7 +776,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
   const focusTask = filteredTasks.find(task => task.id === focusedTaskId) || filteredTasks[0];
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-base-100">
+    <div className="tasks-kanban-frame flex h-full w-full flex-col overflow-hidden bg-base-100">
       {/* ─── Top Header with Board Info ─── */}
       <div className="shrink-0 border-b border-base-300/60 bg-base-100 px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -789,6 +795,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
               <h1 className="text-base sm:text-lg font-extrabold text-base-content truncate">
                 {board.title}
               </h1>
+              <div className="inline-flex min-w-[112px] items-center gap-2 rounded-xl border border-white/60 bg-white/55 px-2.5 py-1 shadow-sm backdrop-blur-md" aria-label={t("Project progress") + ` ${formatUiNumber(projectProgress)}%`}>
+                <span className="text-[11px] font-bold text-heledone-ink-muted">{formatUiNumber(projectProgress)}%</span>
+                <span className="h-1.5 w-14 overflow-hidden rounded-full bg-base-300/70">
+                  <span className="block h-full rounded-full bg-primary transition-[width]" style={{ width: `${projectProgress}%` }} />
+                </span>
+              </div>
               <span className="inline-flex shrink-0 items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[11px] sm:text-xs font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 {t("فعال")}
@@ -980,44 +992,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ onCreateBoard }) => {
           </div>
         </div>
       </div>
-
-      {/* ─── Stage Breadcrumb / Flow Navigator (Concept 1) ─── */}
-      {board?.statuses && board.statuses.length > 0 && !focusMode && (
-        <div className="flex items-center gap-2 overflow-x-auto px-4 sm:px-6 py-2 border-b border-base-300/40 bg-base-100/80 backdrop-blur-xs custom-scrollbar shrink-0">
-          <div className="flex items-center gap-1.5 min-w-max text-xs">
-            {[...board.statuses].sort((a, b) => a.order - b.order).map((status, idx, arr) => {
-              const count = filteredTasks.filter(t => t.status_detail?.id?.toString() === status.id.toString()).length;
-              const appearance = getWorkflowAppearance(status);
-              return (
-                <React.Fragment key={status.id}>
-                  <button
-                    type="button"
-                    onClick={() => scrollToStatus(status.id)}
-                    className="group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold text-heledone-ink-muted hover:text-base-content hover:bg-base-200/70 transition-all cursor-pointer"
-                  >
-                    <span
-                      className="size-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
-                      style={{ background: appearance.color }}
-                    />
-                    <span>{appearance.label}</span>
-                    <span
-                      className="rounded-full px-1.5 py-0.2 text-[10px] font-bold"
-                      style={{ background: `color-mix(in srgb, ${appearance.color} 15%, transparent)`, color: appearance.color }}
-                    >
-                      {formatUiNumber(count)}
-                    </span>
-                  </button>
-                  {idx < arr.length - 1 && (
-                    <span className="text-heledone-ink-muted/40 rtl:rotate-180 select-none text-[11px]">
-                      ›
-                    </span>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {focusMode ? (
         <FocusModeView

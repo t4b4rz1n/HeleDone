@@ -168,6 +168,17 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                     )
         except Exception:
             pass
+        try:
+            from organizations.constants import TEAM_LEAD_PERMISSIONS
+            from organizations.models import Team
+
+            if Team.objects.filter(leader=self.user, is_deleted=False).exists():
+                for perm in TEAM_LEAD_PERMISSIONS:
+                    if perm not in user_permissions:
+                        user_permissions.append(perm)
+        except Exception:
+            pass
+
 
         can_manage_automations = bool(
             self.user.is_superuser

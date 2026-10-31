@@ -8,7 +8,7 @@
   max-height: var(--heledone-header-height, 160px);
   border: 1px solid var(--color-base-300);
   border-radius: 16px;
-  background: var(--color-base-100);
+  background: var(--glass-surface-strong);
   overflow: hidden;
 }
 .projects-coastal-art {
@@ -30,12 +30,12 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(to left, var(--color-base-100) 0%, color-mix(in srgb, var(--color-base-100) 95%, transparent) 42%, transparent 88%);
+  background: linear-gradient(to left, rgb(247 251 253 / 44%) 0%, rgb(247 251 253 / 24%) 48%, transparent 88%);
 }
 
 [dir="ltr"] .projects-coastal-heading::after,
 [dir="ltr"] .projects-coastal-overlay {
-  background: linear-gradient(to right, var(--color-base-100) 0%, color-mix(in srgb, var(--color-base-100) 95%, transparent) 42%, transparent 88%);
+  background: linear-gradient(to right, rgb(247 251 253 / 44%) 0%, rgb(247 251 253 / 24%) 48%, transparent 88%);
 }
 
 .projects-heading-copy {
@@ -66,7 +66,7 @@
   padding-inline: 0.75rem;
   border: 1px solid var(--color-heledone-border);
   border-radius: 8px;
-  background: var(--color-base-100);
+  background: var(--glass-surface-control);
   color: var(--color-base-content);
 }
 .projects-status-filter select {
@@ -82,7 +82,7 @@
 }
 .projects-card {
   min-width: 0;
-  background: var(--color-base-100);
+  background: var(--glass-surface);
   border-block-start: 3px solid var(--color-heledone-coral);
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);

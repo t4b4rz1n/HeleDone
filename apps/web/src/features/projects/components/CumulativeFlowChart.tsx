@@ -88,6 +88,7 @@ export default function CumulativeFlowChart({
   return (
     <div
       id="cfd-chart-container"
+      className="project-analytics-glass"
       style={{
         background: "var(--color-surface, var(--color-base-100))",
         borderRadius: 16,

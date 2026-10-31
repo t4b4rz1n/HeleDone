@@ -124,7 +124,7 @@ class ProjectService:
         if user.is_superuser:
             return qs
 
-        from organizations.models import Organization, OrganizationMembership
+        from organizations.models import Organization, OrganizationMembership, Team
         from organizations.services import PermissionService
 
         # Organizations where user is owner
@@ -148,10 +148,20 @@ class ProjectService:
 
         privileged_org_ids = list(owned_org_ids) + admin_org_ids
 
+        # Non-admin team leads are strictly scoped to projects where their led team is assigned (or direct membership/owner)
+        is_team_lead = Team.objects.filter(leader=user, is_deleted=False).exists()
+        if is_team_lead and not privileged_org_ids:
+            return qs.filter(
+                Q(owner=user)
+                | Q(members__user=user, members__is_deleted=False)
+                | Q(members__team__leader=user, members__is_deleted=False)
+            ).distinct()
+
         qs = qs.filter(
             Q(organization_id__in=privileged_org_ids)
             | Q(owner=user)
             | Q(members__user=user, members__is_deleted=False)
+            | Q(members__team__leader=user, members__is_deleted=False)
         ).distinct()
 
         return qs

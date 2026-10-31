@@ -138,7 +138,7 @@ export const TaskManagementPage: React.FC = () => {
   });
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-base-100">
+    <div className="tasks-workspace-frame flex h-full w-full overflow-hidden bg-base-100">
       {/* ─── 1. Left Workspace Sidebar ─── */}
       <ProjectWorkspaceSidebar
         activeProjectId={activeProjectId}
@@ -156,7 +156,7 @@ export const TaskManagementPage: React.FC = () => {
       />
 
       {/* ─── 2. Main Workspace Canvas ─── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-base-100">
+      <div className="tasks-workspace-canvas flex-1 flex flex-col min-w-0 overflow-hidden bg-base-100">
         {(projectsFailed || boardsFailed || tasksFailed || membersFailed) && (
           <div role="alert" className="flex shrink-0 items-center justify-between gap-3 border-b border-error/20 bg-error/5 px-4 py-2.5 text-xs text-error">
             <span>{translateError(projectsError || boardsError || tasksError || membersError, "Could not load project workspace.")}</span>

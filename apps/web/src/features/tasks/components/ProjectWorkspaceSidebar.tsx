@@ -1,5 +1,5 @@
 import ProfileAvatar from "../../../components/ProfileAvatar";
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Kanban,
@@ -48,49 +48,11 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
   const { data: milestones = [] } = useProjectMilestones(activeProjectId || '');
 
   const activeProject = currentProject || projects.find((p) => String(p.id) === String(activeProjectId));
-  const isTaskBased = activeProject?.progress_mode !== 'milestone_based';
 
   // Find nearest active milestone (not completed, not cancelled)
   const activeMilestone = milestones.find((m) => m.status !== 'completed' && m.status !== 'cancelled') || milestones[0];
 
   const completedMilestones = milestones.filter((milestone) => milestone.status === 'completed').length;
-
-  // Accurate Milestone Progress calculation
-  const milestoneProgress = useMemo(() => {
-    if (!activeMilestone) return 0;
-    if (activeMilestone.status === 'completed') return 100;
-    if (activeMilestone.status === 'cancelled') return 0;
-
-    const taskCount = activeMilestone.task_count ?? 0;
-    const completedCount = activeMilestone.completed_task_count ?? 0;
-
-    if (isTaskBased) {
-      if (taskCount > 0) {
-        return Math.min(100, Math.max(0, Math.round((completedCount / taskCount) * 100)));
-      }
-      if (activeMilestone.progress_percentage !== undefined) {
-        return Math.round(activeMilestone.progress_percentage);
-      }
-      return 0;
-    } else {
-      // Milestone-based calculation:
-      // Weight of completed milestones vs total weight of all milestones
-      const totalWeight = milestones.reduce((s, m) => s + (m.weight || 1), 0);
-      const completedWeight = milestones
-        .filter((m) => m.status === 'completed')
-        .reduce((s, m) => s + (m.weight || 1), 0);
-      const projectMilestonePercent = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
-
-      // If this individual milestone has linked tasks, reflect them:
-      if (taskCount > 0) {
-        return Math.min(100, Math.max(0, Math.round((completedCount / taskCount) * 100)));
-      }
-      if (activeMilestone.progress_percentage !== undefined) {
-        return Math.round(activeMilestone.progress_percentage);
-      }
-      return projectMilestonePercent;
-    }
-  }, [activeMilestone, isTaskBased, milestones]);
 
   const viewItems: { id: TaskViewMode; label: string; icon: React.ReactNode }[] = [
     {
@@ -303,23 +265,8 @@ export const ProjectWorkspaceSidebar: React.FC<ProjectWorkspaceSidebarProps> = (
                     </span>
                     <ChevronDown size={14} className="shrink-0 text-heledone-ink-muted" />
                   </div>
-                  <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-heledone-ink-muted">
-                    <span>
-                      {formatUiNumber(completedMilestones)}/{formatUiNumber(milestones.length)} {t('مایل‌استون‌ها')}
-                    </span>
-                    <span className="rounded-full border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-black text-primary">
-                      {formatUiNumber(milestoneProgress)}%
-                    </span>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-base-200">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, milestoneProgress))}%`,
-                        background: 'linear-gradient(90deg, var(--color-primary), var(--color-success))',
-                      }}
-                    />
+                  <div className="text-[10px] font-semibold text-heledone-ink-muted">
+                    {formatUiNumber(completedMilestones)}/{formatUiNumber(milestones.length)} {t('مایل‌استون‌ها')}
                   </div>
                 </div>
               ) : (

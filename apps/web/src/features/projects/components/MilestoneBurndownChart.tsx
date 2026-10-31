@@ -43,7 +43,7 @@ export default function MilestoneBurndownChart({
 
   if (data.total_tasks === 0) {
     return (
-      <div style={containerStyle}>
+      <div className="project-analytics-glass" style={containerStyle}>
         <Header data={data} mode={mode} setMode={setMode} />
         <EmptyState message={data.note ?? t("No tasks linked to this milestone.")} />
       </div>
@@ -80,7 +80,7 @@ export default function MilestoneBurndownChart({
     (data.actual_burndown.at(-1)?.remaining ?? 0) > 0;
 
   return (
-    <div style={containerStyle}>
+    <div className="project-analytics-glass" style={containerStyle}>
       <Header data={data} mode={mode} setMode={setMode} />
 
       {/* Stats Row */}
@@ -415,7 +415,7 @@ const containerStyle: React.CSSProperties = {
 function Skeleton() {
   useLocale();
   return (
-    <div style={{ ...containerStyle, height: 360, opacity: 0.5 }}>
+    <div className="project-analytics-glass" style={{ ...containerStyle, height: 360, opacity: 0.5 }}>
       <div
         style={{
           background: "color-mix(in srgb, var(--color-base-content) 8%, transparent)",

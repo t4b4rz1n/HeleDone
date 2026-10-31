@@ -77,19 +77,12 @@ COMPATIBILITY_ROLE_PERMISSIONS_MAP = {
 
 # Dynamically injected for users who are Team.leader
 TEAM_LEAD_PERMISSIONS = [
-    "org.view",
     "user.view",
-    "role.view",
     "project.view",
-    "project.create",
     "task.view",
     "task.create",
-    "task.manage_all",
-    "task.review",
     "board.view",
-    "board.manage",
     "attendance.view",
-    "attendance.view_all",
     "notification.view",
     "report.view_team_lead",
 ]

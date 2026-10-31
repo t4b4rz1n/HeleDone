@@ -206,6 +206,7 @@ def is_user_project_member(request, project_id):
             ProjectMember.objects.filter(is_active=True, is_deleted=False)
             .filter(
                 Q(user_id=user.id)
+                | Q(team__leader_id=user.id, team__is_deleted=False)
                 | Q(
                     team__memberships__user_id=user.id,
                     team__is_deleted=False,
@@ -221,6 +222,20 @@ def is_user_project_member(request, project_id):
 
     return str(project_id) in request._user_project_memberships_cache
 
+
+def is_project_team_lead(user, project_or_id):
+    """Checks if the user is a leader of a team assigned to this project."""
+    if not user or not user.is_authenticated or not project_or_id:
+        return False
+    from projects.models import ProjectMember
+
+    return ProjectMember.objects.filter(
+        project_id=project_or_id,
+        team__leader=user,
+        team__is_deleted=False,
+        is_active=True,
+        is_deleted=False,
+    ).exists()
 
 class BaseMadaarPermission(permissions.BasePermission):
     """Base permission enforcing auth, org isolation, staff bypass, and role caching."""
@@ -284,6 +299,12 @@ class IsBoardPermission(BaseMadaarPermission):
                 request.user, "board.view", org_id
             ) or PermissionService.has_permission(request.user, "task.view", org_id)
 
+        # Team lead can create boards for their assigned project
+        if request.method == "POST":
+            project_id = extract_project_id(request)
+            if project_id and is_project_team_lead(request.user, project_id):
+                return True
+
         org_id = extract_organization_id(request)
         if org_id:
             from organizations.services import PermissionService
@@ -310,6 +331,9 @@ class IsBoardPermission(BaseMadaarPermission):
 
         if hasattr(obj, "created_by") and obj.created_by == request.user:
             return True
+        if hasattr(obj, "project_id") and is_project_team_lead(request.user, obj.project_id):
+            return True
+
 
         org_id = extract_organization_id(obj)
         if org_id:
@@ -339,6 +363,14 @@ class IsTaskStatusPermission(BaseMadaarPermission):
                 request.user, "board.view", org_id
             ) or PermissionService.has_permission(request.user, "task.view", org_id)
 
+        board_id = getattr(request, "data", {}).get("board") if hasattr(request, "data") and isinstance(request.data, dict) else None
+        if board_id:
+            from tasks.models import Board
+
+            board = Board.objects.filter(id=board_id, is_deleted=False).first()
+            if board and is_project_team_lead(request.user, board.project_id):
+                return True
+
         org_id = extract_organization_id(request)
         if org_id:
             from organizations.services import PermissionService
@@ -365,6 +397,9 @@ class IsTaskStatusPermission(BaseMadaarPermission):
 
         if hasattr(obj, "board") and obj.board and obj.board.created_by == request.user:
             return True
+        if hasattr(obj, "board") and obj.board and is_project_team_lead(request.user, obj.board.project_id):
+            return True
+
 
         org_id = extract_organization_id(obj)
         if org_id:
@@ -394,6 +429,10 @@ class IsTaskPermission(BaseMadaarPermission):
                 request.user, "task.view", org_id
             ) or PermissionService.has_permission(request.user, "task.manage_all", org_id)
 
+        project_id = extract_project_id(request)
+        if project_id and is_project_team_lead(request.user, project_id):
+            return True
+
         org_id = extract_organization_id(request)
         if org_id:
             from organizations.services import PermissionService
@@ -401,13 +440,16 @@ class IsTaskPermission(BaseMadaarPermission):
             if PermissionService.has_permission(request.user, "task.manage_all", org_id):
                 return True
             if PermissionService.has_permission(request.user, "task.create", org_id):
-                project_id = extract_project_id(request)
                 if project_id and is_user_project_member(request, project_id):
                     return True
 
         return False
 
     def check_object_permission(self, request, view, obj):
+        # Team lead of the project has full access to Kanban tasks (move, edit, complete, assign)
+        if hasattr(obj, "project_id") and is_project_team_lead(request.user, obj.project_id):
+            return True
+
         if request.method in permissions.SAFE_METHODS:
             org_id = extract_organization_id(obj)
             if not org_id:

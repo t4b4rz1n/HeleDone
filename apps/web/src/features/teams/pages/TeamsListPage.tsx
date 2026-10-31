@@ -40,8 +40,11 @@ export default function TeamsListPage() {
   const t = useTranslation();
   const { hasAnyPermission } = usePermissions();
 
-  const canManageTeams = hasAnyPermission(["org.manage_members", "org.manage_settings"]);
-
+  const isOrgAdmin = hasAnyPermission(["org.manage_members", "org.manage_settings"]);
+  const isTeamLead = hasAnyPermission(["report.view_team_lead"]);
+  const canManageTeams = isOrgAdmin || isTeamLead;
+  const canCreateTeams = isOrgAdmin;
+  const canDeleteTeams = isOrgAdmin;
   const [searchParams, setSearchParams] = useSearchParams();
   const [modalState, setModalState] = useState<{
     open: boolean;
@@ -246,7 +249,7 @@ export default function TeamsListPage() {
               setViewMode={setViewMode}
               className="w-full sm:w-auto"
             />
-            {canManageTeams && (
+            {canCreateTeams && (
               <button
                 type="button"
                 onClick={handleCreateTeam}
@@ -290,6 +293,7 @@ export default function TeamsListPage() {
                   onManageMembers={handleManageMembers}
                   onDelete={handleDeleteTeam}
                   canManage={canManageTeams}
+                  canDelete={canDeleteTeams}
                 />
               ) : (
                 <TeamsGrid
@@ -300,6 +304,7 @@ export default function TeamsListPage() {
                   onManageMembers={handleManageMembers}
                   onDelete={handleDeleteTeam}
                   canManage={canManageTeams}
+                  canDelete={canDeleteTeams}
                 />
               )}
             </motion.div>

@@ -9,7 +9,7 @@ export const teamsRoutes = [
     path: "teams",
     element: (
       <PermissionGuard
-        permissions={["user.view", "org.manage_members"]}
+        permissions={["user.view", "org.manage_members", "report.view_team_lead"]}
         fallback={<Navigate to="/dashboard" replace />}
       >
         <TeamsListPage />

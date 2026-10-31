@@ -247,11 +247,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
   const isLoading = updateMutation.isPending || addCommentMutation.isPending || addChecklistMutation.isPending || toggleChecklistMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-neutral/60 backdrop-blur-sm p-4 pt-12 overflow-y-auto" >
+    <div className="task-detail-glass-backdrop fixed inset-0 z-[100] flex items-start justify-center bg-neutral/60 backdrop-blur-sm p-4 pt-12 overflow-y-auto" >
       <div className="flex flex-col items-center w-full max-w-[900px]">
 
         {/* Modal Container */}
-        <div className="bg-base-100 w-full rounded-xl shadow-2xl flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <div className="task-detail-glass-modal bg-base-100 w-full rounded-xl shadow-2xl flex flex-col relative" onClick={e => e.stopPropagation()}>
 
           {/* Loading Overlay */}
           {isLoading && (
@@ -261,7 +261,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           )}
 
           {/* Top Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-base-content/10">
+          <div className="task-detail-glass-header flex items-center justify-between px-6 py-4 border-b border-base-content/10">
             <div className="bg-black/20 hover:bg-black/30 cursor-pointer text-base-content px-3 py-1.5 rounded flex items-center gap-1 text-sm font-medium transition-colors border border-base-content/10">
               {task.status_detail?.name || t("وضعیت")} <span className="text-xs ms-1">˅</span>
             </div>
@@ -270,9 +270,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row min-h-[450px] max-h-[calc(100dvh-2rem)]">
+          <div className="task-detail-glass-layout flex flex-col md:flex-row min-h-[450px] max-h-[calc(100dvh-2rem)]">
             {/* Left Column (Main Info) */}
-            <div className="flex-[1.4] p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+            <div className="task-detail-glass-main flex-[1.4] p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
 
               {/* Title & Status */}
               <div className="flex gap-3 items-start">
@@ -567,7 +567,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
             </div>
 
             {/* Right Column (Comments & Activity) */}
-            <div className="flex-[1] p-6 bg-white/[0.02] border-l border-base-content/5 rounded-br-xl flex flex-col">
+            <div className="task-detail-glass-activity flex-[1] p-6 bg-white/[0.02] border-l border-base-content/5 rounded-br-xl flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Activity size={18} className="text-base-content" />

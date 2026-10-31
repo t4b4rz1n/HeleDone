@@ -195,7 +195,7 @@ export const StandupModal: React.FC<StandupModalProps> = ({
 
           {/* Modal Card */}
           <motion.div
-            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-base-content/10 bg-base-100 shadow-2xl"
+            className="heledone-glass-dialog relative w-full max-w-md overflow-hidden rounded-3xl border border-base-content/10 bg-base-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

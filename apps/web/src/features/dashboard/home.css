@@ -1,12 +1,12 @@
 /* Modern Madaar / Heledone SaaS Dashboard Theme & Shell */
 .home-reference-shell {
-  background: var(--color-base-200);
+  background: transparent;
   color: var(--color-base-content);
 }
 
 .home-reference-shell .heledone-page {
   padding: 16px 20px 24px;
-  background: var(--color-base-200);
+  background: transparent;
 }
 
 /* ─── Sidebar ───────────────────────────────────────────────────────────────── */
@@ -15,7 +15,7 @@
   flex: 0 0 260px;
   display: flex;
   flex-direction: column;
-  background: var(--color-base-100);
+  background: var(--glass-surface);
   border-inline-end: 1px solid var(--color-base-300);
   position: relative;
   color: var(--color-base-content);
@@ -106,12 +106,12 @@
 }
 
 .home-nav-link:hover {
-  background: var(--color-base-200);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   opacity: 1;
 }
 
 .home-nav-link.active {
-  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-base-100));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   color: var(--color-primary);
   opacity: 1;
   font-weight: 800;
@@ -175,7 +175,7 @@
 }
 
 .home-subnav a:hover {
-  background: var(--color-base-200);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   opacity: 1;
 }
 
@@ -299,7 +299,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 0 20px;
-  background: var(--color-base-100);
+  background: var(--glass-surface);
   border-bottom: 1px solid var(--color-base-300);
 }
 
@@ -332,13 +332,13 @@
 
 .home-top-nav-item:hover {
   opacity: 1;
-  background: var(--color-base-200);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   color: var(--color-primary);
 }
 
 .home-top-nav-item.active {
   opacity: 1;
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-base-100));
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   color: var(--color-primary);
   font-weight: 800;
 }
@@ -349,7 +349,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-base-200);
+  background: var(--glass-surface-control);
   color: var(--color-heledone-ink-muted);
   border-radius: 10px;
   border: 1px solid var(--color-base-300);
@@ -362,7 +362,7 @@
 
 .home-search:hover {
   border-color: var(--color-primary);
-  background: var(--color-base-100);
+  background: var(--glass-surface-strong);
 }
 
 .home-search span {
@@ -377,7 +377,7 @@
   font-weight: 700;
   padding: 2px 5px;
   border-radius: 5px;
-  background: var(--color-base-100);
+  background: var(--glass-surface-control);
   border: 1px solid var(--color-base-300);
   color: var(--color-heledone-ink-muted);
   margin-inline-start: auto;
@@ -419,7 +419,7 @@
   position: relative;
   min-height: 140px;
   border-radius: 16px;
-  background: var(--color-base-100);
+  background: var(--glass-surface-strong);
   border: 1px solid var(--color-base-300);
   overflow: hidden;
   isolation: isolate;
@@ -503,8 +503,8 @@
   .home-sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(4px);
+    background: rgba(13, 36, 48, 0.54);
+    backdrop-filter: blur(8px) saturate(115%);
     z-index: 125;
   }
 

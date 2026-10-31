@@ -77,8 +77,10 @@ class BoardViewSet(viewsets.ModelViewSet):
             .filter(is_deleted=False)
         )
         if org_ids is not None:
-            qs = qs.filter(project__organization_id__in=org_ids)
+            from projects.services import ProjectService
 
+            accessible_projects = ProjectService.get_accessible_queryset(user).values_list("id", flat=True)
+            qs = qs.filter(project_id__in=accessible_projects)
         project_id = self.request.query_params.get("project")
         if project_id:
             qs = qs.filter(project_id=project_id)
@@ -295,10 +297,12 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
             .filter(is_deleted=False)
         )
-        # Org isolation
+        # Scoped to accessible projects
         if org_ids is not None:
-            qs = qs.filter(project__organization_id__in=org_ids)
+            from projects.services import ProjectService
 
+            accessible_projects = ProjectService.get_accessible_queryset(user).values_list("id", flat=True)
+            qs = qs.filter(project_id__in=accessible_projects)
         project_id = self.request.query_params.get("project")
         if project_id:
             qs = qs.filter(project_id=project_id)

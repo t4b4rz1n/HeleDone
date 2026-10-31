@@ -13,6 +13,7 @@ interface TeamsTableProps {
   onManageMembers?: (team: TeamWithDetails) => void;
   onDelete: (team: TeamWithDetails) => void;
   canManage: boolean;
+  canDelete?: boolean;
 }
 
 export const TeamsTable = ({
@@ -23,6 +24,7 @@ export const TeamsTable = ({
   onManageMembers,
   onDelete,
   canManage,
+  canDelete = true,
 }: TeamsTableProps) => {
   const t = useTranslation();
   if (isLoading) {
@@ -169,14 +171,16 @@ export const TeamsTable = ({
                           <Edit2 size={14} />
                           <span className="hidden sm:inline">{t("ویرایش")}</span>
                         </button>
-                        <button
-                          onClick={() => onDelete(team)}
-                          className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:text-error hover:bg-error/10"
-                          title={t("Delete Team")}
-                        >
-                          <Trash size={14} />
-                          <span className="hidden sm:inline">{t("حذف")}</span>
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => onDelete(team)}
+                            className="btn btn-ghost btn-xs gap-1 rounded-lg text-heledone-ink-muted hover:text-error hover:bg-error/10"
+                            title={t("Delete Team")}
+                          >
+                            <Trash size={14} />
+                            <span className="hidden sm:inline">{t("حذف")}</span>
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

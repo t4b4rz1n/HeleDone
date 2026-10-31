@@ -98,7 +98,7 @@ function MilestoneItem({
   const t = useTranslation();
   const { hasAnyPermission, isStaff } = usePermissions();
   const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
-
+  const canManageMilestones = canManageProject || hasAnyPermission(["report.view_team_lead", "project.view"]);
 
   const msCfg = milestoneStatusConfig[ms.status] ?? milestoneStatusConfig.pending;
   const [showChart, setShowChart] = useState(false);
@@ -136,7 +136,7 @@ function MilestoneItem({
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          {canManageProject && (
+          {canManageMilestones && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
               <button
                 onClick={() => onEdit(ms)}
@@ -145,13 +145,15 @@ function MilestoneItem({
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
-              <button
-                onClick={() => onDelete(ms)}
-                className="p-1 rounded-md text-heledone-ink-muted hover:text-error hover:bg-base-200"
-                title={t("Delete Milestone")}
-              >
-                <Trash size={14} variant="Bold" />
-              </button>
+              {canManageProject && (
+                <button
+                  onClick={() => onDelete(ms)}
+                  className="p-1 rounded-md text-heledone-ink-muted hover:text-error hover:bg-base-200"
+                  title={t("Delete Milestone")}
+                >
+                  <Trash size={14} variant="Bold" />
+                </button>
+              )}
             </div>
           )}
           <div className="hidden sm:flex flex-col items-end gap-1 me-2">
@@ -349,7 +351,7 @@ function MilestonesTab({
   const t = useTranslation();
   const { hasAnyPermission, isStaff } = usePermissions();
   const canManageProject = hasAnyPermission(["project.manage"]) || isStaff;
-
+  const canManageMilestones = canManageProject || hasAnyPermission(["report.view_team_lead", "project.view"]);
   // Calculate weighted progress
   const totalWeight = milestones.reduce((s, m) => s + (m.weight || 1), 0);
   const completedWeight = milestones
@@ -390,7 +392,7 @@ function MilestonesTab({
           <h3 className="text-sm font-bold text-base-content">
             {t("Project Milestones (")}{formatUiNumber(milestones.length)})
           </h3>
-          {canManageProject && (
+          {canManageMilestones && (
             <button
               type="button"
               onClick={onCreateMilestone}

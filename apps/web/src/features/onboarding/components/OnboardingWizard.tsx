@@ -28,7 +28,7 @@ export const OnboardingWizard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+    <div className="heledone-onboarding-page min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
       {/* Brand Header */}
       <header className="mb-6 w-full max-w-4xl text-center flex flex-col items-center">
         <div className="flex justify-center">

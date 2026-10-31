@@ -45,6 +45,7 @@ export const WorkspaceView: React.FC = () => {
     hasPermission('board.manage') ||
     hasPermission('project.manage') ||
     hasPermission('org.manage_settings') ||
+    hasPermission('report.view_team_lead') ||
     isStaff;
 
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -284,3 +284,302 @@
   .heledone-workspace .heledone-page-heading::after { display: none; }
   .heledone-workspace .heledone-page-heading > :first-child { padding: 1rem; min-height: 0; }
 }
+
+/* Shared glass system: semantic tokens are inherited by every route and portal. */
+:root {
+  --glass-surface: rgb(247 251 253 / 23%);
+  --glass-surface-strong: rgb(247 251 253 / 31%);
+  --glass-surface-dialog: rgb(247 251 253 / 78%);
+  --glass-surface-popover: rgb(247 251 253 / 90%);
+  --glass-surface-control: rgb(247 251 253 / 26%);
+  --glass-border: rgb(255 255 255 / 54%);
+  --glass-shadow: 0 12px 36px rgb(14 43 58 / 13%), inset 0 1px 0 rgb(255 255 255 / 52%);
+  --glass-blur: 16px;
+  --glass-scrim: rgb(12 34 46 / 26%);
+}
+[data-theme="dark"] {
+  --glass-surface: rgb(18 27 40 / 46%);
+  --glass-surface-strong: rgb(18 27 40 / 58%);
+  --glass-surface-dialog: rgb(18 27 40 / 88%);
+  --glass-surface-popover: rgb(18 27 40 / 94%);
+  --glass-surface-control: rgb(18 27 40 / 54%);
+  --glass-border: rgb(225 240 250 / 24%);
+  --glass-shadow: 0 16px 44px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(225 240 250 / 16%);
+  --glass-scrim: rgb(4 10 18 / 46%);
+}
+
+.heledone-workspace {
+  position: relative;
+  isolation: isolate;
+  background: #cfe8ed url('/images/heledone-assets/ocean-terrace-background.svg') center / cover fixed !important;
+}
+.heledone-workspace::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgb(246 251 253 / 28%), rgb(255 242 220 / 24%));
+}
+.heledone-workspace.home-reference-shell,
+.heledone-workspace.home-reference-shell .heledone-page,
+.heledone-workspace .heledone-page,
+.heledone-workspace .heledone-task-workspace,
+.heledone-workspace .heledone-task-workspace > * {
+  background-color: transparent !important;
+}
+.heledone-workspace :is(.home-sidebar, .home-topbar, .heledone-sidebar, .heledone-topbar, .home-welcome, .heledone-welcome, .heledone-page-heading, .heledone-task-coast, .heledone-task-workspace > aside, .heledone-kanban-column) {
+  background: var(--glass-surface) !important;
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(128%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(128%);
+}
+.heledone-workspace .home-reference-shell .heledone-page,
+.heledone-workspace.home-reference-shell .heledone-page {
+  background: transparent !important;
+}
+.heledone-workspace .home-welcome-art,
+.heledone-workspace .heledone-welcome > img {
+  opacity: .18;
+}
+.heledone-workspace .heledone-page-heading::after {
+  content: none;
+  background-image: none;
+}
+
+/* Route cards share one calm surface; nested cards do not stack heavy blur. */
+.heledone-workspace .heledone-page :is(div, section, article)[class*="rounded-"][class*="bg-base-100"],
+.heledone-workspace .heledone-page :is(div, section, article)[class*="rounded-"][class*="bg-base-100/"],
+.heledone-workspace .heledone-page :is(div, section, article)[class*="rounded-"][class*="bg-base-200"],
+.heledone-workspace .heledone-page :is(div, section, article)[class*="rounded-"][class~="bg-white"],
+.heledone-workspace :is(.heledone-surface, .coastal-item, .projects-card, .projects-status-filter, .projects-coastal-heading, .project-analytics-glass) {
+  background-color: var(--glass-surface) !important;
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(10px) saturate(124%);
+  backdrop-filter: blur(10px) saturate(124%);
+}
+.heledone-workspace .projects-page :is(.projects-card, .projects-status-filter, .projects-coastal-heading) {
+  background-color: var(--glass-surface-strong) !important;
+}
+.heledone-workspace .projects-page .projects-card:hover {
+  background-color: rgb(247 251 253 / 38%) !important;
+}
+.heledone-workspace .projects-page :is(.projects-coastal-heading::after, .projects-coastal-overlay) {
+  background: linear-gradient(90deg, rgb(247 251 253 / 22%), rgb(247 251 253 / 8%) 62%, transparent) !important;
+}
+.heledone-workspace .projects-page :is(.projects-search, .projects-status-filter) {
+  background-color: var(--glass-surface-control) !important;
+  border-color: var(--glass-border);
+}
+.heledone-workspace .heledone-page :is(.table, table) thead th {
+  background-color: rgb(247 251 253 / 16%);
+  border-color: var(--glass-border);
+}
+
+/* Search, inputs, selects and toolbar controls inherit one field treatment. */
+.heledone-workspace :is(.heledone-global-search, .home-search, .home-search-kbd, .projects-search, input, textarea, select, .input, .textarea, .select) {
+  background-color: var(--glass-surface-control);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+.heledone-workspace :is(.heledone-global-search, .home-search, .projects-search):hover {
+  background-color: var(--glass-surface-strong);
+}
+.heledone-workspace :is(input, textarea, select, .input, .textarea, .select):focus,
+.heledone-workspace :is(input, textarea, select, .input, .textarea, .select):focus-within {
+  background-color: rgb(247 251 253 / 38%);
+  border-color: color-mix(in srgb, var(--color-primary) 48%, white);
+}
+.heledone-workspace :is(button, a, label)[class*="bg-base-100/"] {
+  background-color: var(--glass-surface-control);
+  border-color: var(--glass-border);
+}
+.heledone-workspace :is(.heledone-topbar, .home-topbar) :is(button, .btn, [class*="bg-base-100/"]) {
+  background-color: var(--glass-surface-control);
+  border-color: var(--glass-border);
+}
+
+/* Consistent dialog scrim and dialog glass, including legacy fixed overlays and portals. */
+body:has(.heledone-workspace) .fixed.inset-0:has(.heledone-surface, .modal-box, .heledone-glass-dialog, .task-sheet, [role="dialog"], [class~="bg-base-100"]) {
+  background-color: var(--glass-scrim) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  backdrop-filter: blur(8px) saturate(110%);
+}
+body:has(.heledone-workspace) .fixed.inset-0:has(> .absolute.inset-0[class*="bg-black/"]) {
+  background: transparent !important;
+}
+body:has(.heledone-workspace) .fixed.inset-0:has(.heledone-surface, .modal-box, .heledone-glass-dialog, .task-sheet, [role="dialog"], [class~="bg-base-100"]) > .absolute.inset-0[class*="bg-black/"],
+body:has(.heledone-workspace) .fixed.inset-0:has(.heledone-surface, .modal-box, .heledone-glass-dialog, .task-sheet, [role="dialog"], [class~="bg-base-100"]) > .absolute.inset-0[class*="bg-neutral/"] {
+  background-color: var(--glass-scrim) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  backdrop-filter: blur(8px) saturate(110%);
+}
+body:has(.heledone-workspace) :is(.modal-box, .heledone-glass-dialog),
+body:has(.heledone-workspace) .fixed.inset-0 > .heledone-surface,
+body:has(.heledone-workspace) .fixed.inset-0 > .relative > .heledone-surface,
+body:has(.heledone-workspace) .fixed.inset-0 > .relative.heledone-glass-dialog,
+body:has(.heledone-workspace) .fixed.inset-0 > .relative[class~="bg-base-100"] {
+  background-color: var(--glass-surface-dialog) !important;
+  border-color: var(--glass-border);
+  box-shadow: 0 24px 64px rgb(14 43 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 70%);
+  -webkit-backdrop-filter: blur(20px) saturate(122%);
+  backdrop-filter: blur(20px) saturate(122%);
+}
+body:has(.heledone-workspace) .fixed.inset-0 :is(.rounded-xl[class~="bg-base-100"], .rounded-2xl[class~="bg-base-100"], .rounded-3xl[class~="bg-base-100"], .heledone-glass-dialog) {
+  background-color: var(--glass-surface-dialog) !important;
+  border-color: var(--glass-border);
+  box-shadow: 0 24px 64px rgb(14 43 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 70%);
+  -webkit-backdrop-filter: blur(20px) saturate(122%);
+  backdrop-filter: blur(20px) saturate(122%);
+}
+body:has(.heledone-workspace) :is(.dropdown-content, [role="menu"], [role="listbox"], .task-sheet-dropdown-panel, .notification-center-panel) {
+  background-color: var(--glass-surface-popover) !important;
+  border-color: var(--glass-border);
+  box-shadow: 0 18px 44px rgb(14 43 58 / 18%), inset 0 1px 0 rgb(255 255 255 / 82%);
+  -webkit-backdrop-filter: blur(20px) saturate(118%);
+  backdrop-filter: blur(20px) saturate(118%);
+}
+body:has(.heledone-workspace) dialog::backdrop,
+body:has(.heledone-workspace) .modal::before {
+  background: var(--glass-scrim);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  backdrop-filter: blur(8px) saturate(110%);
+}
+
+/* Notification center: a legible popover with restrained row hover color. */
+.heledone-workspace .notification-center-panel {
+  background-color: var(--glass-surface-popover) !important;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 22px 56px rgb(14 43 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 82%);
+}
+.notification-center-panel .notification-center-row:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+.notification-center-panel > :is(div, a) { border-color: color-mix(in srgb, var(--color-base-content) 12%, transparent); }
+
+/* Custom task sheet uses the same dialog, field, and popover tokens as every other flow. */
+body:has(.heledone-workspace) .task-sheet-backdrop {
+  background: var(--glass-scrim) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  backdrop-filter: blur(8px) saturate(110%);
+}
+.task-sheet-backdrop .task-sheet {
+  --color-heledone-surface: var(--glass-surface);
+  --color-heledone-canvas: var(--glass-surface);
+  --color-heledone-border: var(--glass-border);
+  background: var(--glass-surface-dialog) !important;
+  border-color: var(--glass-border);
+  box-shadow: 0 24px 64px rgb(14 43 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 68%);
+  -webkit-backdrop-filter: blur(20px) saturate(122%);
+  backdrop-filter: blur(20px) saturate(122%);
+}
+.task-sheet-backdrop .task-sheet :is(.task-sheet-header, .task-sheet-title, .task-sheet-properties, .task-sheet-tabs, .task-sheet-footer) {
+  background-color: var(--glass-surface) !important;
+  border-color: var(--glass-border);
+}
+.task-sheet-backdrop .task-sheet :is(.task-sheet-section, .task-sheet-editor-box, .task-sheet-due-card, .task-sheet-due-empty-btn, .task-sheet-due-preset-btn, .task-sheet-due-time-chip, .task-sheet-property-control, .task-sheet-dropdown-trigger, .task-sheet-checklist-input-group, .task-sheet-time-card) {
+  background-color: var(--glass-surface-strong) !important;
+  border-color: var(--glass-border);
+  box-shadow: 0 5px 18px rgb(14 43 58 / 8%), inset 0 1px 0 rgb(255 255 255 / 46%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+.task-sheet-backdrop .task-sheet .task-sheet-dropdown-panel {
+  background-color: var(--glass-surface-popover) !important;
+  border-color: var(--glass-border);
+  box-shadow: 0 18px 42px rgb(14 43 58 / 18%), inset 0 1px 0 rgb(255 255 255 / 82%);
+  -webkit-backdrop-filter: blur(20px) saturate(118%);
+  backdrop-filter: blur(20px) saturate(118%);
+}
+.task-sheet-backdrop .task-sheet :is(input, textarea, select) { background-color: var(--glass-surface-control); }
+.task-sheet :is(.task-sheet-tabs > button[aria-selected="true"], .task-sheet-dropdown-item.is-active, .task-sheet-dropdown-item:hover) {
+  background-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.task-detail-glass-backdrop {
+  background: var(--glass-scrim) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  backdrop-filter: blur(8px) saturate(110%);
+}
+.task-detail-glass-modal {
+  background: var(--glass-surface-dialog) !important;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 24px 64px rgb(14 43 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 68%);
+  -webkit-backdrop-filter: blur(20px) saturate(122%);
+  backdrop-filter: blur(20px) saturate(122%);
+}
+.task-detail-glass-modal :is(.task-detail-glass-header, .task-detail-glass-layout > div, [class~="bg-base-100"]) {
+  background-color: var(--glass-surface) !important;
+  border-color: var(--glass-border);
+}
+body:has(.task-detail-glass-modal) .fixed.z-\[120\] {
+  background-color: var(--glass-surface-popover) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(118%);
+  backdrop-filter: blur(20px) saturate(118%);
+}
+
+/* Inline chart containers use an explicit shared surface class. */
+.heledone-workspace .project-analytics-glass {
+  background: var(--glass-surface) !important;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(12px) saturate(124%);
+  backdrop-filter: blur(12px) saturate(124%);
+}
+
+/* Auth and onboarding share the same background wash and surface system. */
+body:has(.heledone-auth-page),
+.heledone-onboarding-page {
+  background: linear-gradient(rgb(247 251 253 / 22%), rgb(247 251 253 / 22%)), url('/images/heledone-assets/ocean-terrace-background.svg') center / cover fixed !important;
+}
+.heledone-auth-page { background-color: transparent !important; }
+.heledone-auth-topbar, .heledone-auth-body, .heledone-onboarding-page > header,
+.heledone-onboarding-page div.rounded-2xl.bg-base-100 {
+  background-color: var(--glass-surface) !important;
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(124%);
+  backdrop-filter: blur(16px) saturate(124%);
+}
+.heledone-onboarding-page div.rounded-2xl.bg-base-100 { background-color: var(--glass-surface-strong) !important; }
+
+@media (min-width: 1024px) {
+  .heledone-workspace .home-sidebar { height: calc(100dvh - 16px); margin: 8px; }
+  .heledone-workspace .heledone-sidebar { height: calc(100% - 16px); margin-block: 8px; }
+  .heledone-workspace :is(.home-topbar, .heledone-topbar) { margin: 8px 12px; border-radius: 14px; }
+}
+@media (max-width: 1023px) {
+  .heledone-workspace .home-sidebar.is-open {
+    background-color: var(--glass-surface-dialog) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(122%);
+    backdrop-filter: blur(20px) saturate(122%);
+  }
+}
+@media (max-width: 760px) {
+  .heledone-workspace { background-attachment: scroll !important; }
+}
+[data-theme="dark"] .heledone-workspace,
+[data-theme="dark"] body:has(.heledone-auth-page),
+[data-theme="dark"] .heledone-onboarding-page {
+  background-image: linear-gradient(rgb(7 16 25 / 24%), rgb(7 16 25 / 24%)), url('/images/heledone-assets/ocean-terrace-background.svg') !important;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .heledone-workspace :is(.home-sidebar, .home-topbar, .heledone-sidebar, .heledone-topbar, .home-welcome, .heledone-welcome, .heledone-page-heading, .heledone-kanban-column, .heledone-surface, .coastal-item, .projects-card),
+  body:has(.heledone-workspace) :is(.modal-box, .heledone-glass-dialog, .notification-center-panel, .dropdown-content, [role="menu"], [role="listbox"]),
+  .task-sheet-backdrop .task-sheet,
+  .heledone-auth-topbar, .heledone-auth-body, .heledone-onboarding-page > header,
+  .heledone-onboarding-page div.rounded-2xl.bg-base-100 {
+    background: var(--color-base-100) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .heledone-workspace :is(.home-sidebar, .home-topbar, .heledone-sidebar, .heledone-topbar, .home-welcome, .heledone-welcome, .heledone-page-heading, .heledone-kanban-column, .heledone-surface, .coastal-item),
+  body:has(.heledone-workspace) :is(.modal-box, .heledone-glass-dialog, .notification-center-panel, .dropdown-content, [role="menu"], [role="listbox"]) {
+    background-color: rgb(247 251 253 / 88%);
+  }
+}

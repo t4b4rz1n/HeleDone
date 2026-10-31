@@ -14,6 +14,7 @@ interface TeamsGridProps {
   onManageMembers?: (team: TeamWithDetails) => void;
   onDelete: (team: TeamWithDetails) => void;
   canManage: boolean;
+  canDelete?: boolean;
 }
 
 const containerVariants = {
@@ -37,6 +38,7 @@ export const TeamsGrid = ({
   onManageMembers,
   onDelete,
   canManage,
+  canDelete = true,
 }: TeamsGridProps) => {
   const t = useTranslation();
   if (isLoading) {
@@ -165,14 +167,16 @@ export const TeamsGrid = ({
                       <Edit2 size={14} />
                       <span className="hidden sm:inline">{t("ویرایش")}</span>
                     </button>
-                    <button
-                      onClick={() => onDelete(team)}
-                      className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-error hover:bg-error/10 motion-interactive"
-                      title={t("Delete Team")}
-                    >
-                      <Trash size={14} />
-                      <span className="hidden sm:inline">{t("حذف")}</span>
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(team)}
+                        className="btn btn-ghost btn-xs gap-1.5 rounded-xl text-heledone-ink-muted hover:text-error hover:bg-error/10 motion-interactive"
+                        title={t("Delete Team")}
+                      >
+                        <Trash size={14} />
+                        <span className="hidden sm:inline">{t("حذف")}</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>

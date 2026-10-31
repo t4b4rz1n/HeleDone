@@ -73,7 +73,7 @@ export default function CycleLeadTimeReport({
 
   if (data.task_count === 0) {
     return (
-      <div style={containerStyle}>
+      <div className="project-analytics-glass" style={containerStyle}>
         <SectionHeader start={start} end={end} setStart={setStart} setEnd={setEnd} />
         <EmptyState />
       </div>
@@ -94,7 +94,7 @@ export default function CycleLeadTimeReport({
   }));
 
   return (
-    <div style={containerStyle}>
+    <div className="project-analytics-glass" style={containerStyle}>
       <SectionHeader start={start} end={end} setStart={setStart} setEnd={setEnd} />
 
       {/* KPI Cards */}

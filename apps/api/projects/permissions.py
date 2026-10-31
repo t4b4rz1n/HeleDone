@@ -39,9 +39,11 @@ def _is_org_admin(user, organization) -> bool:
 
 
 def _is_project_member(user, project) -> bool:
-    if not user or not user.is_authenticated:
+    if not user or not user.is_authenticated or not project:
         return False
     if project.members.filter(user=user, is_active=True, is_deleted=False).exists():
+        return True
+    if project.members.filter(team__leader=user, is_active=True, is_deleted=False).exists():
         return True
     from organizations.models import TeamMembership
 
@@ -49,7 +51,6 @@ def _is_project_member(user, project) -> bool:
         user=user, team__organization=project.organization, is_deleted=False
     ).values_list("team_id", flat=True)
     return project.members.filter(team_id__in=user_team_ids, is_active=True, is_deleted=False).exists()
-
 
 def _is_project_owner(user, project) -> bool:
     return project.owner_id == user.pk
@@ -190,6 +191,9 @@ class CanManageMilestone(_ProjectFromKwargsMixin):
         if user.is_superuser or _is_project_owner(user, project) or _is_org_admin(user, project.organization):
             return True
         if _is_project_member(user, project):
+            # Team leads and project members can view, create, and edit milestones; deletion requires project owner or org admin
+            if request.method == "DELETE" and not (_is_project_owner(user, project) or _is_org_admin(user, project.organization)):
+                return False
             return True
         return False
 

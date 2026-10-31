@@ -129,7 +129,7 @@ export const drawerItems: DrawerItem[] = [
     link: "teams",
     section: "AdminSettings",
     icon: <TeamsIcon variant="Outline" />,
-    permissions: ["org.manage_members", "org.manage_settings"],
+    permissions: ["org.manage_members", "org.manage_settings", "report.view_team_lead"],
   },
   {
     get title() { return t("نقش‌ها و دسترسی‌ها"); },

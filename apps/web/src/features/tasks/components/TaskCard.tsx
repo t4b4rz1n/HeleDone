@@ -82,8 +82,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       (String(task.reporter) === String(currentUserId) ||
         String((task as any).reporter_detail?.id) === String(currentUserId))
   );
+  const isTeamLead = hasPermission("report.view_team_lead");
   const canManageAll = hasPermission("task.manage_all") || isStaff;
-  const canEditTask = canManageAll || isAssignee || isReporter || hasPermission("task.create");
+  const canEditTask = canManageAll || isTeamLead || isAssignee || isReporter || hasPermission("task.create");
   const canDeleteTask = canManageAll || isReporter;
 
 

@@ -516,14 +516,20 @@ class TaskService:
             is_assignee_or_reporter = (
                 task.assignees.filter(id=actor.id).exists() or task.reporter_id == actor.id
             )
-            is_member = (
+            is_member = bool(
                 task.project
                 and task.project.members.filter(
                     user=actor, is_active=True, is_deleted=False
                 ).exists()
             )
+            is_team_lead = bool(
+                task.project
+                and task.project.members.filter(
+                    team__leader=actor, is_active=True, is_deleted=False
+                ).exists()
+            )
 
-            if not (can_manage or is_assignee_or_reporter or is_member):
+            if not (can_manage or is_assignee_or_reporter or is_member or is_team_lead):
                 raise ValidationError(_("You do not have permission to move this task."))
 
         old_status = task.status

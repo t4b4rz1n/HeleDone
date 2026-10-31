@@ -88,7 +88,7 @@ export const NotificationCenter = () => {
         {isOpen && (
           <motion.section
             aria-label={t("Notification center")}
-            className="heledone-glass absolute end-0 top-[calc(100%+0.75rem)] z-[60] w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl shadow-heledone-floating"
+            className="notification-center-panel heledone-glass absolute end-0 top-[calc(100%+0.75rem)] z-[60] w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl shadow-heledone-floating"
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -162,14 +162,14 @@ const NotificationRow = ({ notification, onClick }: { notification: Notification
   if (notification.link) {
     const finalLink = buildNotificationLink(notification.link);
     return (
-      <Link to={finalLink} onClick={onClick} className="motion-interactive flex gap-3 rounded-xl px-3 py-3 hover:bg-base-200">
+      <Link to={finalLink} onClick={onClick} className="notification-center-row motion-interactive flex gap-3 rounded-xl px-3 py-3 hover:bg-base-200">
         {content}
       </Link>
     );
   }
 
   return (
-    <div className="flex gap-3 rounded-xl px-3 py-3">
+    <div className="notification-center-row flex gap-3 rounded-xl px-3 py-3">
       {content}
     </div>
   );
